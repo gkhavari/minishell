@@ -14,7 +14,8 @@ LIBFT_DIR	= libft
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
 SRCS        = $(SRC_DIR)/main.c \
-				$(SRC_DIR)/init.c
+				$(SRC_DIR)/init.c \
+				$(SRC_DIR)/utils.c
 
 # signals
 #SRCS        += $(SRC_DIR)/signals/signal_handlers.c \
