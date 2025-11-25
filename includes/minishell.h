@@ -18,4 +18,12 @@
 # include <readline/readline.h>
 # include <readline/history.h>
 
+typedef struct s_shell
+{
+    char    **envp;        // copy of environment variables
+    char    *user;         // current username
+    char    cwd[256];      // current working directory
+    int     last_exit;     // last command exit status
+}   t_shell;
+
 #endif
