@@ -27,4 +27,8 @@ typedef struct s_shell
 	int		last_exit;		// last command exit status
 }	t_shell;
 
+char	*build_prompt(t_shell *shell);
+char	*get_env(char **envp, const char *key);
+void	init_shell(t_shell *shell, char **envp);
+
 #endif
