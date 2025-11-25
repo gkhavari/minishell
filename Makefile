@@ -13,23 +13,24 @@ LIBFT_DIR	= libft
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
-SRCS        = $(SRC_DIR)/main.c
+SRCS        = $(SRC_DIR)/main.c \
+				$(SRC_DIR)/init.c
 
 # signals
-SRCS        += $(SRC_DIR)/signals/signal_handlers.c \
+#SRCS        += $(SRC_DIR)/signals/signal_handlers.c \
                $(SRC_DIR)/signals/signal_init.c
 
 # parser
-SRCS        += $(SRC_DIR)/parser/parser.c \
+#SRCS        += $(SRC_DIR)/parser/parser.c \
                $(SRC_DIR)/parser/lexer.c \
                $(SRC_DIR)/parser/tokens.c
 
 # executor
-SRCS        += $(SRC_DIR)/executor/executor.c \
+#SRCS        += $(SRC_DIR)/executor/executor.c \
                $(SRC_DIR)/executor/commands.c
 
 # builtins
-SRCS        += $(SRC_DIR)/builtins/echo.c \
+#SRCS        += $(SRC_DIR)/builtins/echo.c \
                $(SRC_DIR)/builtins/cd.c \
                $(SRC_DIR)/builtins/pwd.c
 
