@@ -1,0 +1,32 @@
+# Object and library files
+*.o
+*.a
+
+# Executables / binaries
+minishell
+a.out
+
+# Debug / sanitizer files
+*.dSYM/
+*.gch
+vgcore.*
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Build directories (if you create any)
+build/
+obj/
+bin/
+
+# Logs
+*.log
+
+# MacOS / Linux metadata
+.DS_Store
+.directory
+
+# 42 project checker artifacts (if using)
+*.out
