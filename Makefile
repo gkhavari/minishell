@@ -5,11 +5,11 @@
 NAME        = minishell
 
 CC          = cc
-CFLAGS      = -Wall -Wextra -Werror -Iincludes
-RLFLAGS     = -lreadline
+CFLAGS      = -Wall -Wextra -Werror -Iincludes -Ilibft
 
 SRC_DIR     = src
 OBJ_DIR     = obj
+LIBFT_DIR	= libft
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
@@ -36,16 +36,23 @@ SRCS        += $(SRC_DIR)/builtins/echo.c \
 # --------------------------------------------------------------------------- #
 
 OBJS        = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+LIBFT       = $(LIBFT_DIR)/libft.a
 
 # **************************************************************************** #
 #                                   RULES                                      #
 # **************************************************************************** #
 
-all: $(NAME)
+all: $(LIBFT) $(NAME)
 
+# Build minishell
 $(NAME): $(OBJ_DIR) $(OBJS)
-	@$(CC) $(CFLAGS) $(OBJS) $(RLFLAGS) -o $(NAME)
+	@$(CC) $(CFLAGS) $(OBJS) $(LIBFT) $(RLFLAGS) -o $(NAME)
 	@echo "🔥 minishell built"
+
+# Build libft
+$(LIBFT):
+	@$(MAKE) -C $(LIBFT_DIR)
+	@echo "📚 libft built"
 
 # Create obj/ and subdirectories manually
 $(OBJ_DIR):
@@ -60,12 +67,16 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Compiling $<"
 
+# Clean object files
 clean:
 	@rm -rf $(OBJ_DIR)
+	@$(MAKE) -C $(LIBFT_DIR) clean
 	@echo "🧹 Object files removed"
 
+# Clean everything
 fclean: clean
 	@rm -f $(NAME)
+	@$(MAKE) -C $(LIBFT_DIR) fclean
 	@echo "🧽 Executable removed"
 
 re: fclean all
