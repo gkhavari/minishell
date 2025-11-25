@@ -31,5 +31,6 @@ typedef struct s_shell
 char	*build_prompt(t_shell *shell);
 char	*get_env(char **envp, const char *key);
 void	init_shell(t_shell *shell, char **envp);
+char	*ft_strcat(char *dest, const char *src);
 
 #endif
