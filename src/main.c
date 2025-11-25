@@ -14,19 +14,19 @@
 
 int	main(int argc, char **argv, char **envp)
 {
-    t_shell	shell;
+	t_shell	shell;
 	char	*input;
 	char	*promt;
+
 	(void) argc;
 	(void) argv;
-
 	init_shell(&shell, envp);
 	while (1)
 	{
 		promt = build_prompt(&shell);
 		if (!promt)
-			continue;
-        input = readline(promt);
+			continue ;
+		input = readline(promt);
 		free(promt);
 		if (!input)
 		{
