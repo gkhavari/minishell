@@ -10,6 +10,7 @@ CFLAGS      = -Wall -Wextra -Werror -Iincludes -Ilibft
 SRC_DIR     = src
 OBJ_DIR     = obj
 LIBFT_DIR	= libft
+RLFLAGS		= -lreadline -lncurses
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
