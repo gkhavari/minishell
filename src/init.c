@@ -12,6 +12,9 @@
 
 #include "minishell.h"
 
+/**
+ * Creating the prompt: "USER_NAME@minishell:CWD$ "
+**/
 char	*build_prompt(t_shell *shell)
 {
 	char	*prompt;
@@ -19,26 +22,18 @@ char	*build_prompt(t_shell *shell)
 	size_t	len_cwd;
 	size_t	total_len;
 
-	// Get current working directory
-	if (!getcwd(shell->cwd, sizeof(shell->cwd)))
-		perror("Error: getcwd");
-	// Calculate lengths
 	if (shell->user != NULL)
 		len_user = strlen(shell->user);
 	else
-		len_user = 4; // length of "user"
+		len_user = 4;
 	len_cwd = strlen(shell->cwd);
 	total_len = len_user + 11 + len_cwd;
-	// 11 = "@minishell:" + "$ " + null terminator
-	// Allocate memory
-	prompt = malloc(total_len);
+	prompt = ft_calloc(total_len, sizeof(char));
 	if (!prompt)
 	{
 		perror("Error: malloc");
 		return (NULL);
 	}
-	// Build string manually
-	prompt[0] = '\0';
 	if (shell->user)
 		ft_strcat(prompt, shell->user);
 	else
@@ -66,13 +61,15 @@ char	*get_env(char **envp, const char *key)
 	return (NULL);
 }
 
+#include <errno.h>
 /*Initialize shell struct*/
 void	init_shell(t_shell *shell, char **envp)
 {
 	shell->envp = envp;
 	shell->user = get_env(envp, "USER");
+//	shell->cwd = get_env(envp, "PWD");
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
-		return ;
+		return (perror(strerror(errno)));
 	shell->last_exit = 0;
 }
