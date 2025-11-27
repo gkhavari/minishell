@@ -5,10 +5,11 @@
 NAME        = minishell
 
 CC          = cc
-CFLAGS      = -Wall -Wextra -Werror -Iincludes -Ilibft
+CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft
 
 SRC_DIR     = src
 OBJ_DIR     = obj
+INCLUDES 	= includes
 LIBFT_DIR	= libft
 RLFLAGS		= -lreadline -lncurses
 
