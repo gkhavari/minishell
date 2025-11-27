@@ -34,4 +34,9 @@ void	init_shell(t_shell *shell, char **envp);
 char	*ft_strcat(char *dest, const char *src);
 char	*ft_realloc(char *ptr, const size_t new_size);
 
+/* builtins */
+int	builtin_cd(char **args, t_shell *shell);
+int	builtin_pwd(char **args, t_shell *shell);
+int	builtin_env(char **args, t_shell *shell);
+
 #endif

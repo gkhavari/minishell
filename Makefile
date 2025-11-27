@@ -33,9 +33,10 @@ SRCS        = $(SRC_DIR)/main.c \
                $(SRC_DIR)/executor/commands.c
 
 # builtins
-#SRCS        += $(SRC_DIR)/builtins/echo.c \
-               $(SRC_DIR)/builtins/cd.c \
-               $(SRC_DIR)/builtins/pwd.c
+# builtins - uncomment/add the specific builtins as you implement them
+SRCS        += $(SRC_DIR)/builtins/cd.c \
+			   $(SRC_DIR)/builtins/pwd.c \
+			   $(SRC_DIR)/builtins/env.c
 
 # --------------------------------------------------------------------------- #
 
