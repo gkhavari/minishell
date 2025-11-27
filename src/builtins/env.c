@@ -1,8 +1,19 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   env.c                                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/27 20:29:16 by thanh-ng          #+#    #+#             */
+/*   Updated: 2025/11/27 20:29:17 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /*
  * Minimal `env` builtin scaffolding.
  */
 #include "minishell.h"
-#include <stdio.h>
 
 int	builtin_env(char **args, t_shell *shell)
 {

@@ -1,11 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   cd.c                                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/27 20:29:07 by thanh-ng          #+#    #+#             */
+/*   Updated: 2025/11/27 20:29:08 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /*
  * Minimal `cd` builtin scaffolding.
  * Uses chdir and updates shell->cwd when available.
  */
 #include "minishell.h"
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 int	builtin_cd(char **args, t_shell *shell)
 {

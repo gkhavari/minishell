@@ -51,7 +51,7 @@ LIBFT       = $(LIBFT_DIR)/libft.a
 #                                   RULES                                      #
 # **************************************************************************** #
 
-all: $(LIBFT) $(NAME)
+all: $(NAME)
 
 # Build minishell
 $(NAME): $(LIBFT) $(OBJ_DIR) $(OBJS)

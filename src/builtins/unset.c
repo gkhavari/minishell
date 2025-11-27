@@ -1,10 +1,21 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   unset.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/27 20:29:32 by thanh-ng          #+#    #+#             */
+/*   Updated: 2025/11/27 20:29:33 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /*
  * Minimal `unset` builtin: remove variables from shell->envp.
  */
 #include "minishell.h"
-#include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+
 
 static int find_key_index(char **envp, const char *key)
 {

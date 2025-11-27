@@ -1,10 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   export.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/27 20:29:23 by thanh-ng          #+#    #+#             */
+/*   Updated: 2025/11/27 20:29:24 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /*
  * Minimal `export` builtin: support KEY=VALUE assignments and printing when no args.
  * This is a simple implementation for scaffolding and test purposes.
  */
 #include "minishell.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static int find_key_index(char **envp, const char *key)

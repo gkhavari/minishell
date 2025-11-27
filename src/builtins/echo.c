@@ -1,8 +1,19 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   echo.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/27 20:29:12 by thanh-ng          #+#    #+#             */
+/*   Updated: 2025/11/27 20:29:13 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /*
  * Minimal `echo` builtin: support -n and plain printing.
  */
 #include "minishell.h"
-#include <stdio.h>
 
 int	builtin_echo(char **args, t_shell *shell)
 {
