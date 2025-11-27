@@ -24,7 +24,7 @@ typedef struct s_shell
 {
 	char	**envp;			// copy of environment variables
 	char	*user;			// current username
-	char	cwd[256];		// current working directory
+	char	*cwd;		// current working directory
 	int		last_exit;		// last command exit status
 }	t_shell;
 
@@ -32,5 +32,6 @@ char	*build_prompt(t_shell *shell);
 char	*get_env(char **envp, const char *key);
 void	init_shell(t_shell *shell, char **envp);
 char	*ft_strcat(char *dest, const char *src);
+char	*ft_realloc(char *ptr, const size_t new_size);
 
 #endif

@@ -69,8 +69,13 @@ char	*get_env(char **envp, const char *key)
 /*Initialize shell struct*/
 void	init_shell(t_shell *shell, char **envp)
 {
+	char *cwd;
+	char *temp;
+
 	shell->envp = envp;
 	shell->user = get_env(envp, "USER");
-	getcwd(shell->cwd, sizeof(shell->cwd));
+	shell->cwd = getcwd(NULL, 0);
+	if (!shell->cwd)
+		return ;
 	shell->last_exit = 0;
 }
