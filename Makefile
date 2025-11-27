@@ -49,7 +49,7 @@ LIBFT       = $(LIBFT_DIR)/libft.a
 all: $(LIBFT) $(NAME)
 
 # Build minishell
-$(NAME): $(OBJ_DIR) $(OBJS)
+$(NAME): $(LIBFT) $(OBJ_DIR) $(OBJS)
 	@$(CC) $(CFLAGS) $(OBJS) $(LIBFT) $(RLFLAGS) -o $(NAME)
 	@echo "🔥 minishell built"
 
