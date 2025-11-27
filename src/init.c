@@ -15,20 +15,19 @@
 char	*build_prompt(t_shell *shell)
 {
 	char	*prompt;
-	char	cwd[PATH_MAX];
 	size_t	len_user;
 	size_t	len_cwd;
 	size_t	total_len;
 
 	// Get current working directory
-	if (!getcwd(cwd, sizeof(cwd)))
+	if (!getcwd(shell->cwd, sizeof(shell->cwd)))
 		perror("Error: getcwd");
 	// Calculate lengths
 	if (shell->user != NULL)
 		len_user = strlen(shell->user);
 	else
 		len_user = 4; // length of "user"
-	len_cwd = strlen(cwd);
+	len_cwd = strlen(shell->cwd);
 	total_len = len_user + 11 + len_cwd;
 	// 11 = "@minishell:" + "$ " + null terminator
 	// Allocate memory
@@ -45,7 +44,7 @@ char	*build_prompt(t_shell *shell)
 	else
 		ft_strcat(prompt, "user");
 	ft_strcat(prompt, "@minishell:");
-	ft_strcat(prompt, cwd);
+	ft_strcat(prompt, shell->cwd);
 	ft_strcat(prompt, "$ ");
 	return (prompt);
 }

@@ -20,6 +20,7 @@ int	main(int argc, char **argv, char **envp)
 
 	(void) argc;
 	(void) argv;
+	ft_bzero(&shell, sizeof(t_shell));
 	init_shell(&shell, envp);
 	while (1)
 	{
@@ -33,7 +34,7 @@ int	main(int argc, char **argv, char **envp)
 			perror("Error: readline\n");
 			break ;
 		}
-		if (*input) /*don't add empty prompts to history*/
+		if (*input)
 			add_history(input);
 		free(input);
 	}
