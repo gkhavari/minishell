@@ -20,6 +20,11 @@
 # include <readline/readline.h>
 # include <readline/history.h>
 
+# define PROMPT_PREFIX "@minishell:"
+# define PROMPT_SUFFIX "$ "
+# define PROMPT_DEFAULT_USER "user"
+# define PROMPT_DEFAULT_CWD "/minishell/"
+
 typedef struct s_shell
 {
 	char	**envp;			// copy of environment variables
