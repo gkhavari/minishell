@@ -1,0 +1,33 @@
+name: CI - Build
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential libreadline-dev libncurses-dev libtinfo-dev
+
+      - name: Build project
+        run: |
+          set -e
+          make -j$(nproc)
+
+      - name: Verify build produced binary
+        run: |
+          # Adjust the binary name if your Makefile produces a different name
+          if [ -f minishell ]; then
+            echo "minishell binary exists"
+          else
+            echo "minishell binary not found after make" >&2
+            ls -la
+            exit 1
+          fi
