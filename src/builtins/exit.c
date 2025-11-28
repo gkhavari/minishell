@@ -17,11 +17,11 @@
 
 int builtin_exit(char **args, t_shell *shell)
 {
-    int status = 0;
+    int exit_status = 0;
 
     (void) shell;
     if (args && args[1])
-        status = atoi(args[1]);
-    exit(status);
+        exit_status = atoi(args[1]);
+    exit(exit_status);
     return (0); /* unreachable */
 }

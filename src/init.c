@@ -18,42 +18,43 @@ char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;
 	size_t		total_len;
-	const char	*user;
-	const char	*cwd;
+	const char	*username;
+	const char	*current_directory;
 
 	if (shell->user != NULL)
-		user = shell->user;
+		username = shell->user;
 	else
-		user = PROMPT_DEFAULT_USER;
+		username = PROMPT_DEFAULT_USER;
 	if (shell->cwd != NULL)
-		cwd = shell->cwd;
+		current_directory = shell->cwd;
 	else
-		cwd = PROMPT_DEFAULT_CWD;
-	total_len = ft_strlen(user) + ft_strlen(cwd)
+		current_directory = PROMPT_DEFAULT_CWD;
+	total_len = ft_strlen(username) + ft_strlen(current_directory)
 		+ ft_strlen(PROMPT_PREFIX) + ft_strlen(PROMPT_SUFFIX);
 	prompt = ft_calloc(total_len + 1, sizeof(char));
 	if (!prompt)
 		return (perror("Error: malloc"), NULL);
-	ft_strcat(prompt, user);
+	ft_strcat(prompt, username);
 	ft_strcat(prompt, PROMPT_PREFIX);
-	ft_strcat(prompt, cwd);
+	ft_strcat(prompt, current_directory);
 	ft_strcat(prompt, PROMPT_SUFFIX);
 	return (prompt);
 }
 
-/*Helper to get environment variables*/
-char	*get_env(char **envp, const char *key)
+/*Helper to get environment variable value*/
+char	*get_env_value(char **envp, const char *env_key)
 {
-	int		i;
-	size_t	len;
+	int		index;
+	size_t	key_len;
 
-	i = 0;
-	len = ft_strlen(key);
-	while (envp[i])
+	index = 0;
+	key_len = ft_strlen(env_key);
+	while (envp[index])
 	{
-		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-			return (envp[i] + len + 1);
-		i++;
+		if (ft_strncmp(envp[index], env_key, key_len) == 0
+			&& envp[index][key_len] == '=')
+			return (envp[index] + key_len + 1);
+		index++;
 	}
 	return (NULL);
 }
@@ -62,7 +63,7 @@ char	*get_env(char **envp, const char *key)
 void	init_shell(t_shell *shell, char **envp)
 {
 	shell->envp = envp;
-	shell->user = get_env(envp, "USER");
+	shell->user = get_env_value(envp, "USER");
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		return (perror(strerror(errno)));

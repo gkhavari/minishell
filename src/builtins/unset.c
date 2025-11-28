@@ -17,15 +17,15 @@
 #include <string.h>
 
 
-static int find_key_index(char **envp, const char *key)
+static int find_env_key_index(char **envp, const char *key)
 {
-    int i = 0;
-    size_t len = strlen(key);
-    while (envp && envp[i])
+    int index = 0;
+    size_t key_len = strlen(key);
+    while (envp && envp[index])
     {
-        if (strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-            return i;
-        i++;
+        if (strncmp(envp[index], key, key_len) == 0 && envp[index][key_len] == '=')
+            return index;
+        index++;
     }
     return -1;
 }
@@ -34,24 +34,24 @@ int builtin_unset(char **args, t_shell *shell)
 {
     if (!args || !shell)
         return (1);
-    for (int i = 1; args[i]; i++)
+    for (int arg_index = 1; args[arg_index]; arg_index++)
     {
-        int idx = find_key_index(shell->envp, args[i]);
-        if (idx < 0)
+        int target_index = find_env_key_index(shell->envp, args[arg_index]);
+        if (target_index < 0)
             continue;
         /* Count elements */
-        int n = 0;
-        while (shell->envp && shell->envp[n]) n++;
-        char **ne = malloc(sizeof(char *) * n);
-        if (!ne) return (1);
-        int j = 0;
-        for (int k = 0; k < n; k++)
+        int env_count = 0;
+        while (shell->envp && shell->envp[env_count]) env_count++;
+        char **new_envp = malloc(sizeof(char *) * env_count);
+        if (!new_envp) return (1);
+        int new_index = 0;
+        for (int copy_index = 0; copy_index < env_count; copy_index++)
         {
-            if (k == idx) continue;
-            ne[j++] = strdup(shell->envp[k]);
+            if (copy_index == target_index) continue;
+            new_envp[new_index++] = strdup(shell->envp[copy_index]);
         }
-        ne[j] = NULL;
-        shell->envp = ne;
+        new_envp[new_index] = NULL;
+        shell->envp = new_envp;
     }
     return (0);
 }

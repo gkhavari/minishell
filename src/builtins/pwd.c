@@ -17,17 +17,17 @@
 
 int	builtin_pwd(char **args, t_shell *shell)
 {
-    char *cwd;
+    char *current_directory;
 
     (void) args;
     (void) shell;
-    cwd = getcwd(NULL, 0);
-    if (!cwd)
+    current_directory = getcwd(NULL, 0);
+    if (!current_directory)
     {
         perror("pwd");
         return (1);
     }
-    printf("%s\n", cwd);
-    free(cwd);
+    printf("%s\n", current_directory);
+    free(current_directory);
     return (0);
 }

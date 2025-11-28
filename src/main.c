@@ -24,18 +24,18 @@ void	sigint_handler(int signum)
 
 void	disable_ctrl_echo(void)
 {
-	struct termios term;
+	struct termios	terminal_settings;
 
-	tcgetattr(STDIN_FILENO, &term);
-	term.c_lflag &= ~ECHOCTL; // Disable printing ^C, ^D, etc.
-	tcsetattr(STDIN_FILENO, TCSANOW, &term);
+	tcgetattr(STDIN_FILENO, &terminal_settings);
+	terminal_settings.c_lflag &= ~ECHOCTL;
+	tcsetattr(STDIN_FILENO, TCSANOW, &terminal_settings);
 }
 
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
-	char	*input;
-	char	*promt;
+	char	*user_input;
+	char	*prompt_string;
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGQUIT, SIG_IGN);
@@ -46,16 +46,16 @@ int	main(int argc, char **argv, char **envp)
 	disable_ctrl_echo();
 	while (1)
 	{
-		promt = build_prompt(&shell);
-		if (!promt)
+		prompt_string = build_prompt(&shell);
+		if (!prompt_string)
 		{
 			perror("Failed to build prompt");
 			break ;
 		}
 		errno = 0;
-		input = readline(promt);
-		free(promt);
-		if (!input)
+		user_input = readline(prompt_string);
+		free(prompt_string);
+		if (!user_input)
 		{
 			if (errno)
 				perror("readline failed");
@@ -63,9 +63,9 @@ int	main(int argc, char **argv, char **envp)
 				ft_putstr_fd("exit\n", 1);
 			break ;
 		}
-		if (*input)
-			add_history(input);
-		free(input);
+		if (*user_input)
+			add_history(user_input);
+		free(user_input);
 	}
 	rl_clear_history();
 	free(shell.cwd);

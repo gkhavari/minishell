@@ -17,50 +17,50 @@
 #include "minishell.h"
 #include <string.h>
 
-static int find_key_index(char **envp, const char *key)
+static int find_env_key_index(char **envp, const char *key)
 {
-    int i = 0;
-    size_t len = strlen(key);
+    int index = 0;
+    size_t key_len = strlen(key);
 
-    while (envp && envp[i])
+    while (envp && envp[index])
     {
-        if (strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-            return i;
-        i++;
+        if (strncmp(envp[index], key, key_len) == 0 && envp[index][key_len] == '=')
+            return index;
+        index++;
     }
     return -1;
 }
 
-static char *make_kv(const char *key, const char *val)
+static char *create_env_entry(const char *key, const char *value)
 {
-    size_t k = strlen(key);
-    size_t v = strlen(val);
-    char *s = malloc(k + v + 2);
-    if (!s) return NULL;
-    memcpy(s, key, k);
-    s[k] = '=';
-    memcpy(s + k + 1, val, v);
-    s[k + 1 + v] = '\0';
-    return s;
+    size_t key_len = strlen(key);
+    size_t value_len = strlen(value);
+    char *entry = malloc(key_len + value_len + 2);
+    if (!entry) return NULL;
+    memcpy(entry, key, key_len);
+    entry[key_len] = '=';
+    memcpy(entry + key_len + 1, value, value_len);
+    entry[key_len + 1 + value_len] = '\0';
+    return entry;
 }
 
-static void append_env(t_shell *shell, char *kv)
+static void append_env_entry(t_shell *shell, char *entry)
 {
-    int n = 0;
-    while (shell->envp && shell->envp[n]) n++;
-    char **ne = malloc(sizeof(char *) * (n + 2));
-    if (!ne) return;
-    for (int i = 0; i < n; i++)
-        ne[i] = strdup(shell->envp[i]);
-    ne[n] = kv;
-    ne[n + 1] = NULL;
-    shell->envp = ne;
+    int env_count = 0;
+    while (shell->envp && shell->envp[env_count]) env_count++;
+    char **new_envp = malloc(sizeof(char *) * (env_count + 2));
+    if (!new_envp) return;
+    for (int copy_index = 0; copy_index < env_count; copy_index++)
+        new_envp[copy_index] = strdup(shell->envp[copy_index]);
+    new_envp[env_count] = entry;
+    new_envp[env_count + 1] = NULL;
+    shell->envp = new_envp;
 }
 
-static void replace_env(t_shell *shell, int idx, char *kv)
+static void replace_env_entry(t_shell *shell, int target_index, char *entry)
 {
-    free(shell->envp[idx]);
-    shell->envp[idx] = kv;
+    free(shell->envp[target_index]);
+    shell->envp[target_index] = entry;
 }
 
 int builtin_export(char **args, t_shell *shell)
@@ -70,31 +70,31 @@ int builtin_export(char **args, t_shell *shell)
     if (!args[1])
     {
         /* Print env */
-        int i = 0;
-        while (shell->envp && shell->envp[i])
+        int env_index = 0;
+        while (shell->envp && shell->envp[env_index])
         {
-            printf("%s\n", shell->envp[i]);
-            i++;
+            printf("%s\n", shell->envp[env_index]);
+            env_index++;
         }
         return (0);
     }
-    for (int i = 1; args[i]; i++)
+    for (int arg_index = 1; args[arg_index]; arg_index++)
     {
-        char *eq = strchr(args[i], '=');
-        if (!eq)
+        char *equals_sign = strchr(args[arg_index], '=');
+        if (!equals_sign)
             continue; /* skip names without = for now */
-        size_t keylen = eq - args[i];
-        char *key = strndup(args[i], keylen);
-        char *val = strdup(eq + 1);
-        char *kv = make_kv(key, val);
+        size_t key_len = equals_sign - args[arg_index];
+        char *key = strndup(args[arg_index], key_len);
+        char *value = strdup(equals_sign + 1);
+        char *entry = create_env_entry(key, value);
         free(key);
-        free(val);
-        if (!kv) continue;
-        int idx = find_key_index(shell->envp, kv);
-        if (idx >= 0)
-            replace_env(shell, idx, kv);
+        free(value);
+        if (!entry) continue;
+        int existing_index = find_env_key_index(shell->envp, entry);
+        if (existing_index >= 0)
+            replace_env_entry(shell, existing_index, entry);
         else
-            append_env(shell, kv);
+            append_env_entry(shell, entry);
     }
     return (0);
 }
