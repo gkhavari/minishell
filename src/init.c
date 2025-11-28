@@ -11,63 +11,59 @@
 /* ************************************************************************** */
 
 #include "minishell.h"
-
 /**
  * Creating the prompt: "USER_NAME@minishell:CWD$ "
 **/
 char	*build_prompt(t_shell *shell)
 {
-	char	*prompt;
-	size_t	len_user;
-	size_t	len_cwd;
-	size_t	total_len;
+	char		*prompt;
+	size_t		total_len;
+	const char	*username;
+	const char	*current_directory;
 
 	if (shell->user != NULL)
-		len_user = strlen(shell->user);
+		username = shell->user;
 	else
-		len_user = 4;
-	len_cwd = strlen(shell->cwd);
-	total_len = len_user + 11 + len_cwd;
-	prompt = ft_calloc(total_len, sizeof(char));
+		username = PROMPT_DEFAULT_USER;
+	if (shell->cwd != NULL)
+		current_directory = shell->cwd;
+	else
+		current_directory = PROMPT_DEFAULT_CWD;
+	total_len = ft_strlen(username) + ft_strlen(current_directory)
+		+ ft_strlen(PROMPT_PREFIX) + ft_strlen(PROMPT_SUFFIX);
+	prompt = ft_calloc(total_len + 1, sizeof(char));
 	if (!prompt)
-	{
-		perror("Error: malloc");
-		return (NULL);
-	}
-	if (shell->user)
-		ft_strcat(prompt, shell->user);
-	else
-		ft_strcat(prompt, "user");
-	ft_strcat(prompt, "@minishell:");
-	ft_strcat(prompt, shell->cwd);
-	ft_strcat(prompt, "$ ");
+		return (perror("Error: malloc"), NULL);
+	ft_strcat(prompt, username);
+	ft_strcat(prompt, PROMPT_PREFIX);
+	ft_strcat(prompt, current_directory);
+	ft_strcat(prompt, PROMPT_SUFFIX);
 	return (prompt);
 }
 
-/*Helper to get environment variables*/
-char	*get_env(char **envp, const char *key)
+/*Helper to get environment variable value*/
+char	*get_env_value(char **envp, const char *env_key)
 {
-	int		i;
-	size_t	len;
+	int		index;
+	size_t	key_len;
 
-	i = 0;
-	len = ft_strlen(key);
-	while (envp[i])
+	index = 0;
+	key_len = ft_strlen(env_key);
+	while (envp[index])
 	{
-		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-			return (envp[i] + len + 1);
-		i++;
+		if (ft_strncmp(envp[index], env_key, key_len) == 0
+			&& envp[index][key_len] == '=')
+			return (envp[index] + key_len + 1);
+		index++;
 	}
 	return (NULL);
 }
 
-#include <errno.h>
 /*Initialize shell struct*/
 void	init_shell(t_shell *shell, char **envp)
 {
 	shell->envp = envp;
-	shell->user = get_env(envp, "USER");
-//	shell->cwd = get_env(envp, "PWD");
+	shell->user = get_env_value(envp, "USER");
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		return (perror(strerror(errno)));

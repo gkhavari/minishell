@@ -17,25 +17,25 @@
 
 int	builtin_echo(char **args, t_shell *shell)
 {
-    int i = 1;
-    int newline = 1;
+    int arg_index = 1;
+    int print_newline = 1;
 
     (void) shell;
     if (!args)
         return (0);
     if (args[1] && args[1][0] == '-' && args[1][1] == 'n' && args[1][2] == '\0')
     {
-        newline = 0;
-        i = 2;
+        print_newline = 0;
+        arg_index = 2;
     }
-    while (args[i])
+    while (args[arg_index])
     {
-        if (i > (newline ? 1 : 2))
+        if (arg_index > (print_newline ? 1 : 2))
             putchar(' ');
-        fputs(args[i], stdout);
-        i++;
+        fputs(args[arg_index], stdout);
+        arg_index++;
     }
-    if (newline)
+    if (print_newline)
         putchar('\n');
     return (0);
 }

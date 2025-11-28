@@ -20,6 +20,14 @@
 # include <unistd.h>
 # include <readline/readline.h>
 # include <readline/history.h>
+# include <errno.h>
+# include <signal.h>
+#include <termios.h>
+
+# define PROMPT_PREFIX "@minishell:"
+# define PROMPT_SUFFIX "$ "
+# define PROMPT_DEFAULT_USER "user"
+# define PROMPT_DEFAULT_CWD "/minishell/"
 
 typedef struct s_shell
 {
@@ -30,7 +38,7 @@ typedef struct s_shell
 }	t_shell;
 
 char	*build_prompt(t_shell *shell);
-char	*get_env(char **envp, const char *key);
+char	*get_env_value(char **envp, const char *env_key);
 void	init_shell(t_shell *shell, char **envp);
 char	*ft_strcat(char *dest, const char *src);
 char	*ft_realloc(char *ptr, const size_t new_size);

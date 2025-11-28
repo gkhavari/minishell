@@ -14,19 +14,19 @@
 
 char	*ft_strcat(char *dest, const char *src)
 {
-	size_t	i;
-	size_t	j;
+	size_t	dest_len;
+	size_t	src_index;
 
-	i = 0;
-	while (dest[i])
-		i++;
-	j = 0;
-	while (src[j])
+	dest_len = 0;
+	while (dest[dest_len])
+		dest_len++;
+	src_index = 0;
+	while (src[src_index])
 	{
-		dest[i + j] = src[j];
-		j++;
+		dest[dest_len + src_index] = src[src_index];
+		src_index++;
 	}
-	dest[i + j] = '\0';
+	dest[dest_len + src_index] = '\0';
 	return (dest);
 }
 
@@ -66,9 +66,9 @@ char	*ft_strcat(char *dest, const char *src)
  */
 char	*ft_realloc(char *ptr, const size_t new_size)
 {
-	char	*res;
-	size_t	old_size;
-	size_t	copy_size;
+	char	*new_buffer;
+	size_t	current_len;
+	size_t	bytes_to_copy;
 
 	if (new_size == 0)
 	{
@@ -77,15 +77,15 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	}
 	if (ptr == NULL)
 		return (ft_calloc(new_size, sizeof(char)));
-	res = ft_calloc(new_size, sizeof(char));
-	if (!res)
+	new_buffer = ft_calloc(new_size, sizeof(char));
+	if (!new_buffer)
 		return (NULL);
-	old_size = ft_strlen(ptr);
-	if (old_size < new_size - 1)
-		copy_size = old_size;
+	current_len = ft_strlen(ptr);
+	if (current_len < new_size - 1)
+		bytes_to_copy = current_len;
 	else
-		copy_size = new_size - 1;
-	ft_memcpy(res, ptr, copy_size);
+		bytes_to_copy = new_size - 1;
+	ft_memcpy(new_buffer, ptr, bytes_to_copy);
 	free (ptr);
-	return (res);
+	return (new_buffer);
 }

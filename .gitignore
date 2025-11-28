@@ -30,3 +30,4 @@ bin/
 
 # 42 project checker artifacts (if using)
 *.out
+_codeql_detected_source_root

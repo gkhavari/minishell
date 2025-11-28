@@ -17,16 +17,16 @@
 
 int	builtin_env(char **args, t_shell *shell)
 {
-    int i;
+    int env_index;
 
     (void) args;
     if (!shell || !shell->envp)
         return (1);
-    i = 0;
-    while (shell->envp[i])
+    env_index = 0;
+    while (shell->envp[env_index])
     {
-        printf("%s\n", shell->envp[i]);
-        i++;
+        printf("%s\n", shell->envp[env_index]);
+        env_index++;
     }
     return (0);
 }
