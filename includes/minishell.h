@@ -20,6 +20,14 @@
 # include <unistd.h>
 # include <readline/readline.h>
 # include <readline/history.h>
+# include <errno.h>
+# include <signal.h>
+#include <termios.h>
+
+# define PROMPT_PREFIX "@minishell:"
+# define PROMPT_SUFFIX "$ "
+# define PROMPT_DEFAULT_USER "user"
+# define PROMPT_DEFAULT_CWD "/minishell/"
 
 typedef struct s_shell
 {
