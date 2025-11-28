@@ -27,17 +27,22 @@ int	main(int argc, char **argv, char **envp)
 		promt = build_prompt(&shell);
 		if (!promt)
 			continue ;
+		errno = 0;
 		input = readline(promt);
 		free(promt);
 		if (!input)
 		{
-			perror("Error: readline\n");
+			if (errno)
+				perror("readline failed");
+			else
+				printf("exit\n");
 			break ;
 		}
 		if (*input)
 			add_history(input);
 		free(input);
 	}
+	rl_clear_history();
 	free(shell.cwd);
 	return (0);
 }

@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "minishell.h"
-#include <errno.h>
 /**
  * Creating the prompt: "USER_NAME@minishell:CWD$ "
 **/

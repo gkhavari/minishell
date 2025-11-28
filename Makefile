@@ -5,7 +5,7 @@
 NAME        = minishell
 
 CC          = cc
-CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft
+CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -g
 
 SRC_DIR     = src
 OBJ_DIR     = obj
