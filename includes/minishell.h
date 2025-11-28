@@ -20,6 +20,8 @@
 # include <readline/readline.h>
 # include <readline/history.h>
 # include <errno.h>
+# include <signal.h>
+#include <termios.h>
 
 # define PROMPT_PREFIX "@minishell:"
 # define PROMPT_SUFFIX "$ "
