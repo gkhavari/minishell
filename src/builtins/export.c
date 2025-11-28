@@ -87,10 +87,10 @@ int builtin_export(char **args, t_shell *shell)
         char *key = strndup(args[arg_index], key_len);
         char *value = strdup(equals_sign + 1);
         char *entry = create_env_entry(key, value);
+        int existing_index = find_env_key_index(shell->envp, key);
         free(key);
         free(value);
         if (!entry) continue;
-        int existing_index = find_env_key_index(shell->envp, entry);
         if (existing_index >= 0)
             replace_env_entry(shell, existing_index, entry);
         else
