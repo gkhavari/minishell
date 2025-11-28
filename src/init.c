@@ -25,9 +25,12 @@ char	*build_prompt(t_shell *shell)
 	if (shell->user != NULL)
 		len_user = strlen(shell->user);
 	else
-		len_user = 4;
-	len_cwd = strlen(shell->cwd);
-	total_len = len_user + 11 + len_cwd;
+		len_user = ft_strlen("user");
+	if (shell->cwd != NULL)
+		len_cwd = strlen(shell->cwd);
+	else
+		len_user = ft_strlen("/minishell/");
+	total_len = len_user + ft_strlen("@minishell:") + len_cwd + ft_strlen("$ ");
 	prompt = ft_calloc(total_len, sizeof(char));
 	if (!prompt)
 	{
@@ -39,6 +42,10 @@ char	*build_prompt(t_shell *shell)
 	else
 		ft_strcat(prompt, "user");
 	ft_strcat(prompt, "@minishell:");
+	if (shell->cwd != NULL)
+		ft_strcat(prompt, shell->cwd);
+	else
+		ft_strcat(prompt, "/minishell/");
 	ft_strcat(prompt, shell->cwd);
 	ft_strcat(prompt, "$ ");
 	return (prompt);
