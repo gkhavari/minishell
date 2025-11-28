@@ -35,7 +35,7 @@ int	main(int argc, char **argv, char **envp)
 			if (errno)
 				perror("readline failed");
 			else
-				printf("exit\n");
+				ft_putstr_fd("exit\n", 1);
 			break ;
 		}
 		if (*input)
