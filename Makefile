@@ -5,7 +5,7 @@
 NAME        = minishell
 
 CC          = cc
-CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -g
+CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft
 
 SRC_DIR     = src
 OBJ_DIR     = obj
@@ -85,4 +85,7 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+debug: CFLAGS += -g
+debug: re
+
+.PHONY: all clean fclean re debug
