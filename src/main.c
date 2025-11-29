@@ -32,7 +32,6 @@ void	disable_ctrl_echo(void)
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
-	char	*input;
 	char	*promt;
 
 	signal(SIGINT, sigint_handler);
@@ -51,9 +50,9 @@ int	main(int argc, char **argv, char **envp)
 			break ;
 		}
 		errno = 0;
-		input = readline(promt);
+		shell.input = readline(promt);
 		free(promt);
-		if (!input)
+		if (!shell.input)
 		{
 			if (errno)
 				perror("readline failed");
@@ -61,11 +60,18 @@ int	main(int argc, char **argv, char **envp)
 				ft_putstr_fd("exit\n", 1);
 			break ;
 		}
-		if (*input)
-			add_history(input);
-		free(input);
+		if (shell.input[0])
+		{
+			add_history(shell.input);
+			//tokenize_input(&shell);
+			//parse_tokens(&shell);
+			//execute_commands(&shell);
+			//reset_shell(&shell);
+		}
+		free(shell.input);
+		shell.input = NULL;
 	}
 	rl_clear_history();
-	free(shell.cwd);
+	//free_all(&shell);
 	return (0);
 }
