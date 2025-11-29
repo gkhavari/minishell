@@ -53,9 +53,9 @@ char	*parse_word(char *s, size_t *i, t_tokentype *type)
 	while (s[*i] && s[*i] != ' ' && s[*i] != '|'
 		&& s[*i] != '<' && s[*i] != '>')
 		(*i)++;
-	word = malloc((*i - j) * sizeof(char));
+	word = ft_calloc(*i - j + 1, sizeof(char));
 	if (!word)
 		return (NULL);
-	word = ft_memcpy(word, s, *i - j);
+	word = ft_memcpy(word, &s[j], *i - j);
 	return (word);
 }
