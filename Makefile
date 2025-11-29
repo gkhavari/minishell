@@ -17,7 +17,8 @@ RLFLAGS		= -lreadline -lncurses
 # main
 SRCS        = $(SRC_DIR)/main.c \
 				$(SRC_DIR)/init.c \
-				$(SRC_DIR)/utils.c
+				$(SRC_DIR)/utils.c \
+				$(SRC_DIR)/free.c
 
 # signals
 #SRCS        += $(SRC_DIR)/signals/signal_handlers.c \

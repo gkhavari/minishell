@@ -61,9 +61,9 @@ char	*get_env(char **envp, const char *key)
 /*Initialize shell struct*/
 void	init_shell(t_shell *shell, char **envp)
 {
-	shell->envp = envp; //TODO: make this a copy
-	shell->user = get_env(envp, "USER");
-	shell->cwd = getcwd(NULL, 0);
+	shell->envp = ft_arrdup(envp);
+	shell->user = ft_strdup(get_env(envp, "USER"));
+	shell->cwd = ft_strdup(getcwd(NULL, 0));
 	if (!shell->cwd)
 		return (perror(strerror(errno)));
 	shell->last_exit = 0;

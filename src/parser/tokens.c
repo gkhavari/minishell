@@ -17,7 +17,7 @@ static void	add_token(t_token **head, t_token *new)
 	t_token	*tmp;
 
 	if (!(*head))
-		head = &new;
+		*head = new;
 	else
 	{
 		tmp = *head;
@@ -31,14 +31,12 @@ static t_token	*new_token(t_tokentype type, char *value)
 {
 	t_token	*token;
 
-	token = malloc(sizeof(token));
+	token = malloc(sizeof(*token));
 	if (!token)
 		return (NULL); //todo: error handling
 	token->type = type;
-	token->value = value;
+	token->value = ft_strdup(value);
 	token->next = NULL;
-	printf("%d\n", token->type);
-	printf("%s\n", token->value);
 	return (token);
 }
 

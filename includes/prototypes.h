@@ -23,5 +23,7 @@ void	parse_pipe(char *s, size_t *i, t_tokentype *type);
 void	parse_heredoc_redir_in(char *s, size_t *i, t_tokentype *type);
 void	parse_append_redir_out(char *s, size_t *i, t_tokentype *type);
 char	*parse_word(char *s, size_t *i, t_tokentype *type);
+void	free_all(t_shell *shell);
+char	**ft_arrdup(char **envp);
 
 #endif
