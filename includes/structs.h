@@ -13,11 +13,35 @@
 #ifndef STRUCTS_H
 # define STRUCTS_H
 
+/**
+ * PIPE			|
+ * REDIR_IN		<
+ * REDIR_OUT	>
+ * APPEND		>>
+ * HEREDOC		<<
+**/
+typedef enum e_tokentype
+{
+	WORD,
+	PIPE,
+	REDIR_IN,
+	REDIR_OUT,
+	APPEND,
+	HEREDOC
+}	t_tokentype;
+
+typedef struct s_token
+{
+	t_tokentype		type;
+	char			*value;		// only for WORD, others can keep NULL
+	struct s_token	*next;
+}	t_token;
+
 typedef struct s_shell
 {
 	char	**envp;			// copy of environment variables
 	char	*user;			// current username
-	char	*cwd;		// current working directory
+	char	*cwd;			// current working directory
 	int		last_exit;		// last command exit status
 }	t_shell;
 

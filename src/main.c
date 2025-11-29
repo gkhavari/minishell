@@ -16,9 +16,9 @@ void	sigint_handler(int signum)
 {
 	(void)signum;
 	write(1, "\n", 1);
-	rl_replace_line("", 0); // Clear current input
-	rl_on_new_line();       // Move to new line
-	rl_redisplay();         // Redisplay prompt
+	rl_replace_line("", 0);	// Clear current input
+	rl_on_new_line();		// Move to new line
+	rl_redisplay();			// Redisplay prompt
 }
 
 void	disable_ctrl_echo(void)
