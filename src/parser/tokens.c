@@ -31,6 +31,8 @@ static t_token	*new_token(t_tokentype type, char *value)
 {
 	t_token	*token;
 
+	printf("%d\n", type);
+
 	token = malloc(sizeof(token));
 	if (!token)
 		return (NULL); //todo: error handling
@@ -63,7 +65,8 @@ void	tokenize_input(t_shell *shell)
 			i++;
 		else
 			parse_word(s, &i, &type);
-		add_token(&shell->tokens, new_token(type, word));
+		if (i != 0 && s[i - 1] != ' ')
+			add_token(&shell->tokens, new_token(type, word));
 		if (word != NULL)
 			free(word);
 	}

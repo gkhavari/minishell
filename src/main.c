@@ -12,6 +12,20 @@
 
 #include "minishell.h"
 
+void print_tokens(t_shell *shell)
+{
+    t_token *t = shell->tokens;
+
+    while (t != NULL)
+    {
+        printf("%d\n", t->type);
+        printf("%s\n", t->value);
+        printf("\n");
+
+        t = t->next;
+    }
+}
+
 void	sigint_handler(int signum)
 {
 	(void)signum;
@@ -66,6 +80,7 @@ int	main(int argc, char **argv, char **envp)
 			tokenize_input(&shell);
 			//parse_tokens(&shell);
 			//execute_commands(&shell);
+//			print_tokens(&shell);
 			//reset_shell(&shell);
 		}
 		free(shell.input);
