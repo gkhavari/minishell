@@ -26,7 +26,6 @@ void	disable_ctrl_echo(void)
 	struct termios term;
 
 	tcgetattr(STDIN_FILENO, &term);
-	term.c_lflag &= ~ECHOCTL; // Disable printing ^C, ^D, etc.
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
