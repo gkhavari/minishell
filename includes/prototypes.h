@@ -18,5 +18,10 @@ char	*get_env(char **envp, const char *key);
 void	init_shell(t_shell *shell, char **envp);
 char	*ft_strcat(char *dest, const char *src);
 char	*ft_realloc(char *ptr, const size_t new_size);
+void	tokenize_input(t_shell *shell);
+void	parse_pipe(char *s, size_t *i, t_tokentype *type);
+void	parse_heredoc_redir_in(char *s, size_t *i, t_tokentype *type);
+void	parse_append_redir_out(char *s, size_t *i, t_tokentype *type);
+char	*parse_word(char *s, size_t *i, t_tokentype *type);
 
 #endif

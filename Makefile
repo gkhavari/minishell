@@ -24,9 +24,9 @@ SRCS        = $(SRC_DIR)/main.c \
                $(SRC_DIR)/signals/signal_init.c
 
 # parser
-#SRCS        += $(SRC_DIR)/parser/parser.c \
-               $(SRC_DIR)/parser/lexer.c \
-               $(SRC_DIR)/parser/tokens.c
+SRCS        += $(SRC_DIR)/parser/parser.c \
+               $(SRC_DIR)/parser/tokens.c \
+#               $(SRC_DIR)/parser/lexer.c
 
 # executor
 #SRCS        += $(SRC_DIR)/executor/executor.c \
