@@ -1,21 +1,26 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   minishell.h                                        :+:      :+:    :+:   */
+/*   includes.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/25 21:18:11 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/25 21:18:19 by gkhavari         ###   ########.fr       */
+/*   Created: 2025/11/29 14:10:52 by gkhavari          #+#    #+#             */
+/*   Updated: 2025/11/29 14:10:54 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef MINISHELL_H
-# define MINISHELL_H
+#ifndef INCLUDES_H
+# define INCLUDES_H
 
-# include "includes.h"
-# include "defines.h"
-# include "structs.h"
-# include "prototypes.h"
+# include <../libft/libft.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include <limits.h>
+# include <readline/readline.h>
+# include <readline/history.h>
+# include <errno.h>
+# include <signal.h>
+# include <termios.h>
 
 #endif

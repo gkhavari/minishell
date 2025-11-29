@@ -21,7 +21,6 @@ void	sigint_handler(int signum)
 	rl_redisplay();         // Redisplay prompt
 }
 
-
 void	disable_ctrl_echo(void)
 {
 	struct termios term;

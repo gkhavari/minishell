@@ -1,21 +1,22 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   minishell.h                                        :+:      :+:    :+:   */
+/*   defines.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/25 21:18:11 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/25 21:18:19 by gkhavari         ###   ########.fr       */
+/*   Created: 2025/11/29 14:10:46 by gkhavari          #+#    #+#             */
+/*   Updated: 2025/11/29 14:10:48 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef MINISHELL_H
-# define MINISHELL_H
+#ifndef DEFINES_H
+# define DEFINES_H
 
-# include "includes.h"
-# include "defines.h"
-# include "structs.h"
-# include "prototypes.h"
+/*PROMT SYNTAX*/
+# define PROMPT_PREFIX "@minishell:"
+# define PROMPT_SUFFIX "$ "
+# define PROMPT_DEFAULT_USER "user"
+# define PROMPT_DEFAULT_CWD "/minishell/"
 
 #endif

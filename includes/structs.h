@@ -1,21 +1,24 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   minishell.h                                        :+:      :+:    :+:   */
+/*   structs.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/25 21:18:11 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/25 21:18:19 by gkhavari         ###   ########.fr       */
+/*   Created: 2025/11/29 14:11:13 by gkhavari          #+#    #+#             */
+/*   Updated: 2025/11/29 14:11:15 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef MINISHELL_H
-# define MINISHELL_H
+#ifndef STRUCTS_H
+# define STRUCTS_H
 
-# include "includes.h"
-# include "defines.h"
-# include "structs.h"
-# include "prototypes.h"
+typedef struct s_shell
+{
+	char	**envp;			// copy of environment variables
+	char	*user;			// current username
+	char	*cwd;		// current working directory
+	int		last_exit;		// last command exit status
+}	t_shell;
 
 #endif
