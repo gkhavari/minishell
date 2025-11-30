@@ -16,12 +16,11 @@ jobs:
       - name: Checkout source branch
         uses: actions/checkout@v4
         with:
-          path: minishell
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clone minishell_tester
+      - name: Clone minishell_tester inside project
         run: |
-          git clone https://github.com/LucasKuhn/minishell_tester.git tester
+          git clone https://github.com/LucasKuhn/minishell_tester.git minishell_tester
 
       - name: Install dependencies
         run: |
@@ -30,18 +29,15 @@ jobs:
 
       - name: Build minishell
         run: |
-          cd minishell
           make -j$(nproc)
 
       - name: Run tester and capture results
         id: run_tests
         continue-on-error: true
         run: |
-          cd tester
-          # Link minishell binary to tester directory
-          ln -sf ../minishell/minishell ./minishell
+          cd minishell_tester
           
-          # Run tester and capture output
+          # Run tester and capture output (tester looks for ../minishell binary)
           echo "## Minishell Tester Results" > test_report.md
           echo "" >> test_report.md
           echo "**Branch:** ${{ github.ref_name }}" >> test_report.md
@@ -72,12 +68,11 @@ jobs:
             echo "- 🎯 Score: $SCORE" >> test_report.md
           fi
           
-          # Copy report to minishell directory
-          cp test_report.md ../minishell/
+          # Copy report to project root
+          cp test_report.md ../
 
       - name: Commit test report to branch
         run: |
-          cd minishell
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
@@ -92,9 +87,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: minishell/test_report.md
+          path: test_report.md
 
       - name: Show test summary
         run: |
           echo "=== TEST REPORT ==="
-          cat minishell/test_report.md
+          cat test_report.md
