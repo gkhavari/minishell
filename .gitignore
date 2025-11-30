@@ -16,6 +16,7 @@ vgcore.*
 *.swp
 *.swo
 test_report.md
+mind_map.md
 
 # Build directories (if you create any)
 build/
