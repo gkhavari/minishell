@@ -1,50 +1,65 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   cd.c                                               :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/27 20:29:07 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/27 20:29:08 by thanh-ng         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-/*
- * Minimal `cd` builtin scaffolding.
- * Uses chdir and updates shell->cwd when available.
- */
 #include "minishell.h"
 
+/*
+** get_cd_target - Get target directory for cd
+** @args: command arguments
+** @shell: shell state for HOME lookup
+** Return: target path or NULL if HOME not set
+*/
+static char	*get_cd_target(char **args, t_shell *shell)
+{
+	char	*target;
+
+	if (!args[1])
+	{
+		target = get_env(shell->envp, "HOME");
+		if (!target)
+		{
+			ft_putendl_fd("minishell: cd: HOME not set", 2);
+			return (NULL);
+		}
+		return (target);
+	}
+	return (args[1]);
+}
+
+/*
+** update_shell_cwd - Update shell's current working directory
+** @shell: shell state to update
+** Return: 0 on success, 1 on failure
+*/
+static int	update_shell_cwd(t_shell *shell)
+{
+	char	*cwd;
+
+	cwd = getcwd(NULL, 0);
+	if (!cwd)
+		return (1);
+	if (shell->cwd)
+		free(shell->cwd);
+	shell->cwd = cwd;
+	return (0);
+}
+
+/*
+** builtin_cd - Change current directory
+** @args: command arguments (args[1] = path or empty for HOME)
+** @shell: shell state
+** Return: 0 on success, 1 on failure
+*/
 int	builtin_cd(char **args, t_shell *shell)
 {
-    char *target;
-    char *newcwd;
+	char	*target;
 
-    (void) args;
-    if (!args || !shell)
-        return (1);
-    if (!args[1] || args[1][0] == '\0')
-    {
-        target = get_env(shell->envp, "HOME");
-        if (!target)
-        {
-            fprintf(stderr, "cd: HOME not set\n");
-            return (1);
-        }
-    }
-    else
-        target = args[1];
-    if (chdir(target) != 0)
-    {
-        perror("cd");
-        return (1);
-    }
-    newcwd = getcwd(NULL, 0);
-    if (newcwd)
-    {
-        free(shell->cwd);
-        shell->cwd = newcwd;
-    }
-    return (0);
+	target = get_cd_target(args, shell);
+	if (!target)
+		return (1);
+	if (chdir(target) == -1)
+	{
+		ft_putstr_fd("minishell: cd: ", 2);
+		ft_putstr_fd(target, 2);
+		ft_putendl_fd(": No such file or directory", 2);
+		return (1);
+	}
+	return (update_shell_cwd(shell));
 }

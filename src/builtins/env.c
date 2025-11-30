@@ -1,32 +1,23 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   env.c                                              :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/27 20:29:16 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/27 20:29:17 by thanh-ng         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-/*
- * Minimal `env` builtin scaffolding.
- */
 #include "minishell.h"
 
+/*
+** builtin_env - Print all environment variables
+** @args: unused
+** @shell: shell state containing envp
+** Return: 0 on success, 1 if envp is NULL
+*/
 int	builtin_env(char **args, t_shell *shell)
 {
-    int i;
+	int	i;
 
-    (void) args;
-    if (!shell || !shell->envp)
-        return (1);
-    i = 0;
-    while (shell->envp[i])
-    {
-        printf("%s\n", shell->envp[i]);
-        i++;
-    }
-    return (0);
+	(void)args;
+	if (!shell->envp)
+		return (1);
+	i = 0;
+	while (shell->envp[i])
+	{
+		ft_putendl_fd(shell->envp[i], 1);
+		i++;
+	}
+	return (0);
 }

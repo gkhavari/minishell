@@ -1,100 +1,77 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   export.c                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/27 20:29:23 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/27 20:29:24 by thanh-ng         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+#include "minishell.h"
 
 /*
- * Minimal `export` builtin: support KEY=VALUE assignments and printing when no args.
- * This is a simple implementation for scaffolding and test purposes.
- */
-#include "minishell.h"
-#include <string.h>
-
-static int find_key_index(char **envp, const char *key)
+** replace_or_append - Replace existing or append new env var
+** @shell: shell state
+** @arg: KEY=value string
+** @key: extracted key
+** Return: 0 on success, 1 on failure
+*/
+static int	replace_or_append(t_shell *shell, char *arg, char *key)
 {
-    int i = 0;
-    size_t len = strlen(key);
+	int	idx;
 
-    while (envp && envp[i])
-    {
-        if (strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-            return i;
-        i++;
-    }
-    return -1;
+	idx = find_export_key_index(shell, key, ft_strlen(key));
+	if (idx >= 0)
+	{
+		free(shell->envp[idx]);
+		shell->envp[idx] = ft_strdup(arg);
+		return (shell->envp[idx] == NULL);
+	}
+	return (append_export_env(shell, arg));
 }
 
-static char *make_kv(const char *key, const char *val)
+/*
+** set_env_var - Parse and set environment variable
+** @shell: shell state
+** @arg: KEY=value string to set
+** Return: 0 on success or no '=', 1 on error
+*/
+static int	set_env_var(t_shell *shell, char *arg)
 {
-    size_t k = strlen(key);
-    size_t v = strlen(val);
-    char *s = malloc(k + v + 2);
-    if (!s) return NULL;
-    memcpy(s, key, k);
-    s[k] = '=';
-    memcpy(s + k + 1, val, v);
-    s[k + 1 + v] = '\0';
-    return s;
+	char	*eq;
+	char	*key;
+	int		ret;
+
+	eq = ft_strchr(arg, '=');
+	if (!eq)
+		return (0);
+	key = ft_substr(arg, 0, eq - arg);
+	if (!key)
+		return (1);
+	if (!is_valid_export_name(key))
+	{
+		free(key);
+		ft_putstr_fd("minishell: export: '", 2);
+		ft_putstr_fd(arg, 2);
+		ft_putendl_fd("': not a valid identifier", 2);
+		return (1);
+	}
+	ret = replace_or_append(shell, arg, key);
+	free(key);
+	return (ret);
 }
 
-static void append_env(t_shell *shell, char *kv)
+/*
+** builtin_export - Set environment variables
+** @args: command arguments (args[1..n] = KEY=value)
+** @shell: shell state
+** Return: 0 on success, 1 if any arg failed
+*/
+int	builtin_export(char **args, t_shell *shell)
 {
-    int n = 0;
-    while (shell->envp && shell->envp[n]) n++;
-    char **ne = malloc(sizeof(char *) * (n + 2));
-    if (!ne) return;
-    for (int i = 0; i < n; i++)
-        ne[i] = strdup(shell->envp[i]);
-    ne[n] = kv;
-    ne[n + 1] = NULL;
-    shell->envp = ne;
-}
+	int	i;
+	int	ret;
 
-static void replace_env(t_shell *shell, int idx, char *kv)
-{
-    free(shell->envp[idx]);
-    shell->envp[idx] = kv;
-}
-
-int builtin_export(char **args, t_shell *shell)
-{
-    if (!args || !shell)
-        return (1);
-    if (!args[1])
-    {
-        /* Print env */
-        int i = 0;
-        while (shell->envp && shell->envp[i])
-        {
-            printf("%s\n", shell->envp[i]);
-            i++;
-        }
-        return (0);
-    }
-    for (int i = 1; args[i]; i++)
-    {
-        char *eq = strchr(args[i], '=');
-        if (!eq)
-            continue; /* skip names without = for now */
-        size_t keylen = eq - args[i];
-        char *key = strndup(args[i], keylen);
-        char *val = strdup(eq + 1);
-        char *kv = make_kv(key, val);
-        free(key);
-        free(val);
-        if (!kv) continue;
-        int idx = find_key_index(shell->envp, kv);
-        if (idx >= 0)
-            replace_env(shell, idx, kv);
-        else
-            append_env(shell, kv);
-    }
-    return (0);
+	if (!args[1])
+		return (builtin_env(args, shell));
+	i = 1;
+	ret = 0;
+	while (args[i])
+	{
+		if (set_env_var(shell, args[i]))
+			ret = 1;
+		i++;
+	}
+	return (ret);
 }

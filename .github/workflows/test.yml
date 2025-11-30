@@ -1,0 +1,89 @@
+name: CI - Test with minishell_tester
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          path: minishell
+
+      - name: Clone minishell_tester
+        run: |
+          git clone https://github.com/LucasKuhn/minishell_tester.git tester
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libreadline-dev libncurses-dev libtinfo-dev
+
+      - name: Build minishell
+        run: |
+          cd minishell
+          make -j$(nproc)
+
+      - name: Run tester and capture results
+        id: run_tests
+        continue-on-error: true
+        run: |
+          cd tester
+          # Link minishell binary to tester directory
+          ln -sf ../minishell/minishell ./minishell
+          
+          # Run tester and capture output
+          echo "## Minishell Tester Results" > test_report.md
+          echo "" >> test_report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> test_report.md
+          echo "**Commit:** ${{ github.sha }}" >> test_report.md
+          echo "**Date:** $(date -u)" >> test_report.md
+          echo "" >> test_report.md
+          echo '```' >> test_report.md
+          
+          # Run the tester (it may return non-zero if tests fail)
+          ./tester 2>&1 | tee test_output.txt || true
+          
+          # Extract summary (passed/failed counts)
+          cat test_output.txt >> test_report.md
+          echo '```' >> test_report.md
+          
+          # Create summary
+          echo "" >> test_report.md
+          echo "### Summary" >> test_report.md
+          PASSED=$(grep -o '\[✓\]' test_output.txt 2>/dev/null | wc -l || echo "0")
+          FAILED=$(grep -o '\[✗\]' test_output.txt 2>/dev/null | wc -l || echo "0")
+          echo "- ✅ Passed: $PASSED" >> test_report.md
+          echo "- ❌ Failed: $FAILED" >> test_report.md
+          
+          # Copy report to minishell directory
+          cp test_report.md ../minishell/
+
+      - name: Commit test report to branch
+        run: |
+          cd minishell
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if report exists
+          if [ -f test_report.md ]; then
+            git add test_report.md
+            git commit -m "📊 Test report for commit ${{ github.sha }}" || echo "No changes to commit"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: Upload test report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: minishell/test_report.md
+
+      - name: Show test summary
+        run: |
+          echo "=== TEST REPORT ==="
+          cat minishell/test_report.md
