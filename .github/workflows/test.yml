@@ -57,13 +57,20 @@ jobs:
           cat test_output.txt >> test_report.md
           echo '```' >> test_report.md
           
-          # Create summary
+          # Create summary - tester uses ✅ and ❌ emojis
           echo "" >> test_report.md
           echo "### Summary" >> test_report.md
-          PASSED=$(grep -o '\[✓\]' test_output.txt 2>/dev/null | wc -l || echo "0")
-          FAILED=$(grep -o '\[✗\]' test_output.txt 2>/dev/null | wc -l || echo "0")
+          PASSED=$(grep -o '✅' test_output.txt 2>/dev/null | wc -l || echo "0")
+          FAILED=$(grep -o '❌' test_output.txt 2>/dev/null | wc -l || echo "0")
+          TOTAL=$((PASSED + FAILED))
+          # Also extract the final score line (format: ok/total)
+          SCORE=$(grep -E '^[0-9]+/[0-9]+' test_output.txt 2>/dev/null | tail -1 || echo "")
           echo "- ✅ Passed: $PASSED" >> test_report.md
           echo "- ❌ Failed: $FAILED" >> test_report.md
+          echo "- 📊 Total: $TOTAL" >> test_report.md
+          if [ -n "$SCORE" ]; then
+            echo "- 🎯 Score: $SCORE" >> test_report.md
+          fi
           
           # Copy report to minishell directory
           cp test_report.md ../minishell/
