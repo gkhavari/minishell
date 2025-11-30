@@ -34,9 +34,15 @@ SRCS        += $(SRC_DIR)/parser/parser.c \
                $(SRC_DIR)/executor/commands.c
 
 # builtins
-#SRCS        += $(SRC_DIR)/builtins/echo.c \
-               $(SRC_DIR)/builtins/cd.c \
-               $(SRC_DIR)/builtins/pwd.c
+# builtins - uncomment/add the specific builtins as you implement them
+SRCS        += $(SRC_DIR)/builtins/cd.c \
+			   $(SRC_DIR)/builtins/pwd.c \
+			   $(SRC_DIR)/builtins/env.c \
+			   $(SRC_DIR)/builtins/echo.c \
+			   $(SRC_DIR)/builtins/export.c \
+			   $(SRC_DIR)/builtins/export_utils.c \
+			   $(SRC_DIR)/builtins/unset.c \
+			   $(SRC_DIR)/builtins/exit.c
 
 # --------------------------------------------------------------------------- #
 
@@ -47,7 +53,7 @@ LIBFT       = $(LIBFT_DIR)/libft.a
 #                                   RULES                                      #
 # **************************************************************************** #
 
-all: $(LIBFT) $(NAME)
+all: $(NAME)
 
 # Build minishell
 $(NAME): $(LIBFT) $(OBJ_DIR) $(OBJS)

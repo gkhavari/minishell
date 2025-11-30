@@ -15,6 +15,7 @@ vgcore.*
 *.tmp
 *.swp
 *.swo
+test_report.md
 
 # Build directories (if you create any)
 build/
