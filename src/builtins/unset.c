@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:53 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:54 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/11/30 22:07:19 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,14 +81,16 @@ static void	remove_env_entry(t_shell *shell, int idx)
 ** builtin_unset - Remove environment variables
 ** @args: command arguments (args[1..n] = var names)
 ** @shell: shell state
-** Return: 0 always
+** Return: 0 on success, 1 if any invalid identifier
 */
 int	builtin_unset(char **args, t_shell *shell)
 {
 	int	i;
 	int	idx;
+	int	ret;
 
 	i = 1;
+	ret = 0;
 	while (args[i])
 	{
 		if (!is_valid_unset_name(args[i]))
@@ -96,6 +98,7 @@ int	builtin_unset(char **args, t_shell *shell)
 			ft_putstr_fd("minishell: unset: '", 2);
 			ft_putstr_fd(args[i], 2);
 			ft_putendl_fd("': not a valid identifier", 2);
+			ret = 1;
 		}
 		else
 		{
@@ -105,5 +108,5 @@ int	builtin_unset(char **args, t_shell *shell)
 		}
 		i++;
 	}
-	return (0);
+	return (ret);
 }

@@ -32,3 +32,6 @@ bin/
 
 # 42 project checker artifacts (if using)
 *.out
+
+# Test binaries
+test_builtins
