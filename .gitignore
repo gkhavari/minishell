@@ -15,7 +15,11 @@ vgcore.*
 *.tmp
 *.swp
 *.swo
-test_report.md
+
+# document helpers
+
+docs/
+
 
 # Build directories (if you create any)
 build/
@@ -31,3 +35,6 @@ bin/
 
 # 42 project checker artifacts (if using)
 *.out
+
+# Test binaries
+test_builtins
