@@ -89,3 +89,34 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	free (ptr);
 	return (res);
 }
+
+char	**ft_arrdup(char **envp)
+{
+	char	**copy;
+	size_t	i;
+	size_t	count;
+
+	if (!envp)
+		return (NULL);
+	count = 0;
+	while (envp[count])
+		count++;
+	copy = malloc(sizeof(char *) * (count + 1));
+	if (!copy)
+		return (NULL);
+	i = 0;
+	while (i < count)
+	{
+		copy[i] = ft_strdup(envp[i]);
+		if (!copy[i])
+		{
+			while (i > 0)
+				free(copy[--i]);
+			free(copy);
+			return (NULL);
+		}
+		i++;
+	}
+	copy[count] = NULL;
+	return (copy);
+}

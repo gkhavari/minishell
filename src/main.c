@@ -11,30 +11,40 @@
 /* ************************************************************************** */
 
 #include "minishell.h"
+/*
+void print_tokens(t_shell *shell)
+{
+	t_token *t = shell->tokens;
+
+	while (t != NULL)
+	{
+		printf("%d\n", t->type);
+		printf("%s\n", t->value);
+		printf("\n");
+		t = t->next;
+	}
+}*/
 
 void	sigint_handler(int signum)
 {
 	(void)signum;
 	write(1, "\n", 1);
-	rl_replace_line("", 0); // Clear current input
-	rl_on_new_line();       // Move to new line
-	rl_redisplay();         // Redisplay prompt
+	rl_replace_line("", 0);	// Clear current input
+	rl_on_new_line();		// Move to new line
+	rl_redisplay();			// Redisplay prompt
 }
-
 
 void	disable_ctrl_echo(void)
 {
 	struct termios term;
 
 	tcgetattr(STDIN_FILENO, &term);
-	term.c_lflag &= ~ECHOCTL; // Disable printing ^C, ^D, etc.
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
-	char	*input;
 	char	*promt;
 
 	signal(SIGINT, sigint_handler);
@@ -53,9 +63,9 @@ int	main(int argc, char **argv, char **envp)
 			break ;
 		}
 		errno = 0;
-		input = readline(promt);
+		shell.input = readline(promt);
 		free(promt);
-		if (!input)
+		if (!shell.input)
 		{
 			if (errno)
 				perror("readline failed");
@@ -63,11 +73,19 @@ int	main(int argc, char **argv, char **envp)
 				ft_putstr_fd("exit\n", 1);
 			break ;
 		}
-		if (*input)
-			add_history(input);
-		free(input);
+		if (shell.input[0])
+		{
+			add_history(shell.input);
+			tokenize_input(&shell);
+			//parse_tokens(&shell);
+			//execute_commands(&shell);
+/*			print_tokens(&shell);*/
+			//reset_shell(&shell);
+		}
+		free(shell.input);
+		shell.input = NULL;
 	}
 	rl_clear_history();
-	free(shell.cwd);
+	free_all(&shell);
 	return (0);
 }

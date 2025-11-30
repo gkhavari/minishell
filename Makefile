@@ -5,7 +5,7 @@
 NAME        = minishell
 
 CC          = cc
-CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -g
+CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft
 
 SRC_DIR     = src
 OBJ_DIR     = obj
@@ -17,16 +17,17 @@ RLFLAGS		= -lreadline -lncurses
 # main
 SRCS        = $(SRC_DIR)/main.c \
 				$(SRC_DIR)/init.c \
-				$(SRC_DIR)/utils.c
+				$(SRC_DIR)/utils.c \
+				$(SRC_DIR)/free.c
 
 # signals
 #SRCS        += $(SRC_DIR)/signals/signal_handlers.c \
                $(SRC_DIR)/signals/signal_init.c
 
 # parser
-#SRCS        += $(SRC_DIR)/parser/parser.c \
-               $(SRC_DIR)/parser/lexer.c \
-               $(SRC_DIR)/parser/tokens.c
+SRCS        += $(SRC_DIR)/parser/parser.c \
+               $(SRC_DIR)/parser/tokens.c \
+#               $(SRC_DIR)/parser/lexer.c
 
 # executor
 #SRCS        += $(SRC_DIR)/executor/executor.c \
@@ -90,4 +91,7 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+debug: CFLAGS += -g
+debug: re
+
+.PHONY: all clean fclean re debug
