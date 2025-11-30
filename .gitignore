@@ -15,8 +15,11 @@ vgcore.*
 *.tmp
 *.swp
 *.swo
-test_report.md
-mind_map.md
+
+# document helpers
+
+docs/
+
 
 # Build directories (if you create any)
 build/
