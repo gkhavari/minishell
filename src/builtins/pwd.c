@@ -23,7 +23,7 @@ int	builtin_pwd(char **args, t_shell *shell)
 	char	*cwd;
 
 	(void)args;
-	cwd = getcwd(NULL, 0);
+	cwd = getcwd(NULL, 0); //this generates a non-freeable string, will be a problem
 	if (!cwd)
 	{
 		if (shell->cwd)
