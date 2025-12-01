@@ -52,7 +52,7 @@ int	main(int argc, char **argv, char **envp)
 	(void) argc;
 	(void) argv;
 	ft_bzero(&shell, sizeof(t_shell));
-	init_shell(&shell, envp);
+	init_shell(&shell, ft_arrdup(envp));
 	disable_ctrl_echo();
 	while (1)
 	{
