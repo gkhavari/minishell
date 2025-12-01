@@ -61,6 +61,8 @@ void	tokenize_input(t_shell *shell)
 			parse_append_redir_out(s, &i, &type);
 		else if (s[i] == ' ')
 			i++;
+		else if (s[i] == SINGLE_QUOTE || s[i] == DOUBLE_QUOTE)
+			word = parse_sting(s, &i, &type);
 		else
 			word = parse_word(s, &i, &type);
 		if (i != 0 && s[i - 1] != ' ')

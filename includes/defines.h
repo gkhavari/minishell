@@ -19,4 +19,7 @@
 # define PROMPT_DEFAULT_USER "user"
 # define PROMPT_DEFAULT_CWD "/minishell/"
 
+# define SINGLE_QUOTE 34
+# define DOUBLE_QUOTE 39
+
 #endif

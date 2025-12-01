@@ -43,6 +43,23 @@ void	parse_append_redir_out(char *s, size_t *i, t_tokentype *type)
 	(*i)++;
 }
 
+char	*parse_sting(char *s, size_t *i, t_tokentype *type)
+{
+	size_t	j;
+	char	*word;
+
+	*type = WORD;
+	j = *i;
+	while (s[j] && s[j] != s[*i])
+		j++;
+/*	if (s[i] == DOUBLE_QUOTE)
+		handle_double_quote();
+	else if (s[i] == SINGLE_QUOTE)
+		handle_single_quote();
+	else
+		continuation_prompt();*/ 
+}
+
 char	*parse_word(char *s, size_t *i, t_tokentype *type)
 {
 	size_t	j;
