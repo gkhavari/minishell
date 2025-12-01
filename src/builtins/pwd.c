@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:49 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:50 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/01 18:15:43 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,13 +23,13 @@ int	builtin_pwd(char **args, t_shell *shell)
 	char	*cwd;
 
 	(void)args;
-	cwd = getcwd(NULL, 0); //this generates a non-freeable string, will be a problem
+	if (!shell->cwd)
+		return (1);
+	cwd = ft_strdup(shell->cwd); //this generates a non-freeable string, will be a problem
 	if (!cwd)
 	{
-		if (shell->cwd)
-			cwd = ft_strdup(shell->cwd);
-		if (!cwd)
-			return (1);
+		perror("minishell: pwd: malloc");
+		return (1);
 	}
 	ft_putendl_fd(cwd, 1);
 	free(cwd);
