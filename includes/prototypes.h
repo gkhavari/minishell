@@ -19,11 +19,14 @@ void	init_shell(t_shell *shell, char **envp);
 char	*ft_strcat(char *dest, const char *src);
 char	*ft_realloc(char *ptr, const size_t new_size);
 void	tokenize_input(t_shell *shell);
-void	parse_pipe(char *s, size_t *i, t_tokentype *type);
-void	parse_heredoc_redir_in(char *s, size_t *i, t_tokentype *type);
-void	parse_append_redir_out(char *s, size_t *i, t_tokentype *type);
-char	*parse_word(char *s, size_t *i, t_tokentype *type);
+void	parse_pipe(const char *s, size_t *i, t_tokentype *type);
+void	parse_heredoc_redir_in(const char *s, size_t *i, t_tokentype *type);
+void	parse_append_redir_out(const char *s, size_t *i, t_tokentype *type);
+char	*parse_word(const char *s, size_t *i, t_tokentype *type);
 void	free_all(t_shell *shell);
 char	**ft_arrdup(char **envp);
+char	*parse_sting(const char *s, size_t *i, t_tokentype *type);
+char	*handle_single_quote(const char *input, size_t i, size_t j);
+
 
 #endif

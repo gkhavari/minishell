@@ -69,9 +69,11 @@ static void	free_envp(char **envp)
 	while (envp[i])
 	{
 		free(envp[i]);
+		envp[i] = NULL;
 		i++;
 	}
 	free(envp);
+	envp = NULL;
 }
 
 void	free_all(t_shell *shell)
@@ -85,9 +87,18 @@ void	free_all(t_shell *shell)
 	if (shell->envp)
 		free_envp(shell->envp);
 	if (shell->user)
+	{
 		free(shell->user);
+		shell->user = NULL;
+	}
 	if (shell->cwd)
+	{
 		free(shell->cwd);
+		shell->cwd = NULL;
+	}
 	if (shell->input)
+	{
 		free(shell->input);
+		shell->input = NULL;
+	}
 }

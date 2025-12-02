@@ -12,14 +12,14 @@
 
 #include "minishell.h"
 
-void	parse_pipe(char *s, size_t *i, t_tokentype *type)
+void	parse_pipe(const char *s, size_t *i, t_tokentype *type)
 {
 	(void)s;
 	*type = PIPE;
 	(*i)++;
 }
 
-void	parse_heredoc_redir_in(char *s, size_t *i, t_tokentype *type)
+void	parse_heredoc_redir_in(const char *s, size_t *i, t_tokentype *type)
 {
 	if (s[*i + 1] == '<')
 	{
@@ -31,7 +31,7 @@ void	parse_heredoc_redir_in(char *s, size_t *i, t_tokentype *type)
 	(*i)++;
 }
 
-void	parse_append_redir_out(char *s, size_t *i, t_tokentype *type)
+void	parse_append_redir_out(const char *s, size_t *i, t_tokentype *type)
 {
 	if (s[*i + 1] == '>')
 	{
@@ -43,24 +43,30 @@ void	parse_append_redir_out(char *s, size_t *i, t_tokentype *type)
 	(*i)++;
 }
 
-char	*parse_sting(char *s, size_t *i, t_tokentype *type)
+char	*parse_sting(const char *s, size_t *i, t_tokentype *type)
 {
 	size_t	j;
 	char	*word;
 
 	*type = WORD;
-	j = *i;
+	j = *i + 1;
 	while (s[j] && s[j] != s[*i])
 		j++;
-/*	if (s[i] == DOUBLE_QUOTE)
-		handle_double_quote();
-	else if (s[i] == SINGLE_QUOTE)
-		handle_single_quote();
+	word = NULL;
+	printf("%c\n", s[*i]);
+	if (s[*i] == SINGLE_QUOTE)
+	{
+		word = handle_single_quote(s, *i, j);
+	}
+/*	else if (s[j] == DOUBLE_QUOTE)
+		handle_double_quote(word, s, *i, j);
 	else
-		continuation_prompt();*/ 
+		continuation_prompt();*/
+	*i = j + 1;
+	return (word);
 }
 
-char	*parse_word(char *s, size_t *i, t_tokentype *type)
+char	*parse_word(const char *s, size_t *i, t_tokentype *type)
 {
 	size_t	j;
 	char	*word;
