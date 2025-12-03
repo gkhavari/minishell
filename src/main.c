@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/03 21:35:03 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/03 21:55:56 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,8 +72,7 @@ static void	process_input(t_shell *shell)
 	{
 		ft_putstr_fd("minishell: ", STDERR_FILENO);
 		ft_putstr_fd(argv[0], STDERR_FILENO);
-		ft_putstr_fd(": command not found (parser not implemented)\n",
-			STDERR_FILENO);
+		ft_putstr_fd(": command not found\n", STDERR_FILENO);
 		shell->last_exit = 127;
 	}
 	free_simple_argv(argv);
@@ -99,18 +98,14 @@ static void	shell_loop(t_shell *shell)
 		prompt = build_prompt(shell);
 		if (!prompt)
 		{
-			perror("Failed to build prompt");
+			ft_putstr_fd("minishell: failed to build prompt\n", STDERR_FILENO);
 			break ;
 		}
-		errno = 0;
 		shell->input = readline(prompt);
 		free(prompt);
 		if (!shell->input)
 		{
-			if (errno)
-				perror("readline failed");
-			else
-				ft_putstr_fd("exit\n", 1);
+			ft_putstr_fd("exit\n", STDOUT_FILENO);
 			break ;
 		}
 		if (check_signal_received(shell))
@@ -125,7 +120,7 @@ static void	shell_loop(t_shell *shell)
 			process_input(shell);
 			//parse_tokens(&shell);
 			//execute_commands(&shell);
-/*			print_tokens(&shell);*/
+			//print_tokens(&shell);
 			//reset_shell(&shell);
 		}
 		free(shell->input);
@@ -138,8 +133,6 @@ int	main(int argc, char **argv, char **envp)
 	t_shell	shell;
 	//char	*promt;
 
-	signal(SIGINT, sigint_handler);
-	signal(SIGQUIT, SIG_IGN);
 	(void) argc;
 	(void) argv;
 	ft_bzero(&shell, sizeof(t_shell));
