@@ -21,13 +21,15 @@ SRCS        = $(SRC_DIR)/main.c \
 				$(SRC_DIR)/free.c
 
 # signals
-#SRCS        += $(SRC_DIR)/signals/signal_handlers.c \
-               $(SRC_DIR)/signals/signal_init.c
+SRCS        += $(SRC_DIR)/signals/signal_handler.c
 
 # parser
 SRCS        += $(SRC_DIR)/parser/parser.c \
-               $(SRC_DIR)/parser/tokens.c \
+               $(SRC_DIR)/parser/tokens.c
 #               $(SRC_DIR)/parser/lexer.c
+
+# utils
+SRCS        += $(SRC_DIR)/utils/simple_split.c
 
 # executor
 #SRCS        += $(SRC_DIR)/executor/executor.c \
@@ -42,7 +44,8 @@ SRCS        += $(SRC_DIR)/builtins/cd.c \
 			   $(SRC_DIR)/builtins/export.c \
 			   $(SRC_DIR)/builtins/export_utils.c \
 			   $(SRC_DIR)/builtins/unset.c \
-			   $(SRC_DIR)/builtins/exit.c
+			   $(SRC_DIR)/builtins/exit.c \
+			   $(SRC_DIR)/builtins/builtin_dispatcher.c
 
 # --------------------------------------------------------------------------- #
 
@@ -72,6 +75,7 @@ $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)/parser
 	@mkdir -p $(OBJ_DIR)/executor
 	@mkdir -p $(OBJ_DIR)/builtins
+	@mkdir -p $(OBJ_DIR)/utils
 
 # Compile .c → .o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
