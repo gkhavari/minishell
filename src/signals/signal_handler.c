@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 21:01:22 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/12/03 21:12:43 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/03 21:36:28 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,10 +24,10 @@ static void	interactive_sigint_handler(int signum)
 {
 	(void)signum;
 	g_signum = SIGINT;
-	write(STDOUT_FILENO, "\n", 1);
-	rl_on_new_line();
-	rl_replace_line("", 0);
-	rl_redisplay();
+	ft_putstr_fd("\n", STDOUT_FILENO);
+	rl_replace_line("", 0);	// Clear current input
+	rl_on_new_line();		// Move to new line
+	rl_redisplay();			// Redisplay prompt
 }
 
 /*
@@ -106,9 +106,9 @@ int	handle_child_exit(int *last_exit_status, pid_t pid)
 	{
 		*last_exit_status = 128 + WTERMSIG(status);
 		if (WTERMSIG(status) == SIGQUIT)
-			write(STDERR_FILENO, "Quit (core dumped)\n", 19);
+			ft_putstr_fd("Core dumped\n", STDOUT_FILENO);
 		else if (WTERMSIG(status) == SIGINT)
-			write(STDOUT_FILENO, "\n", 1);
+			ft_putstr_fd("\n", STDOUT_FILENO);
 	}
 	else if (WIFEXITED(status))
 		*last_exit_status = WEXITSTATUS(status);
