@@ -40,4 +40,19 @@ int		is_valid_export_name(char *name);
 int		find_export_key_index(t_shell *shell, char *key, int key_len);
 int		append_export_env(t_shell *shell, char *entry);
 
+/* signal_handles.c */
+int		set_signals_default(void);
+int		set_signals_ignore(void);
+int		set_signals_interactive(void);
+int		handle_child_exit(int *last_exit_status, pid_t pid);
+int		check_signal_received(t_shell *shell);
+
+/* builtin_dispatcher.c */
+int		is_builtin(char *cmd);
+int		run_builtin(char **argv, t_shell *shell);
+
+/* simple_split.c (for testing) */
+char	**simple_split_input(char *input);
+void	free_simple_argv(char **argv);
+
 #endif
