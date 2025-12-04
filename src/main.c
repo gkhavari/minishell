@@ -49,7 +49,7 @@ void	disable_ctrl_echo(void)
 }
 */
 
-/* Global signal variable - declared in signal_handles.c */
+/* Global signal variable - declared in signal_handler.c */
 extern volatile sig_atomic_t	g_signum;
 
 /*
