@@ -40,7 +40,7 @@ int		is_valid_export_name(char *name);
 int		find_export_key_index(t_shell *shell, char *key, int key_len);
 int		append_export_env(t_shell *shell, char *entry);
 
-/* signal_handles.c */
+/* signal_handler.c */
 int		set_signals_default(void);
 int		set_signals_ignore(void);
 int		set_signals_interactive(void);
