@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <minishell.h>
+#include "minishell.h"
 
 /* ONLY global variable allowed - stores signal number for checking in loop */
 volatile sig_atomic_t	g_signum = 0;
