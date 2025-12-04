@@ -105,6 +105,7 @@ int		set_signals_ignore(void);
 int		set_signals_interactive(void);
 int		handle_child_exit(int *last_exit_status, pid_t pid);
 int		check_signal_received(t_shell *shell);
+int		readline_event_hook(void);
 
 /* builtin_dispatcher.c */
 int		is_builtin(char *cmd);

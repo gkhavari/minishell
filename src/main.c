@@ -121,6 +121,7 @@ int     main(int argc, char **argv, char **envp)
 	ft_bzero(&shell, sizeof(t_shell));
 	init_shell(&shell, envp);
 	set_signals_interactive();
+	rl_event_hook = readline_event_hook;
 	shell_loop(&shell);
 	rl_clear_history();
 	free_all(&shell);
