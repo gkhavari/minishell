@@ -118,18 +118,16 @@ int	handle_child_exit(int *last_exit_status, pid_t pid)
 ** Event hook for readline - called periodically during input
 ** Checks for pending signals and handles them safely
 ** This is safe to call readline functions because it runs outside the signal handler context
+** Note: Multiple rapid SIGINTs may coalesce into a single handling, which is acceptable
 ** Returns: 0 to continue readline operation
 */
 int	readline_event_hook(void)
 {
-	int	signum;
-
-	signum = g_signum;
-	if (signum == SIGINT)
+	if (g_signum == SIGINT)
 	{
 		g_signum = 0;
-		rl_replace_line("", 0);
 		rl_on_new_line();
+		rl_replace_line("", 0);
 		rl_redisplay();
 	}
 	return (0);
