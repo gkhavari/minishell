@@ -78,7 +78,7 @@ int	set_signals_interactive(void)
 	g_signum = 0;
 	ft_bzero(&sa, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
+	sa.sa_flags = SA_RESTART;
 	sa.sa_handler = SIG_IGN;
 	sigaction(SIGQUIT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
