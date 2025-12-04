@@ -117,12 +117,15 @@ int	handle_child_exit(int *last_exit_status, pid_t pid)
 /*
 ** Event hook for readline - called periodically during input
 ** Checks for pending signals and handles them safely
-** This is async-signal-safe because it runs outside the signal handler
+** This is safe to call readline functions because it runs outside the signal handler context
 ** Returns: 0 to continue readline operation
 */
 int	readline_event_hook(void)
 {
-	if (g_signum == SIGINT)
+	int	signum;
+
+	signum = g_signum;
+	if (signum == SIGINT)
 	{
 		g_signum = 0;
 		rl_replace_line("", 0);
