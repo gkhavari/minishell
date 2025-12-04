@@ -124,6 +124,7 @@ int	readline_event_hook(void)
 {
 	if (g_signum == SIGINT)
 	{
+		g_signum = 0;
 		rl_replace_line("", 0);
 		rl_on_new_line();
 		rl_redisplay();
