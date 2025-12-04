@@ -106,7 +106,7 @@ int	handle_child_exit(int *last_exit_status, pid_t pid)
 	{
 		*last_exit_status = 128 + WTERMSIG(status);
 		if (WTERMSIG(status) == SIGQUIT)
-			ft_putstr_fd("Core dumped\n", STDOUT_FILENO);
+			ft_putstr_fd("Quit (core dumped)\n", STDOUT_FILENO);
 		else if (WTERMSIG(status) == SIGINT)
 			ft_putstr_fd("\n", STDOUT_FILENO);
 	}
