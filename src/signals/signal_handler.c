@@ -115,10 +115,11 @@ int	handle_child_exit(int *last_exit_status, pid_t pid)
 }
 
 /*
-** Event hook for readline - called periodically during input
+** Event hook for readline - called periodically DURING readline input
 ** Checks for pending signals and handles them safely
 ** This is safe to call readline functions because it runs outside the signal handler context
 ** Note: Multiple rapid SIGINTs may coalesce into a single handling, which is acceptable
+** Note: This function runs only while readline is active, not concurrently with check_signal_received
 ** Returns: 0 to continue readline operation
 */
 int	readline_event_hook(void)
@@ -136,6 +137,7 @@ int	readline_event_hook(void)
 /*
 ** Check and handle signal received during readline
 ** Call this AFTER readline returns in main loop
+** This function runs only after readline exits, not concurrently with readline_event_hook
 ** Returns: 1 if signal was handled, 0 otherwise
 */
 int	check_signal_received(t_shell *shell)
