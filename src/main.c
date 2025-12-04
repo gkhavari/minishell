@@ -6,10 +6,10 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/08 15:18:18 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/01/16 15:50:22 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-#include "minishell.h"
+
 
 void	print_tokens(t_shell *shell)
 {
@@ -22,15 +22,13 @@ void	print_tokens(t_shell *shell)
 		printf("\n");
 		t = t->next;
 	}
-}
+}*/
+/*
+	Already move your signal handlers to signal_handler.c and 
+	add global variable volatile sig_atomic_t g_signum there.
+*/
 
-void	disable_ctrl_echo(void)
-{
-	struct termios term;
 
-	tcgetattr(STDIN_FILENO, &term);
-	tcsetattr(STDIN_FILENO, TCSANOW, &term);
-}
 
 /* Global signal variable - declared in signal_handler.c */
 extern volatile sig_atomic_t	g_signum;
@@ -118,13 +116,13 @@ int     main(int argc, char **argv, char **envp)
         t_shell shell;
         //char  *promt;
 
-        (void) argc;
-        (void) argv;
-        ft_bzero(&shell, sizeof(t_shell));
-        init_shell(&shell, ft_arrdup(envp));
-        //disable_ctrl_echo();
-        shell_loop(&shell);
-        rl_clear_history();
-        free_all(&shell);
-        return (shell.last_exit);
+	(void) argc;
+	(void) argv;
+	ft_bzero(&shell, sizeof(t_shell));
+	init_shell(&shell, envp);
+	set_signals_interactive();
+	shell_loop(&shell);
+	rl_clear_history();
+	free_all(&shell);
+	return (shell.last_exit);
 }
