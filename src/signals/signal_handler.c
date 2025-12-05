@@ -17,7 +17,7 @@ volatile sig_atomic_t	g_signum = 0;
 
 /*
 ** Interactive mode signal handler for SIGINT (Ctrl+C)
-** Only sets the global flag - actual handling happens in main loop
+** Only sets the global flag - actual handling happens via rl_event_hook
 ** Uses only async-signal-safe functions (write)
 */
 static void	interactive_sigint_handler(int signum)
@@ -25,9 +25,6 @@ static void	interactive_sigint_handler(int signum)
 	(void)signum;
 	g_signum = SIGINT;
 	ft_putstr_fd("\n", STDOUT_FILENO);
-	rl_replace_line("", 0);	// Clear current input
-	rl_on_new_line();		// Move to new line
-	rl_redisplay();			// Redisplay prompt
 }
 
 /*
@@ -118,8 +115,29 @@ int	handle_child_exit(int *last_exit_status, pid_t pid)
 }
 
 /*
+** Event hook for readline - called periodically DURING readline input
+** Checks for pending signals and handles them safely
+** This is safe to call readline functions because it runs outside the signal handler context
+** Note: Multiple rapid SIGINTs may coalesce into a single handling, which is acceptable
+** Note: This function runs only while readline is active, not concurrently with check_signal_received
+** Returns: 0 to continue readline operation
+*/
+int	readline_event_hook(void)
+{
+	if (g_signum == SIGINT)
+	{
+		g_signum = 0;
+		rl_on_new_line();
+		rl_replace_line("", 0);
+		rl_redisplay();
+	}
+	return (0);
+}
+
+/*
 ** Check and handle signal received during readline
 ** Call this AFTER readline returns in main loop
+** This function runs only after readline exits, not concurrently with readline_event_hook
 ** Returns: 1 if signal was handled, 0 otherwise
 */
 int	check_signal_received(t_shell *shell)
