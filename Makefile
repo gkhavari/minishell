@@ -26,8 +26,9 @@ SRCS        = $(SRC_DIR)/main.c \
 
 # parser
 SRCS        += $(SRC_DIR)/parser/parser.c \
-               $(SRC_DIR)/parser/tokens.c \
-               $(SRC_DIR)/parser/parse_strings.c \
+               $(SRC_DIR)/parser/tokenizer.c \
+               $(SRC_DIR)/parser/tokenizer_utils.c \
+               $(SRC_DIR)/parser/tokenizer_ops.c \
 #               $(SRC_DIR)/parser/lexer.c
 
 # executor

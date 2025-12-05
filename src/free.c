@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static void	free_tokens(t_token *token)
+void	free_tokens(t_token *token)
 {
 	t_token	*tmp;
 

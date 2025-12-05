@@ -30,10 +30,17 @@ typedef enum e_tokentype
 	HEREDOC
 }	t_tokentype;
 
+typedef enum e_state
+{
+	ST_NORMAL,
+	ST_SQUOTE,
+	ST_DQUOTE
+}	t_state;
+
 typedef struct s_token
 {
 	t_tokentype		type;
-	char			*value;		// only for WORD, others can keep NULL
+	char			*value;
 	struct s_token	*next;
 }	t_token;
 

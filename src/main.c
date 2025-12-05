@@ -84,6 +84,8 @@ int	main(int argc, char **argv, char **envp)
 		}
 		free(shell.input);
 		shell.input = NULL;
+		free_tokens(shell.tokens);
+		shell.tokens = NULL;
 	}
 	rl_clear_history();
 	free_all(&shell);
