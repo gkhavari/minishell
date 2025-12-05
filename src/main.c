@@ -30,24 +30,7 @@ void print_tokens(t_shell *shell)
 	add global variable volatile sig_atomic_t g_signum there.
 */
 
-/*
-void	sigint_handler(int signum)
-{
-	(void)signum;
-	write(1, "\n", 1);
-	rl_replace_line("", 0);	// Clear current input
-	rl_on_new_line();		// Move to new line
-	rl_redisplay();			// Redisplay prompt
-}
 
-void	disable_ctrl_echo(void)
-{
-	struct termios term;
-
-	tcgetattr(STDIN_FILENO, &term);
-	tcsetattr(STDIN_FILENO, TCSANOW, &term);
-}
-*/
 
 /* Global signal variable - declared in signal_handler.c */
 extern volatile sig_atomic_t	g_signum;
@@ -137,7 +120,6 @@ int	main(int argc, char **argv, char **envp)
 	(void) argv;
 	ft_bzero(&shell, sizeof(t_shell));
 	init_shell(&shell, envp);
-	//disable_ctrl_echo();
 	set_signals_interactive();
 	shell_loop(&shell);
 	rl_clear_history();
