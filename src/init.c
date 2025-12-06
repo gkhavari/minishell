@@ -41,28 +41,11 @@ char	*build_prompt(t_shell *shell)
 	return (prompt);
 }
 
-/*Helper to get environment variables*/
-char	*get_env(char **envp, const char *key)
-{
-	int		i;
-	size_t	len;
-
-	i = 0;
-	len = ft_strlen(key);
-	while (envp[i])
-	{
-		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-			return (envp[i] + len + 1);
-		i++;
-	}
-	return (NULL);
-}
-
 /*Initialize shell struct*/
 void	init_shell(t_shell *shell, char **envp)
 {
 	shell->envp = envp;
-	shell->user = ft_strdup(get_env(envp, "USER"));
+	shell->user = ft_strdup(get_env_value(envp, "USER"));
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		return (perror(strerror(errno)));

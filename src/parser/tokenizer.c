@@ -150,12 +150,38 @@ void	tokenize_input(t_shell *shell)
 			i++;
 			continue ;
 		}
-		if (state == ST_SQUOTE || state == ST_DQUOTE)
+		if (state == ST_SQUOTE)
 		{
 			append_char(&word, s[i]);
 			i++;
 			continue ;
 		}
+		if (state == ST_DQUOTE)
+		{
+			if (s[i] == '$')
+			{
+				char *expanded = expand_var(s, &i, shell);
+				append_expansion_quoted(&word, expanded);
+				free(expanded);
+				continue ;
+			}
+			if (s[i] == '\\' && s[i + 1] == '$')
+			{
+				append_char(&word, '$');
+				i += 2;
+				continue ;
+			}
+			append_char(&word, s[i]);
+			i++;
+			continue ;
+		}
+		if (s[i] == '$')
+		{
+			char *expanded = expand_var(s, &i, shell);
+			append_expansion_unquoted(&word, expanded, &shell->tokens);
+			free(expanded);
+			continue ;
+		}		
 		if (handle_operator(s, &i, &word, &shell->tokens))
 			continue ;
 		if (handle_whitespace(s, &i, &word, &shell->tokens))

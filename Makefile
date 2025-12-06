@@ -30,6 +30,7 @@ SRCS        += $(SRC_DIR)/parser/parser.c \
                $(SRC_DIR)/parser/tokenizer_utils.c \
                $(SRC_DIR)/parser/tokenizer_ops.c \
                $(SRC_DIR)/parser/continuation.c \
+               $(SRC_DIR)/parser/expansion.c \
 #               $(SRC_DIR)/parser/lexer.c
 
 # executor
