@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-char	*read_continuation_line(char quote_char)
+static char	*read_continuation_line(char quote_char)
 {
 	char	*line;
 	char	*prompt;
@@ -38,48 +38,60 @@ char	*read_continuation_line(char quote_char)
 	return (with_newline);
 }
 
-/**
- * Appends a continuation line to the input buffer.
- * Returns 1 on success, 0 on EOF/failure.
- */
-int	append_continuation(char **s, t_state state)
+static char	get_quote_char(t_state state)
 {
-	char	quote_char;
-	char	*cont;
-	size_t	old_len;
-	size_t	cont_len;
-	char	*new_input;
+	if (state == ST_SQUOTE)
+		return (SINGLE_QUOTE);
+	return (DOUBLE_QUOTE);
+}
+
+static void	ensure_trailing_newline(char **s, size_t *old_len)
+{
 	char	*tmp;
 
-	if (state == ST_SQUOTE)
-		quote_char = SINGLE_QUOTE;
-	else
-		quote_char = DOUBLE_QUOTE;
-	cont = read_continuation_line(quote_char);
-	if (!cont)
-		return (0);
-	old_len = ft_strlen(*s);
-	cont_len = ft_strlen(cont);
-	if (old_len == 0 || (*s)[old_len - 1] != '\n')
-	{
-		tmp = malloc(old_len + 2);
-		if (!tmp)
-			exit(1);
-		ft_memcpy(tmp, *s, old_len);
-		tmp[old_len] = '\n';
-		tmp[old_len + 1] = '\0';
-		free(*s);
-		*s = tmp;
-		old_len++;
-	}
+	if (*old_len > 0 && (*s)[*old_len - 1] == '\n')
+		return ;
+	tmp = malloc(*old_len + 2);
+	if (!tmp)
+		exit(1);
+	ft_memcpy(tmp, *s, *old_len);
+	tmp[*old_len] = '\n';
+	tmp[*old_len + 1] = '\0';
+	free(*s);
+	*s = tmp;
+	(*old_len)++;
+}
+
+static void	append_to_input(char **s, char *cont, size_t old_len,
+		size_t cont_len)
+{
+	char	*new_input;
+
 	new_input = malloc(old_len + cont_len + 1);
 	if (!new_input)
 		exit(1);
 	ft_memcpy(new_input, *s, old_len);
 	ft_memcpy(new_input + old_len, cont, cont_len);
 	new_input[old_len + cont_len] = '\0';
-	free(cont);
 	free(*s);
 	*s = new_input;
+}
+
+int	append_continuation(char **s, t_state state)
+{
+	char	quote_char;
+	char	*cont;
+	size_t	old_len;
+	size_t	cont_len;
+
+	quote_char = get_quote_char(state);
+	cont = read_continuation_line(quote_char);
+	if (!cont)
+		return (0);
+	old_len = ft_strlen(*s);
+	cont_len = ft_strlen(cont);
+	ensure_trailing_newline(s, &old_len);
+	append_to_input(s, cont, old_len, cont_len);
+	free(cont);
 	return (1);
 }

@@ -12,9 +12,9 @@
 
 #include "minishell.h"
 
-void print_tokens(t_shell *shell)
+void	print_tokens(t_shell *shell)
 {
-	t_token *t = shell->tokens;
+	t_token	*t = shell->tokens;
 
 	while (t != NULL)
 	{

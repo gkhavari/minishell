@@ -87,11 +87,21 @@ static int	handle_whitespace(const char *s, size_t *i, char **word,
  DESCRIPTION:
  * Main tokenizer function.
  * Converts the raw input line into a linked list of tokens.
- * It processes:
+ * 
+ * This function supports automatic line continuation when the
+ * input ends inside an open quote (single or double). In that case:
+ *  - The user is prompted for additional lines.
+ *  - Each continuation line is appended to the existing input,
+ *    ensuring proper newline insertion.
+ *  - The full, combined multi-line command is added to readline
+ *    history only after all quotes are closed.
+ * 
+ * The tokenizer processes:
  ** quoted strings
  ** operators (|, <, >, <<, >>)
  ** whitespace
  ** normal characters
+ *
  * The function loops through the input and delegates tasks to 
  	helper routines such as:
  ** process_quote()
@@ -126,13 +136,13 @@ void	tokenize_input(t_shell *shell)
 			if (state == ST_SQUOTE || state == ST_DQUOTE)
 			{
 				if (!append_continuation(&s, state))
-                    break ;
+					break ;
 				continue ;
 			}
 			else
 			{
 				add_history(s);
-				break;
+				break ;
 			}
 		}
 		if (process_quote(s[i], &state))

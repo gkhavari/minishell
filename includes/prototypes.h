@@ -28,7 +28,6 @@ int		handle_operator(const char *s, size_t *i, char **word,
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
 char	**ft_arrdup(char **envp);
-char	*read_continuation_line(char quote_char);
-int	append_continuation(char **s, t_state state);
+int		append_continuation(char **s, t_state state);
 
 #endif
