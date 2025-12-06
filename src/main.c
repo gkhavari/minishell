@@ -82,8 +82,6 @@ int	main(int argc, char **argv, char **envp)
 			print_tokens(&shell);
 			//reset_shell(&shell);
 		}
-		free(shell.input);
-		shell.input = NULL;
 		free_tokens(shell.tokens);
 		shell.tokens = NULL;
 	}

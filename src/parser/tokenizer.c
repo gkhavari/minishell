@@ -74,7 +74,7 @@ static int	process_quote(char c, t_state *state)
 static int	handle_whitespace(const char *s, size_t *i, char **word,
 	t_token **tokens)
 {
-	if (isspace(s[*i]))
+	if (isspace(s[*i])) //todo: add this function to libft.
 	{
 		flush_word(word, tokens);
 		(*i)++;
@@ -119,8 +119,21 @@ void	tokenize_input(t_shell *shell)
 	word = NULL;
 	i = 0;
 	shell->tokens = NULL;
-	while (s[i])
+	while (1)
 	{
+		if (!s[i])
+		{
+			if (state == ST_SQUOTE || state == ST_DQUOTE)
+			{
+				if (!append_continuation(&s, state))
+                    break ;
+				continue ;
+			}
+			else
+			{
+				break;
+			}
+		}
 		if (process_quote(s[i], &state))
 		{
 			i++;
@@ -140,4 +153,6 @@ void	tokenize_input(t_shell *shell)
 		i++;
 	}
 	flush_word(&word, &shell->tokens);
+	free(s);
+	shell->input = NULL;
 }
