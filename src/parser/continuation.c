@@ -12,6 +12,23 @@
 
 #include "minishell.h"
 
+/**
+  DESCRIPTION:
+ * Builds a prompt of the form: "<quote_char>quote>".
+ * Calls readline() to get user input.
+ * Ensures the returned string always ends with a newline ('\n').
+ * Allocates and returns a new string containing the user input + '\n'.
+ *
+  PARAMETERS:
+ * quote_char: The opening quote character ('\'' or '"') used to build the prompt.
+ *
+  RETURN VALUE:
+ * Pointer to the newly allocated continuation line including a trailing newline.
+ * NULL if readline returns NULL.
+ *
+  NOTES:
+ * Caller is responsible for freeing the returned string.
+ **/
 static char	*read_continuation_line(char quote_char)
 {
 	char	*line;
@@ -38,6 +55,17 @@ static char	*read_continuation_line(char quote_char)
 	return (with_newline);
 }
 
+/**
+ DESCRIPTION:
+ * Determines which quote character to use for continuation prompts.
+ *
+  PARAMETERS:
+ * state: The current tokenizer state (ST_SQUOTE or ST_DQUOTE).
+ *
+  RETURN VALUE:
+ * SINGLE_QUOTE ('\'') if state == ST_SQUOTE.
+ * DOUBLE_QUOTE ('"') otherwise.
+ **/
 static char	get_quote_char(t_state state)
 {
 	if (state == ST_SQUOTE)
@@ -45,6 +73,25 @@ static char	get_quote_char(t_state state)
 	return (DOUBLE_QUOTE);
 }
 
+/**
+ DESCRIPTION:
+ * If the string already ends with '\n', nothing is done.
+ * Otherwise:
+ ** A new buffer is allocated,
+ ** '\n' is appended,
+ ** The original string is freed,
+ ** *s and *old_len are updated accordingly.
+ *
+ PARAMETERS:
+ * s: Pointer to the input string pointer (char **).
+ * old_len: Pointer to the length of the original string.
+ *
+  RETURN VALUE:
+ * None.
+ *
+  NOTES:
+ * This is used before appending continuation lines to maintain correct structure.
+ **/
 static void	ensure_trailing_newline(char **s, size_t *old_len)
 {
 	char	*tmp;
@@ -62,6 +109,23 @@ static void	ensure_trailing_newline(char **s, size_t *old_len)
 	(*old_len)++;
 }
 
+/**
+  DESCRIPTION:
+ * Appends a continuation string to the existing input buffer.
+ *
+ PARAMETERS:
+ * s: Pointer to the existing input buffer pointer.
+ * cont: The continuation line to append.
+ * old_len: Length of the existing string *s.
+ * cont_len: Length of the continuation string cont.
+ *
+  RETURN VALUE:
+ * None.
+ *
+ * NOTES:
+ * Allocates a new buffer (old_len + cont_len + 1).
+ * Frees the old buffer and replaces *s.
+ **/
 static void	append_to_input(char **s, char *cont, size_t old_len,
 		size_t cont_len)
 {
@@ -77,6 +141,25 @@ static void	append_to_input(char **s, char *cont, size_t old_len,
 	*s = new_input;
 }
 
+/**
+  DESCRIPTION:
+ * Main continuation handler called inside the tokenizer.
+ *
+  BEHAVIOR:
+ * Determines the correct quote character for the continuation prompt.
+ * Reads a continuation line from the user.
+ * Ensures the existing input ends with a newline.
+ * Appends the continuation line to the existing input.
+ *
+  PARAMETERS:
+ * s: Pointer to the full input buffer pointer (char **).
+ * state: Current tokenizer state to determine quote type.
+ *
+  RETURN VALUE:
+ * 1 on success.
+ * 0 when readline returns NULL.
+ * The resulting full input (including continuations) is stored in *s.
+ **/
 int	append_continuation(char **s, t_state state)
 {
 	char	quote_char;
