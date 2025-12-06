@@ -49,6 +49,7 @@ int	append_continuation(char **s, t_state state)
 	size_t	old_len;
 	size_t	cont_len;
 	char	*new_input;
+	char	*tmp;
 
 	if (state == ST_SQUOTE)
 		quote_char = SINGLE_QUOTE;
@@ -59,6 +60,18 @@ int	append_continuation(char **s, t_state state)
 		return (0);
 	old_len = ft_strlen(*s);
 	cont_len = ft_strlen(cont);
+	if (old_len == 0 || (*s)[old_len - 1] != '\n')
+	{
+		tmp = malloc(old_len + 2);
+		if (!tmp)
+			exit(1);
+		ft_memcpy(tmp, *s, old_len);
+		tmp[old_len] = '\n';
+		tmp[old_len + 1] = '\0';
+		free(*s);
+		*s = tmp;
+		old_len++;
+	}
 	new_input = malloc(old_len + cont_len + 1);
 	if (!new_input)
 		exit(1);

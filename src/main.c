@@ -75,7 +75,6 @@ int	main(int argc, char **argv, char **envp)
 		}
 		if (shell.input[0])
 		{
-			add_history(shell.input);
 			tokenize_input(&shell);
 			//parse_tokens(&shell);
 			//execute_commands(&shell);

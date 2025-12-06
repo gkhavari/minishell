@@ -131,6 +131,7 @@ void	tokenize_input(t_shell *shell)
 			}
 			else
 			{
+				add_history(s);
 				break;
 			}
 		}
