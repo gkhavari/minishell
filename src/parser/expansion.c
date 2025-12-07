@@ -36,7 +36,7 @@ char	*expand_var(const char *s, size_t *i, t_shell *shell)
 	while (isalnum(s[start + len]) || s[start + len] == '_')
 		len++;
 	name = ft_strndup(s + start, len);
-	value = get_env_value(shell->envp, name);
+	value = ft_strdup(get_env_value(shell->envp, name));
 	free(name);
 	(*i) = start + len;
 	return (value);
@@ -51,7 +51,10 @@ void	append_expansion_quoted(char **word, const char *exp)
 		len_word = ft_strlen(*word);
 	else
 		len_word = 0;
-	len_exp = ft_strlen(exp);
+	if (exp)
+		len_exp = ft_strlen(exp);
+	else
+		len_exp = 0;
 	*word = realloc(*word, len_word + len_exp + 1); //change to allowed function
 	if (!*word)
 		exit(1);
@@ -65,6 +68,8 @@ void	append_expansion_unquoted(char **word, const char *exp,
 	size_t	i;
 
 	i = 0;
+	if (exp == NULL)
+		return ;
 	while (exp[i])
 	{
 		if (isspace(exp[i]))
