@@ -83,113 +83,116 @@ static int	handle_whitespace(const char *s, size_t *i, char **word,
 	return (0);
 }
 
-/**
- DESCRIPTION:
- * Main tokenizer function.
- * Converts the raw input line into a linked list of tokens.
- * 
- * This function supports automatic line continuation when the
- * input ends inside an open quote (single or double). In that case:
- *  - The user is prompted for additional lines.
- *  - Each continuation line is appended to the existing input,
- *    ensuring proper newline insertion.
- *  - The full, combined multi-line command is added to readline
- *    history only after all quotes are closed.
- * 
- * The tokenizer processes:
- ** quoted strings
- ** operators (|, <, >, <<, >>)
- ** whitespace
- ** normal characters
- *
- * The function loops through the input and delegates tasks to 
- 	helper routines such as:
- ** process_quote()
- ** handle_operator()
- ** handle_whitespace()
- ** flush_word()
+static int	handle_variable_expansion(char *s, size_t *i,
+	char **word, t_shell *shell)
+{
+	char	*expanded;
 
- PARAMETERS:
- * shell: Pointer to the shell struct containing input and output 
- 	token list.
+	if (s[*i] != '$')
+		return (0);
+	expanded = expand_var(s, i, shell);
+	append_expansion_unquoted(word, expanded, &shell->tokens);
+	free(expanded);
+	return (1);
+}
 
- RETURN VALUE:
- * None.
- * The result is stored in shell->tokens.
- **/
+static int	handle_inside_double_quote(char *s, size_t *i,
+	char **word, t_shell *shell, t_state *state)
+{
+	char	*expanded;
+
+	if (*state != ST_DQUOTE)
+		return (0);
+	if (s[*i] == '$')
+	{
+		expanded = expand_var(s, i, shell);
+		append_expansion_quoted(word, expanded);
+		free(expanded);
+		return (1);
+	}
+	if (s[*i] == '\\' && s[*i + 1] == '$')
+	{
+		append_char(word, '$');
+		*i += 2;
+		return (1);
+	}
+	append_char(word, s[*i]);
+	(*i)++;
+	return (1);
+}
+
+static int	handle_inside_single_quote(char *s, size_t *i,
+	char **word, t_state *state)
+{
+	if (*state != ST_SQUOTE)
+		return (0);
+	append_char(word, s[*i]);
+	(*i)++;
+	return (1);
+}
+
+static int	handle_end_of_string(t_shell *shell, char **s, size_t *i,
+	t_state *state)
+{
+	(void) shell;
+	if (*state == ST_SQUOTE || *state == ST_DQUOTE)
+	{
+		if (!append_continuation(s, *state))
+			return (0);
+		*i = 0;
+		return (1);
+	}
+	else
+	{
+		add_history(*s);
+		return (0);
+	}
+}
+
+static void	parse_loop(t_shell *shell, char *s, size_t *i,
+	t_state *state, char **word)
+{
+	while (1)
+	{
+		if (!s[*i])
+		{
+			if (handle_end_of_string(shell, &s, i, state))
+				continue ;
+			break ;
+		}
+		if (process_quote(s[*i], state))
+		{
+			(*i)++;
+			continue ;
+		}
+		if (handle_inside_single_quote(s, i, word, state))
+			continue ;
+		if (handle_inside_double_quote(s, i, word, shell, state))
+			continue ;
+		if (handle_variable_expansion(s, i, word, shell))
+			continue ;
+		if (handle_operator(s, i, word, &shell->tokens))
+			continue ;
+		if (handle_whitespace(s, i, word, &shell->tokens))
+			continue ;
+		append_char(word, s[*i]);
+		(*i)++;
+	}
+}
+
 void	tokenize_input(t_shell *shell)
 {
 	char	*s;
 	t_state	state;
 	char	*word;
 	size_t	i;
-	char	*expanded;
 
 	s = shell->input;
 	state = ST_NORMAL;
 	word = NULL;
 	i = 0;
 	shell->tokens = NULL;
-	while (1)
-	{
-		if (!s[i])
-		{
-			if (state == ST_SQUOTE || state == ST_DQUOTE)
-			{
-				if (!append_continuation(&s, state))
-					break ;
-				continue ;
-			}
-			else
-			{
-				add_history(s);
-				break ;
-			}
-		}
-		if (process_quote(s[i], &state))
-		{
-			i++;
-			continue ;
-		}
-		if (state == ST_SQUOTE)
-		{
-			append_char(&word, s[i]);
-			i++;
-			continue ;
-		}
-		if (state == ST_DQUOTE)
-		{
-			if (s[i] == '$')
-			{
-				expanded = expand_var(s, &i, shell);
-				append_expansion_quoted(&word, expanded);
-				free(expanded);
-				continue ;
-			}
-			if (s[i] == '\\' && s[i + 1] == '$')
-			{
-				append_char(&word, '$');
-				i += 2;
-				continue ;
-			}
-			append_char(&word, s[i]);
-			i++;
-			continue ;
-		}
-		if (s[i] == '$')
-		{
-			expanded = expand_var(s, &i, shell);
-			append_expansion_unquoted(&word, expanded, &shell->tokens);
-			free(expanded);
-			continue ;
-		}
-		if (handle_operator(s, &i, &word, &shell->tokens))
-			continue ;
-		if (handle_whitespace(s, &i, &word, &shell->tokens))
-			continue ;
-		append_char(&word, s[i]);
-		i++;
-	}
+	parse_loop(shell, s, &i, &state, &word);
 	flush_word(&word, &shell->tokens);
 	free(s);
 	shell->input = NULL;
