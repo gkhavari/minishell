@@ -71,129 +71,125 @@ static int	process_quote(char c, t_state *state)
  * 1 if whitespace was processed.
  * 0 otherwise.
  **/
-static int	handle_whitespace(const char *s, size_t *i, char **word,
-	t_token **tokens)
+static int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
-	if (isspace(s[*i])) //todo: add this function to libft.
+	if (isspace(shell->input[*i])) //todo: add this function to libft.
 	{
-		flush_word(word, tokens);
+		flush_word(word, &shell->tokens);
 		(*i)++;
 		return (1);
 	}
 	return (0);
 }
 
-static int	handle_variable_expansion(char *s, size_t *i,
-	char **word, t_shell *shell)
+static int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 {
 	char	*expanded;
 
-	if (s[*i] != '$')
+	if (shell->input[*i] != '$')
 		return (0);
-	expanded = expand_var(s, i, shell);
+	expanded = expand_var(shell->input, i, shell);
 	append_expansion_unquoted(word, expanded, &shell->tokens);
 	free(expanded);
 	return (1);
 }
 
-static int	handle_inside_double_quote(char *s, size_t *i,
-	char **word, t_shell *shell, t_state *state)
+static int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	char	*expanded;
 
 	if (*state != ST_DQUOTE)
 		return (0);
-	if (s[*i] == '$')
+	if (shell->input[*i] == '$')
 	{
-		expanded = expand_var(s, i, shell);
+		expanded = expand_var(shell->input, i, shell);
 		append_expansion_quoted(word, expanded);
 		free(expanded);
 		return (1);
 	}
-	if (s[*i] == '\\' && s[*i + 1] == '$')
+	if (shell->input[*i] == '\\' && shell->input[*i + 1] == '$')
 	{
 		append_char(word, '$');
 		*i += 2;
 		return (1);
 	}
-	append_char(word, s[*i]);
+	append_char(word, shell->input[*i]);
 	(*i)++;
 	return (1);
 }
 
-static int	handle_inside_single_quote(char *s, size_t *i,
-	char **word, t_state *state)
+static int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
 		return (0);
-	append_char(word, s[*i]);
+	append_char(word, shell->input[*i]);
 	(*i)++;
 	return (1);
 }
 
-static int	handle_end_of_string(t_shell *shell, char **s, size_t *i,
-	t_state *state)
+static int	handle_end_of_string(t_shell *shell, size_t *i,	t_state *state)
 {
-	(void) shell;
 	if (*state == ST_SQUOTE || *state == ST_DQUOTE)
 	{
-		if (!append_continuation(s, *state))
+		if (!append_continuation(&shell->input, *state))
 			return (0);
 		*i = 0;
 		return (1);
 	}
 	else
 	{
-		add_history(*s);
+		add_history(shell->input);
 		return (0);
 	}
 }
 
-static void	parse_loop(t_shell *shell, char *s, size_t *i,
-	t_state *state, char **word)
+static void	process_normal_char(t_shell *shell, size_t *i, char **word)
+{
+	append_char(word, shell->input[*i]);
+	(*i)++;
+}
+
+static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 {
 	while (1)
 	{
-		if (!s[*i])
+		if (!shell->input[*i])
 		{
-			if (handle_end_of_string(shell, &s, i, state))
+			if (handle_end_of_string(shell, i, state))
 				continue ;
 			break ;
 		}
-		if (process_quote(s[*i], state))
+		if (process_quote(shell->input[*i], state))
 		{
 			(*i)++;
 			continue ;
 		}
-		if (handle_inside_single_quote(s, i, word, state))
+		if (handle_single_quote(shell, i, word, state))
 			continue ;
-		if (handle_inside_double_quote(s, i, word, shell, state))
+		if (handle_double_quote(shell, i, word, state))
 			continue ;
-		if (handle_variable_expansion(s, i, word, shell))
+		if (handle_variable_expansion(shell, i, word))
 			continue ;
-		if (handle_operator(s, i, word, &shell->tokens))
+		if (handle_operator(shell, i, word))
 			continue ;
-		if (handle_whitespace(s, i, word, &shell->tokens))
+		if (handle_whitespace(shell, i, word))
 			continue ;
-		append_char(word, s[*i]);
-		(*i)++;
+		process_normal_char(shell, i, word);
 	}
 }
 
 void	tokenize_input(t_shell *shell)
 {
-	char	*s;
 	t_state	state;
 	char	*word;
 	size_t	i;
 
-	s = shell->input;
 	state = ST_NORMAL;
 	word = NULL;
 	i = 0;
 	shell->tokens = NULL;
-	parse_loop(shell, s, &i, &state, &word);
+	tokenizer_loop(shell, &i, &state, &word);
 	flush_word(&word, &shell->tokens);
-	free(s);
+	free(shell->input);
 	shell->input = NULL;
 }

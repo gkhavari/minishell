@@ -77,12 +77,12 @@ static size_t	read_operator(const char *s, t_token **list)
  * 1 if an operator was processed.
  * 0 otherwise.
 **/
-int	handle_operator(const char *s, size_t *i, char **word, t_token **tokens)
+int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
-	if (is_op_char(s[*i]))
+	if (is_op_char(shell->input[*i]))
 	{
-		flush_word(word, tokens);
-		*i += read_operator(s + *i, tokens);
+		flush_word(word, &shell->tokens);
+		*i += read_operator(&shell->input[*i], &shell->tokens);
 		return (1);
 	}
 	return (0);

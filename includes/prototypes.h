@@ -23,8 +23,7 @@ void	append_char(char **dst, char c);
 void	add_token(t_token **head, t_token *new);
 t_token	*new_token(t_tokentype type, char *value);
 void	flush_word(char **word, t_token **token);
-int		handle_operator(const char *s, size_t *i, char **word,
-			t_token **tokens);
+int		handle_operator(t_shell *shell, size_t *i, char **word);
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
 char	**ft_arrdup(char **envp);
