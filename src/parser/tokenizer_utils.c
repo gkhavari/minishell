@@ -52,6 +52,32 @@ void	append_char(char **dst, char c)
 	*dst = new;
 }
 
+/**
+ DESCRIPTION:
+ * Finalizes the current accumulated word and converts it into a WORD token.
+ * If a partial word is being built (via append_char), this function:
+ ** Wraps it into a new token.
+ ** Adds the token to the token list.
+ ** Frees the word buffer.
+ ** Resets the pointer to NULL.
+
+ PARAMETERS:
+ * word: pointer to the buffer, storing the current built word.
+ * token: pointer to the tokenlist, where the word token will be appended
+
+ RETURN VALUE:
+ * none
+**/
+void	flush_word(char **word, t_token **token)
+{
+	if (*word)
+	{
+		add_token(token, new_token(WORD, *word));
+		free(*word);
+		*word = NULL;
+	}
+}
+
 /** 
  DESCRIPTION:
  * Appends a token to the end of a linked list of tokens.
@@ -107,30 +133,4 @@ t_token	*new_token(t_tokentype type, char *value)
 	token->value = ft_strdup(value);
 	token->next = NULL;
 	return (token);
-}
-
-/**
- DESCRIPTION:
- * Finalizes the current accumulated word and converts it into a WORD token.
- * If a partial word is being built (via append_char), this function:
- ** Wraps it into a new token.
- ** Adds the token to the token list.
- ** Frees the word buffer.
- ** Resets the pointer to NULL.
-
- PARAMETERS:
- * word: pointer to the buffer, storing the current built word.
- * token: pointer to the tokenlist, where the word token will be appended
-
- RETURN VALUE:
- * none
-**/
-void	flush_word(char **word, t_token **token)
-{
-	if (*word)
-	{
-		add_token(token, new_token(WORD, *word));
-		free(*word);
-		*word = NULL;
-	}
 }

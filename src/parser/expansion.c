@@ -41,7 +41,8 @@ static char	*expand_normal_var(t_shell *shell, size_t *i)
 
 	start = *i + 1;
 	len = 0;
-	while (ft_isalnum(shell->input[start + len]) || shell->input[start + len] == '_')
+	while (ft_isalnum(shell->input[start + len])
+		|| shell->input[start + len] == '_')
 		len++;
 	name = ft_strndup(shell->input + start, len);
 	value = ft_strdup(get_env_value(shell->envp, name));
@@ -60,47 +61,14 @@ char	*expand_var(t_shell *shell, size_t *i)
 	return (expand_normal_var(shell, i));
 }
 
-void	append_expansion_quoted(char **word, const char *exp)
+int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 {
-	size_t	len_word;
-	size_t	len_exp;
+	char	*expanded;
 
-	if (*word)
-		len_word = ft_strlen(*word);
-	else
-		len_word = 0;
-	if (exp)
-		len_exp = ft_strlen(exp);
-	else
-		len_exp = 0;
-	*word = realloc(*word, len_word + len_exp + 1); //change to allowed function
-	if (!*word)
-		exit(1);
-	ft_memcpy(*word + len_word, exp, len_exp);
-	(*word)[len_word + len_exp] = '\0';
-}
-
-void	append_expansion_unquoted(char **word, const char *exp,
-		t_token **tokens)
-{
-	size_t	i;
-
-	i = 0;
-	if (exp == NULL)
-		return ;
-	while (exp[i])
-	{
-		if (isspace(exp[i]))
-		{
-			if (*word)
-				flush_word(word, tokens);
-			while (isspace(exp[i]))
-				i++;
-		}
-		else
-		{
-			append_char(word, exp[i]);
-			i++;
-		}
-	}
+	if (shell->input[*i] != '$')
+		return (0);
+	expanded = expand_var(shell, i);
+	append_expansion_unquoted(word, expanded, &shell->tokens);
+	free(expanded);
+	return (1);
 }
