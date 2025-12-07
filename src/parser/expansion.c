@@ -12,19 +12,19 @@
 
 #include "minishell.h"
 
-static char	*expand_special_var(const char *s, size_t *i, t_shell *shell)
+static char	*expand_special_var(t_shell *shell, size_t *i)
 {
 	size_t	start;
 	char	buf[12];
 
 	start = *i + 1;
-	if (s[start] == '?')
+	if (shell->input[start] == '?')
 	{
 		snprintf(buf, sizeof(buf), "%d", shell->last_exit);
 		*i += 2;
 		return (ft_strdup(buf));
 	}
-	if (!(ft_isalpha(s[start]) || s[start] == '_'))
+	if (!(ft_isalpha(shell->input[start]) || shell->input[start] == '_'))
 	{
 		(*i)++;
 		return (ft_strdup("$"));
@@ -32,7 +32,7 @@ static char	*expand_special_var(const char *s, size_t *i, t_shell *shell)
 	return (NULL);
 }
 
-static char	*expand_normal_var(const char *s, size_t *i, t_shell *shell)
+static char	*expand_normal_var(t_shell *shell, size_t *i)
 {
 	size_t	start;
 	size_t	len;
@@ -41,23 +41,23 @@ static char	*expand_normal_var(const char *s, size_t *i, t_shell *shell)
 
 	start = *i + 1;
 	len = 0;
-	while (ft_isalnum(s[start + len]) || s[start + len] == '_')
+	while (ft_isalnum(shell->input[start + len]) || shell->input[start + len] == '_')
 		len++;
-	name = ft_strndup(s + start, len);
+	name = ft_strndup(shell->input + start, len);
 	value = ft_strdup(get_env_value(shell->envp, name));
 	free(name);
 	*i = start + len;
 	return (value);
 }
 
-char	*expand_var(const char *s, size_t *i, t_shell *shell)
+char	*expand_var(t_shell *shell, size_t *i)
 {
 	char	*res;
 
-	res = expand_special_var(s, i, shell);
+	res = expand_special_var(shell, i);
 	if (res)
 		return (res);
-	return (expand_normal_var(s, i, shell));
+	return (expand_normal_var(shell, i));
 }
 
 void	append_expansion_quoted(char **word, const char *exp)

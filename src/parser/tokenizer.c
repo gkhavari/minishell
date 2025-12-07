@@ -88,7 +88,7 @@ static int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 
 	if (shell->input[*i] != '$')
 		return (0);
-	expanded = expand_var(shell->input, i, shell);
+	expanded = expand_var(shell, i);
 	append_expansion_unquoted(word, expanded, &shell->tokens);
 	free(expanded);
 	return (1);
@@ -102,7 +102,7 @@ static int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *
 		return (0);
 	if (shell->input[*i] == '$')
 	{
-		expanded = expand_var(shell->input, i, shell);
+		expanded = expand_var(shell, i);
 		append_expansion_quoted(word, expanded);
 		free(expanded);
 		return (1);
