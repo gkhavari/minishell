@@ -12,19 +12,16 @@
 
 #include "minishell.h"
 
-char	*expand_var(const char *s, size_t *i, t_shell *shell)
+static char	*expand_special_var(const char *s, size_t *i, t_shell *shell)
 {
 	size_t	start;
-	size_t	len;
 	char	buf[12];
-	char	*name;
-	char	*value;
 
 	start = *i + 1;
 	if (s[start] == '?')
 	{
 		snprintf(buf, sizeof(buf), "%d", shell->last_exit);
-		(*i) += 2;
+		*i += 2;
 		return (ft_strdup(buf));
 	}
 	if (!(ft_isalpha(s[start]) || s[start] == '_'))
@@ -32,14 +29,35 @@ char	*expand_var(const char *s, size_t *i, t_shell *shell)
 		(*i)++;
 		return (ft_strdup("$"));
 	}
+	return (NULL);
+}
+
+static char	*expand_normal_var(const char *s, size_t *i, t_shell *shell)
+{
+	size_t	start;
+	size_t	len;
+	char	*name;
+	char	*value;
+
+	start = *i + 1;
 	len = 0;
-	while (isalnum(s[start + len]) || s[start + len] == '_')
+	while (ft_isalnum(s[start + len]) || s[start + len] == '_')
 		len++;
 	name = ft_strndup(s + start, len);
 	value = ft_strdup(get_env_value(shell->envp, name));
 	free(name);
-	(*i) = start + len;
+	*i = start + len;
 	return (value);
+}
+
+char	*expand_var(const char *s, size_t *i, t_shell *shell)
+{
+	char	*res;
+
+	res = expand_special_var(s, i, shell);
+	if (res)
+		return (res);
+	return (expand_normal_var(s, i, shell));
 }
 
 void	append_expansion_quoted(char **word, const char *exp)

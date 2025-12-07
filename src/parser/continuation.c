@@ -20,7 +20,8 @@
  * Allocates and returns a new string containing the user input + '\n'.
  *
   PARAMETERS:
- * quote_char: The opening quote character ('\'' or '"') used to build the prompt.
+ * quote_char: The opening quote character ('\'' or '"') used to build the
+ 	prompt.
  *
   RETURN VALUE:
  * Pointer to the newly allocated continuation line including a trailing newline.
@@ -90,7 +91,8 @@ static char	get_quote_char(t_state state)
  * None.
  *
   NOTES:
- * This is used before appending continuation lines to maintain correct structure.
+ * This is used before appending continuation lines to maintain
+ 	correct structure.
  **/
 static void	ensure_trailing_newline(char **s, size_t *old_len)
 {

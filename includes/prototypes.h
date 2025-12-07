@@ -29,9 +29,10 @@ void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
 char	**ft_arrdup(char **envp);
 int		append_continuation(char **s, t_state state);
-char *expand_var(const char *s, size_t *i, t_shell *shell);
-void append_expansion_quoted(char **word, const char *exp);
-void append_expansion_quoted(char **word, const char *exp);
-void append_expansion_unquoted(char **word, const char *exp, t_token **tokens);
+char	*expand_var(const char *s, size_t *i, t_shell *shell);
+void	append_expansion_quoted(char **word, const char *exp);
+void	append_expansion_quoted(char **word, const char *exp);
+void	append_expansion_unquoted(char **word, const char *exp,
+			t_token **tokens);
 
 #endif
