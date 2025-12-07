@@ -19,7 +19,7 @@ void	init_shell(t_shell *shell, char **envp);
 char	*ft_strcat(char *dest, const char *src);
 char	*ft_realloc(char *ptr, const size_t new_size);
 void	tokenize_input(t_shell *shell);
-int		handle_end_of_string(t_shell *shell, size_t *i,	t_state *state);
+int		handle_end_of_string(t_shell *shell, t_state *state);
 int		process_quote(char c, t_state *state);
 int		handle_single_quote(t_shell *shell, size_t *i, char **word,
 			t_state *state);
