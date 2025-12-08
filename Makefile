@@ -24,8 +24,7 @@ SRCS        = $(SRC_DIR)/main.c \
 SRCS        += $(SRC_DIR)/signals/signal_handler.c
 
 # parser
-SRCS        += $(SRC_DIR)/parser/parser.c \
-               $(SRC_DIR)/parser/tokenizer.c \
+SRCS        += $(SRC_DIR)/parser/tokenizer.c \
                $(SRC_DIR)/parser/tokenizer_utils.c \
                $(SRC_DIR)/parser/tokenizer_ops.c \
                $(SRC_DIR)/parser/expansion.c \
@@ -33,6 +32,11 @@ SRCS        += $(SRC_DIR)/parser/parser.c \
                $(SRC_DIR)/parser/tokenizer_handlers.c \
                $(SRC_DIR)/parser/tokenizer_quotes.c \
                $(SRC_DIR)/parser/continuation.c \
+               $(SRC_DIR)/parser/parser.c \
+               $(SRC_DIR)/parser/parser_syntax_check.c \
+               $(SRC_DIR)/parser/add_token_to_cmd.c \
+               $(SRC_DIR)/parser/argv_build.c \
+               $(SRC_DIR)/parser/heredoc.c \
 #               $(SRC_DIR)/parser/lexer.c
 
 # utils

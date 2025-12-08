@@ -24,5 +24,6 @@
 # include <errno.h>
 # include <signal.h>
 # include <termios.h>
+# include <fcntl.h>
 
 #endif

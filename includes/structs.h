@@ -44,9 +44,15 @@ typedef struct s_token
 	struct s_token	*next;
 }	t_token;
 
+typedef struct s_arg
+{
+	char *value;
+	struct s_arg *next;
+}	t_arg;
+
 typedef struct s_command
 {
-	t_token				*tokens;		// List of tokens for this command
+	t_arg				*args;			// List of execve
 	char				**argv;			// Array for execve
 	char				*input_file;	// Input redirection if < exists
 	char				*output_file;	// Output redirection if > or >> exists

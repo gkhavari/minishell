@@ -42,7 +42,18 @@ void	append_expansion_unquoted(char **word, const char *exp,
 			t_token **tokens);
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
+void	free_args(t_arg *arg);
+void	add_token_to_command(t_command *cmd, t_token *token);
+void add_word_to_cmd(t_command *cmd, char *word);
+int		syntax_check(t_token *token);
+int		syntax_error(const char *msg);
+void	finalize_all_commands(t_command *cmd);
+void	finalize_argv(t_command *cmd);
 char	**ft_arrdup(char **envp);
+void	parse_input(t_shell *shell);
+int		is_heredoc(char *f);
+void	process_heredoc(t_command *cmd, char *delimiter);
+
 
 /* builtins */
 int	builtin_cd(char **args, t_shell *shell);
