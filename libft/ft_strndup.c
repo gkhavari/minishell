@@ -1,25 +1,37 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   defines.h                                          :+:      :+:    :+:   */
+/*   ft_strndup.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/29 14:10:46 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/29 14:10:48 by gkhavari         ###   ########.fr       */
+/*   Created: 2025/12/07 14:35:36 by gkhavari          #+#    #+#             */
+/*   Updated: 2025/12/07 14:35:42 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef DEFINES_H
-# define DEFINES_H
+#include "libft.h"
 
-/*PROMT SYNTAX*/
-# define PROMPT_PREFIX "@minishell:"
-# define PROMPT_SUFFIX "$ "
-# define PROMPT_DEFAULT_USER "user"
-# define PROMPT_DEFAULT_CWD "/minishell/"
+char	*ft_strndup(const char *s, size_t n)
+{
+	size_t	i;
+	size_t	j;
+	char	*dup;
 
-# define SINGLE_QUOTE 39
-# define DOUBLE_QUOTE 34
-
-#endif
+	if (!s)
+		return (NULL);
+	i = 0;
+	while (s[i] && i < n)
+		i++;
+	dup = malloc(i + 1);
+	if (!dup)
+		return (NULL);
+	j = 0;
+	while (j < i)
+	{
+		dup[j] = s[j];
+		j++;
+	}
+	dup[i] = '\0';
+	return (dup);
+}
