@@ -6,10 +6,14 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/01/16 15:50:22 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/01/16 15:53:30 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "minishell.h"
+
+/* Global signal variable - declared in signal_handler.c */
+extern volatile sig_atomic_t	g_signum;
 
 void	print_tokens(t_shell *shell)
 {
@@ -22,16 +26,7 @@ void	print_tokens(t_shell *shell)
 		printf("\n");
 		t = t->next;
 	}
-}*/
-/*
-	Already move your signal handlers to signal_handler.c and 
-	add global variable volatile sig_atomic_t g_signum there.
-*/
-
-
-
-/* Global signal variable - declared in signal_handler.c */
-extern volatile sig_atomic_t	g_signum;
+}
 
 /*
 ** Process input and execute command
