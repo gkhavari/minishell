@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:13 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/08 16:25:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/08 16:55:30 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,18 @@ typedef enum e_tokentype
 	APPEND,
 	HEREDOC
 }	t_tokentype;
+
+typedef enum e_builtin
+{
+    NOT_BUILTIN = 0,
+    BUILTIN_ECHO,
+    BUILTIN_CD,
+    BUILTIN_PWD,
+    BUILTIN_EXPORT,
+    BUILTIN_UNSET,
+    BUILTIN_ENV,
+    BUILTIN_EXIT
+}   t_builtin;
 
 typedef enum e_state
 {
