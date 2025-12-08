@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   prototypes.h                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/29 14:11:06 by gkhavari         ###   ########.fr       */
+/*   Updated: 2025/11/30 20:21:43 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,5 +43,34 @@ void	append_expansion_unquoted(char **word, const char *exp,
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
 char	**ft_arrdup(char **envp);
+
+/* builtins */
+int	builtin_cd(char **args, t_shell *shell);
+int	builtin_pwd(char **args, t_shell *shell);
+int	builtin_env(char **args, t_shell *shell);
+int	builtin_echo(char **args, t_shell *shell);
+int	builtin_export(char **args, t_shell *shell);
+int	builtin_unset(char **args, t_shell *shell);
+int	builtin_exit(char **args, t_shell *shell);
+
+/* export_utils.c */
+int		is_valid_export_name(char *name);
+int		find_export_key_index(t_shell *shell, char *key, int key_len);
+int		append_export_env(t_shell *shell, char *entry);
+
+/* signal_handler.c */
+int		set_signals_default(void);
+int		set_signals_ignore(void);
+int		set_signals_interactive(void);
+int		handle_child_exit(int *last_exit_status, pid_t pid);
+int		check_signal_received(t_shell *shell);
+
+/* builtin_dispatcher.c */
+int		is_builtin(char *cmd);
+int		run_builtin(char **argv, t_shell *shell);
+
+/* simple_split.c (for testing) */
+char	**simple_split_input(char *input);
+void	free_simple_argv(char **argv);
 
 #endif

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:18:11 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/25 21:18:19 by gkhavari         ###   ########.fr       */
+/*   Updated: 2025/11/30 20:21:38 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,5 +17,7 @@
 # include "defines.h"
 # include "structs.h"
 # include "prototypes.h"
+
+
 
 #endif
