@@ -12,10 +12,9 @@
 
 #include "minishell.h"
 
-/*
-void print_tokens(t_shell *shell)
+void	print_tokens(t_shell *shell)
 {
-	t_token *t = shell->tokens;
+	t_token	*t = shell->tokens;
 
 	while (t != NULL)
 	{
@@ -24,11 +23,7 @@ void print_tokens(t_shell *shell)
 		printf("\n");
 		t = t->next;
 	}
-}*/
-/*
-	Already move your signal handlers to signal_handler.c and 
-	add global variable volatile sig_atomic_t g_signum there.
-*/
+}
 
 /*
 void	sigint_handler(int signum)
@@ -92,6 +87,13 @@ static void	shell_loop(t_shell *shell)
 {
 	char	*prompt;
 
+	signal(SIGINT, sigint_handler);
+	signal(SIGQUIT, SIG_IGN);
+	(void) argc;
+	(void) argv;
+	ft_bzero(&shell, sizeof(t_shell));
+	init_shell(&shell, ft_arrdup(envp));
+	disable_ctrl_echo();
 	while (1)
 	{
 		check_signal_received(shell);
@@ -110,21 +112,14 @@ static void	shell_loop(t_shell *shell)
 		}
 		if (check_signal_received(shell))
 		{
-			free(shell->input);
-			shell->input = NULL;
-			continue ;
-		}
-		if (shell->input[0])
-		{
-			add_history(shell->input);
-			process_input(shell);
+			tokenize_input(&shell);
 			//parse_tokens(&shell);
 			//execute_commands(&shell);
-			//print_tokens(&shell);
+			print_tokens(&shell);
 			//reset_shell(&shell);
 		}
-		free(shell->input);
-		shell->input = NULL;
+		free_tokens(shell.tokens);
+		shell.tokens = NULL;
 	}
 }
 
