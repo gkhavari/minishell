@@ -1,8 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   heredoc.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/12/08 21:56:43 by gkhavari          #+#    #+#             */
+/*   Updated: 2025/12/08 21:56:46 by gkhavari         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "minishell.h"
 
 int	is_heredoc(char *f)
 {
-    return (ft_strncmp(f, "/tmp/.minishell_heredoc_", 25) == 0);
+	return (ft_strncmp(f, "/tmp/.minishell_heredoc_", 25) == 0);
 }
 
 char	*heredoc_filename(void)
@@ -36,10 +48,10 @@ void	process_heredoc(t_command *cmd, char *delimiter)
 	while (1)
 	{
 		line = readline("> ");
-		if (!line || ft_strcmp(line, delimiter) == 0)
+		if (!line || ft_strcmp(line, delimiter) == 0) // if delimiter is "" then delimiter is '\n' (changes in syntax check also needed)
 		{
 			free(line);
-			break;
+			break ;
 		}
 		write(fd, line, ft_strlen(line));
 		write(fd, "\n", 1);

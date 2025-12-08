@@ -15,32 +15,33 @@ RLFLAGS		= -lreadline -lncurses
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
-SRCS        = $(SRC_DIR)/main.c \
+SRCS		=	$(SRC_DIR)/main.c \
 				$(SRC_DIR)/init.c \
 				$(SRC_DIR)/utils.c \
 				$(SRC_DIR)/free.c
 
 # signals
-SRCS        += $(SRC_DIR)/signals/signal_handler.c
+SRCS		+=	$(SRC_DIR)/signals/signal_handler.c
 
-# parser
-SRCS        += $(SRC_DIR)/parser/tokenizer.c \
-               $(SRC_DIR)/parser/tokenizer_utils.c \
-               $(SRC_DIR)/parser/tokenizer_ops.c \
-               $(SRC_DIR)/parser/expansion.c \
-               $(SRC_DIR)/parser/expansion_utils.c \
-               $(SRC_DIR)/parser/tokenizer_handlers.c \
-               $(SRC_DIR)/parser/tokenizer_quotes.c \
-               $(SRC_DIR)/parser/continuation.c \
-               $(SRC_DIR)/parser/parser.c \
-               $(SRC_DIR)/parser/parser_syntax_check.c \
-               $(SRC_DIR)/parser/add_token_to_cmd.c \
-               $(SRC_DIR)/parser/argv_build.c \
-               $(SRC_DIR)/parser/heredoc.c \
-#               $(SRC_DIR)/parser/lexer.c
+# tokenizer
+SRCS		+=	$(SRC_DIR)/tokenizer/tokenizer.c \
+				$(SRC_DIR)/tokenizer/tokenizer_utils.c \
+				$(SRC_DIR)/tokenizer/tokenizer_ops.c \
+				$(SRC_DIR)/tokenizer/expansion.c \
+				$(SRC_DIR)/tokenizer/expansion_utils.c \
+				$(SRC_DIR)/tokenizer/tokenizer_handlers.c \
+				$(SRC_DIR)/tokenizer/tokenizer_quotes.c \
+				$(SRC_DIR)/tokenizer/continuation.c 
+
+# parser			   
+SRCS		+=	$(SRC_DIR)/parser/parser.c \
+				$(SRC_DIR)/parser/parser_syntax_check.c \
+				$(SRC_DIR)/parser/add_token_to_cmd.c \
+				$(SRC_DIR)/parser/argv_build.c \
+				$(SRC_DIR)/parser/heredoc.c
 
 # utils
-SRCS        += $(SRC_DIR)/utils/simple_split.c
+SRCS		+=	$(SRC_DIR)/utils/simple_split.c
 
 # executor
 #SRCS        += $(SRC_DIR)/executor/executor.c \
@@ -83,6 +84,7 @@ $(LIBFT):
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 	@mkdir -p $(OBJ_DIR)/signals
+	@mkdir -p $(OBJ_DIR)/tokenizer
 	@mkdir -p $(OBJ_DIR)/parser
 	@mkdir -p $(OBJ_DIR)/executor
 	@mkdir -p $(OBJ_DIR)/builtins
