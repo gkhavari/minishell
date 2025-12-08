@@ -38,3 +38,4 @@ bin/
 
 # Test binaries
 test_builtins
+minishell_tester/
