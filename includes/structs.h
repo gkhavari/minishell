@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   structs.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:13 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/29 14:11:15 by gkhavari         ###   ########.fr       */
+/*   Updated: 2025/12/08 16:25:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,8 @@ typedef struct s_command
 	char				*input_file;	// Input redirection if < exists
 	char				*output_file;	// Output redirection if > or >> exists
 	int					append;			// Flag for >> append
+	int					heredoc_fd;		// Flag for << heredoc input (-1 is invalid)
+	char				*heredoc_delim;// Delimiter for heredoc 
 	int					is_builtin;		// 1 if command is builtin
 	struct s_command	*next;			// Next command in a pipeline
 }	t_command;
