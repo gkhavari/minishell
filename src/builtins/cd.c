@@ -25,7 +25,7 @@ static char	*get_cd_target(char **args, t_shell *shell)
 	if (!args[1])
 	{
 		target = get_env_value(shell->envp, "HOME");
-		if (!target)
+		if (!target)	
 		{
 			ft_putendl_fd("minishell: cd: HOME not set", 2);
 			return (NULL);

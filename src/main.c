@@ -9,7 +9,6 @@
 /*   Updated: 2025/12/08 15:18:18 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 #include "minishell.h"
 
 void	print_tokens(t_shell *shell)
@@ -102,10 +101,10 @@ static void     shell_loop(t_shell *shell)
                 if (shell->input[0])
                 {
                         tokenize_input(shell);
-                        //parse_tokens(&shell);
-                        //execute_commands(&shell);
+                        parse_input(shell);
+                        //execute_commands(shell);
                         print_tokens(shell);
-                        //reset_shell(&shell);
+                        //reset_shell(shell);
                 }
                 free_tokens(shell->tokens);
                 shell->tokens = NULL;

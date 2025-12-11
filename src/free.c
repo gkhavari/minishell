@@ -26,6 +26,20 @@ void	free_tokens(t_token *token)
 	}
 }
 
+void	free_args(t_arg *arg)
+{
+	t_arg	*tmp;
+
+	while (arg)
+	{
+		tmp = arg->next;
+		if (arg->value)
+			free(arg->value);
+		free(arg);
+		arg = tmp;
+	}
+}
+
 static void	free_argv(char **argv)
 {
 	int	i;
@@ -47,8 +61,10 @@ static void	free_commands(t_command *cmd)
 
 	while (cmd)
 	{
+		if (cmd->input_file && is_heredoc(cmd->input_file))
+			unlink(cmd->input_file);
 		tmp = cmd->next;
-		free_tokens(cmd->tokens);
+		free_args(cmd->args);
 		free_argv(cmd->argv);
 		if (cmd->input_file)
 			free(cmd->input_file);
