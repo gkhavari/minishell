@@ -12,6 +12,29 @@
 
 #include "minishell.h"
 
+/**
+ * DESCRIPTION:
+* Checks the token list for syntax errors.
+* It checks for invalid pipe placement (e.g., starting or ending with a pipe,
+	or two consecutive pipes) and improper redirection usage (redirection not
+	followed by a WORD token).
+
+PARAMETERS:
+* token: Pointer to the first token in the lexed token list.
+
+RETURNS:
+* 0 if the syntax is valid.
+* 1 if a syntax error is found (returned from syntax_error()).
+
+VALIDATION RULES:
+* Input cannot start with a pipe
+* Pipes cannot appear consecutively, and a pipe cannot be the last token
+* Redirection operators must be followed by a WORD token
+
+BEHAVOIR:
+* When an error is detected, the function calls syntax_error() with the 
+	appropriate message.
+ **/
 int	syntax_check(t_token *token)
 {
 	if (token && token->type == PIPE)
@@ -29,6 +52,15 @@ int	syntax_check(t_token *token)
 	return (0);
 }
 
+/**
+ DESCRIPTION:
+* Prints a standardized syntax error message to stderr.
+* This function is called by syntax_check() upon encountering an 
+	invalid token sequence.
+
+PARAMETERS:
+* msg: A short string describing the unexpected token (e.g., "|", "newline").
+ **/
 int	syntax_error(const char *msg)
 {
 	ft_putstr_fd("minishell: syntax error near unexpected token `", 2);
