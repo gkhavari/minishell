@@ -7,7 +7,7 @@ on:
       - test
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -33,7 +33,6 @@ jobs:
 
       - name: Run tester and capture results
         id: run_tests
-        continue-on-error: true
         run: |
           cd minishell_tester
           
@@ -46,8 +45,8 @@ jobs:
           echo "" >> test_report.md
           echo '```' >> test_report.md
           
-          # Run the tester (it may return non-zero if tests fail)
-          ./tester 2>&1 | tee test_output.txt || true
+          # Run the tester (it will return non-zero if tests fail)
+          ./tester 2>&1 | tee test_output.txt
           
           # Extract summary (passed/failed counts)
           cat test_output.txt >> test_report.md
@@ -68,28 +67,20 @@ jobs:
             echo "- 🎯 Score: $SCORE" >> test_report.md
           fi
           
-          # Copy report to project root
+          # Copy report to project root (for artifact upload)
           cp test_report.md ../
 
-      - name: Commit test report to branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Check if report exists
-          if [ -f test_report.md ]; then
-            git add test_report.md
-            git commit -m "📊 Test report for commit ${{ github.sha }}" || echo "No changes to commit"
-            git push origin HEAD:${{ github.ref_name }}
-          fi
+
 
       - name: Upload test report as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
           path: test_report.md
 
       - name: Show test summary
+        if: always()
         run: |
           echo "=== TEST REPORT ==="
           cat test_report.md
