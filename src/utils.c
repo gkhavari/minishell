@@ -138,3 +138,8 @@ char	*get_env_value(char **envp, const char *key)
 	}
 	return (NULL);
 }
+
+char	*get_env(char **envp, const char *key)
+{
+	return (get_env_value(envp, key));
+}
