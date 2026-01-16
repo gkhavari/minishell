@@ -22,6 +22,13 @@ jobs:
         run: |
           git clone https://github.com/LucasKuhn/minishell_tester.git minishell_tester
 
+
+      - name: Limit minishell runtime inside tester script
+        run: |
+          # Ensure each invocation of the tested minishell is bounded to avoid hangs
+          sed -i 's/\$MINISHELL_PATH/timeout 10s \$MINISHELL_PATH/g' minishell_tester/tester || true
+          # Verify the change
+          head -n 40 minishell_tester/tester | sed -n '1,80p' || true
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -44,11 +51,11 @@ jobs:
           echo "**Date:** $(date -u)" >> test_report.md
           echo "" >> test_report.md
           echo '```' >> test_report.md
-          
-          # Run the tester (it will return non-zero if tests fail)
-          ./tester 2>&1 | tee test_output.txt
-          
-          # Extract summary (passed/failed counts)
+            # Run the tester (it will return non-zero if tests fail)
+            # Bound overall tester runtime to avoid hanging the job indefinitely
+            timeout 15m ./tester 2>&1 | tee test_output.txt
+
+            # Extract summary (passed/failed counts)
           cat test_output.txt >> test_report.md
           echo '```' >> test_report.md
           
