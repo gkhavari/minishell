@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 22:47:25 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/25 22:47:27 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/01/16 16:28:17 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -137,4 +137,9 @@ char	*get_env_value(char **envp, const char *key)
 		i++;
 	}
 	return (NULL);
+}
+
+char	*get_env(char **envp, const char *key)
+{
+	return (get_env_value(envp, key));
 }
