@@ -42,7 +42,30 @@ void	append_expansion_unquoted(char **word, const char *exp,
 			t_token **tokens);
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
+void	free_commands(t_command *cmd);
 char	**ft_arrdup(char **envp);
+
+/* parser */
+int		parse_tokens(t_shell *shell);
+t_command	*parse_command(t_token **tokens);
+int		handle_redirection(t_command *cmd, t_token **tokens);
+int		process_heredocs(t_shell *shell);
+int		read_heredoc(t_command *cmd, t_shell *shell);
+int		is_redirection(t_tokentype type);
+t_builtin	get_builtin_type(char *cmd);
+void	free_command(t_command *cmd);
+int		is_quoted_delimiter(char *delim);
+char	*expand_heredoc_line(char *line, t_shell *shell);
+
+/* executor */
+int		execute_commands(t_shell *shell);
+int		execute_single_command(t_command *cmd, t_shell *shell);
+int		apply_redirections(t_command *cmd);
+void	restore_fds(int stdin_backup, int stdout_backup);
+int		execute_builtin(t_command *cmd, t_shell *shell);
+int		execute_external(t_command *cmd, t_shell *shell);
+char	*find_command_path(char *cmd, t_shell *shell);
+void	free_array(char **arr);
 
 /* builtins */
 int	builtin_cd(char **args, t_shell *shell);
