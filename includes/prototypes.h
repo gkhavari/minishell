@@ -88,7 +88,9 @@ int			is_heredoc(char *f);
 void	process_heredoc(t_command *cmd, char *delimiter);
 
 /* parser */
-int		parse_tokens(t_shell *shell);
+/* Parse flat token list into commands */
+t_command	*parse_tokens(t_token *token);
+void	parse_input(t_shell *shell);
 t_command	*parse_command(t_token **tokens);
 int		handle_redirection(t_command *cmd, t_token **tokens);
 int		process_heredocs(t_shell *shell);
@@ -130,6 +132,9 @@ int		set_signals_interactive(void);
 int		handle_child_exit(int *last_exit_status, pid_t pid);
 int		check_signal_received(t_shell *shell);
 int		readline_event_hook(void);
+
+/* Global signal status (set in signal_handler.c) */
+extern volatile sig_atomic_t g_signum;
 
 /* builtin_dispatcher.c */
 int		is_builtin(char *cmd);
