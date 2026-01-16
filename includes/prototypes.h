@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/30 20:21:43 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/01/16 16:07:35 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,10 +80,33 @@ void	finalize_argv(t_command *cmd);
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
 void	free_args(t_arg *arg);
+void	free_commands(t_command *cmd);
 
 /* heredoc.c */
-int		is_heredoc(char *f);
+int			is_heredoc(char *f);
 void	process_heredoc(t_command *cmd, char *delimiter);
+
+/* parser */
+int		parse_tokens(t_shell *shell);
+t_command	*parse_command(t_token **tokens);
+int		handle_redirection(t_command *cmd, t_token **tokens);
+int		process_heredocs(t_shell *shell);
+int		read_heredoc(t_command *cmd, t_shell *shell);
+int		is_redirection(t_tokentype type);
+t_builtin	get_builtin_type(char *cmd);
+void	free_command(t_command *cmd);
+int		is_quoted_delimiter(char *delim);
+char	*expand_heredoc_line(char *line, t_shell *shell);
+
+/* executor */
+int		execute_commands(t_shell *shell);
+int		execute_single_command(t_command *cmd, t_shell *shell);
+int		apply_redirections(t_command *cmd);
+void	restore_fds(int stdin_backup, int stdout_backup);
+int		execute_builtin(t_command *cmd, t_shell *shell);
+int		execute_external(t_command *cmd, t_shell *shell);
+char	*find_command_path(char *cmd, t_shell *shell);
+void	free_array(char **arr);
 
 /* builtins */
 int	builtin_cd(char **args, t_shell *shell);

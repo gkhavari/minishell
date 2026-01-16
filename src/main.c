@@ -6,7 +6,11 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
+<<<<<<< HEAD
 /*   Updated: 2026/01/16 15:53:30 by thanh-ng         ###   ########.fr       */
+=======
+/*   Updated: 2025/12/08 17:12:14 by thanh-ng         ###   ########.fr       */
+>>>>>>> restore/stash-20260116
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,33 +32,34 @@ void	print_tokens(t_shell *shell)
 	}
 }
 
-/*
-** Process input and execute command
-** A stupid simple builtin testing without full parser, will be deleted next merge
-*/
-/*
-static void     process_input(t_shell *shell)
+void	print_commands(t_shell *shell)
 {
-        char    **argv;
+	t_command *cmd = shell->commands;
+	int i;
 
-        argv = simple_split_input(shell->input);
-        if (!argv || !argv[0])
-        {
-                free_simple_argv(argv);
-                return ;
-        }
-        if (is_builtin(argv[0]))
-                shell->last_exit = run_builtin(argv, shell);
-        else
-        {
-                ft_putstr_fd("minishell: ", STDERR_FILENO);
-                ft_putstr_fd(argv[0], STDERR_FILENO);
-                ft_putstr_fd(": command not found\n", STDERR_FILENO);
-                shell->last_exit = 127;
-        }
-        free_simple_argv(argv);
+	while (cmd)
+	{
+		printf("Command:\n");
+		if (cmd->argv)
+		{
+			i = 0;
+			while (cmd->argv[i])
+			{
+				printf("  argv[%d]: %s\n", i, cmd->argv[i]);
+				i++;
+			}
+		}
+		if (cmd->input_file)
+			printf("  input: %s\n", cmd->input_file);
+		if (cmd->output_file)
+			printf("  output: %s (%s)\n", cmd->output_file, cmd->append ? "append" : "trunc");
+		if (cmd->heredoc_delim)
+			printf("  heredoc: %s\n", cmd->heredoc_delim);
+		printf("  builtin: %d\n", cmd->is_builtin);
+		cmd = cmd->next;
+	}
 }
-*/
+
 /*
 ** Main shell loop following architecture:
 ** 1. Check signals
@@ -94,11 +99,14 @@ static void     shell_loop(t_shell *shell)
                 if (shell->input[0])
                 {
                         tokenize_input(shell);
+                        /* Top-level parse; sets shell->commands and shell->last_exit on error */
                         parse_input(shell);
-                        //execute_commands(shell);
+                        /* Debug output */
+                        print_commands(shell);
                         print_tokens(shell);
-                        //reset_shell(shell);
                 }
+                free_commands(shell->commands);
+                shell->commands = NULL;
                 free_tokens(shell->tokens);
                 shell->tokens = NULL;
                 free(shell->input);
