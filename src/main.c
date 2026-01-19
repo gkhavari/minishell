@@ -116,6 +116,7 @@ static void     shell_loop(t_shell *shell)
 int     main(int argc, char **argv, char **envp)
 {
         t_shell shell;
+		int		last_exit;
         //char  *promt;
 
         (void) argc;
@@ -125,6 +126,7 @@ int     main(int argc, char **argv, char **envp)
         //disable_ctrl_echo();
         shell_loop(&shell);
         rl_clear_history();
+		last_exit = shell.last_exit;
         free_all(&shell);
-        return (shell.last_exit);
+        return (last_exit);
 }
