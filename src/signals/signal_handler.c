@@ -126,7 +126,7 @@ int	check_signal_received(t_shell *shell)
 {
 	if (g_signum == SIGINT)
 	{
-		shell->last_exit = 130;
+		shell->last_exit = EXIT_SIGINT;
 		g_signum = 0;
 		return (1);
 	}

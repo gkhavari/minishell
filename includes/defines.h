@@ -22,4 +22,8 @@
 # define SINGLE_QUOTE 39
 # define DOUBLE_QUOTE 34
 
+/*EXIT CODES*/
+# define EXIT_SYNTAX_ERROR 2
+# define EXIT_SIGINT 130
+
 #endif

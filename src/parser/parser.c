@@ -98,7 +98,7 @@ void	parse_input(t_shell *shell)
 {
 	if (syntax_check(shell->tokens))
 	{
-		shell->last_exit = 2;
+		shell->last_exit = EXIT_SYNTAX_ERROR;
 		return ;
 	}
 	shell->commands = parse_tokens(shell->tokens);
