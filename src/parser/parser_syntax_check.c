@@ -49,7 +49,7 @@ int	syntax_check(t_token *token)
 			return (syntax_error("newline"));
 		token = token->next;
 	}
-	return (0);
+	return (1);
 }
 
 /**
@@ -66,5 +66,5 @@ int	syntax_error(const char *msg)
 	ft_putstr_fd("minishell: syntax error near unexpected token '", 2);
 	ft_putstr_fd((char *)msg, 2);
 	ft_putstr_fd("'\n", 2);
-	return (1);
+	return (0);
 }

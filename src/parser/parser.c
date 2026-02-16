@@ -20,20 +20,11 @@ RETURN VALUE:
 * A pointer to a newly allocated and initialized t_command structure.
 * NULL if memory allocation fails.
 **/
-t_command	*new_command(void)
+static t_command	*new_command(t_shell *shell)
 {
 	t_command	*cmd;
 
-	cmd = malloc(sizeof(t_command));
-	if (!cmd)
-		return (NULL);
-	cmd->args = NULL;
-	cmd->argv = NULL;
-	cmd->input_file = NULL;
-	cmd->output_file = NULL;
-	cmd->append = 0;
-	cmd->is_builtin = 0;
-	cmd->next = NULL;
+	cmd = msh_calloc(shell, 1, sizeof(t_command));
 	return (cmd);
 }
 
@@ -53,23 +44,23 @@ RETURN:
 * A pointer to the head of the newly built command list.
 * The list will contain at least one command, even if no pipe tokens were found.
  **/
-t_command	*parse_tokens(t_token *token)
+static t_command	*parse_tokens(t_shell *shell)
 {
 	t_command	*head;
 	t_command	*cmd;
 
-	head = new_command();
+	head = new_command(shell);
 	cmd = head;
-	while (token)
+	while (shell->tokens)
 	{
-		if (token->type == PIPE)
+		if (shell->tokens->type == PIPE)
 		{
-			cmd->next = new_command();
+			cmd->next = new_command(shell);
 			cmd = cmd->next;
 		}
 		else
-			add_token_to_command(cmd, token);
-		token = token->next;
+			add_token_to_command(cmd, shell->tokens);
+		shell->tokens = shell->tokens->next;
 	}
 	return (head);
 }
@@ -101,6 +92,6 @@ void	parse_input(t_shell *shell)
 		shell->last_exit = EXIT_SYNTAX_ERROR;
 		return ;
 	}
-	shell->commands = parse_tokens(shell->tokens);
+	shell->commands = parse_tokens(shell);
 	finalize_all_commands(shell->commands);
 }

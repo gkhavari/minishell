@@ -30,7 +30,7 @@ char	*ft_strcat(char *dest, const char *src)
 	return (dest);
 }
 
-char	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
+void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
 {
 	char	*res;
 
