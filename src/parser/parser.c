@@ -97,7 +97,10 @@ BEHAVIOR:
 void	parse_input(t_shell *shell)
 {
 	if (syntax_check(shell->tokens))
+	{
+		shell->last_exit = 2;
 		return ;
+	}
 	shell->commands = parse_tokens(shell->tokens);
 	finalize_all_commands(shell->commands);
 }
