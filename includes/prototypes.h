@@ -20,7 +20,7 @@ void	init_shell(t_shell *shell, char **envp);
 /* utils.c */
 char	*get_env_value(char **envp, const char *key);
 char	*ft_strcat(char *dest, const char *src);
-char	*ft_realloc(char *ptr, const size_t new_size);
+char	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
 char	**ft_arrdup(char **envp);
 
 /* tokenizer.c */

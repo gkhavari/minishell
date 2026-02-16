@@ -80,11 +80,6 @@ static void     shell_loop(t_shell *shell)
         {
                 check_signal_received(shell);
                 prompt = build_prompt(shell);
-                if (!prompt)
-                {
-                        perror("minishell: failed to build prompt\n");
-                        break ;
-                }
                 shell->input = readline(prompt);
                 free(prompt);
                 if (!shell->input)
