@@ -12,6 +12,11 @@
 
 #include "minishell.h"
 
+static int is_redirection(t_tokentype type)
+{
+	return (type == REDIR_IN || type == REDIR_OUT || type == APPEND || type == HEREDOC);
+}
+
 /**
  * DESCRIPTION:
 * Checks the token list for syntax errors.
@@ -23,13 +28,16 @@ PARAMETERS:
 * token: Pointer to the first token in the lexed token list.
 
 RETURNS:
-* 0 if the syntax is valid.
-* 1 if a syntax error is found (returned from syntax_error()).
+* SYNTAX_OK if the syntax is valid.
+* SYNTAX_ERR if a syntax error is found (returned from syntax_error()).
 
 VALIDATION RULES:
-* Input cannot start with a pipe
-* Pipes cannot appear consecutively, and a pipe cannot be the last token
-* Redirection operators must be followed by a WORD token
+* empty input is valid
+* pipe rules:
+	* no leading pipes
+	* no trailing pipes
+	* no consecutive pipes
+* redirections must be followed by a WORD token
 
 BEHAVOIR:
 * When an error is detected, the function calls syntax_error() with the 
@@ -37,16 +45,24 @@ BEHAVOIR:
  **/
 int	syntax_check(t_token *token)
 {
-	if (token && token->type == PIPE)
+	if (!token)
+		return(SYNTAX_OK);
+	if (token->type == PIPE)
 		return (syntax_error("|"));
 	while (token)
 	{
-		if (token->type == PIPE && (!token->next || token->next->type == PIPE))
-			return (syntax_error("|"));
-		if ((token->type == REDIR_IN || token->type == REDIR_OUT
-				|| token->type == APPEND || token->type == HEREDOC)
-			&& (!token->next || token->next->type != WORD))
+		if (token->type == PIPE)
+		{
+			if (!token->next)
+				return (syntax_error("|"));
+			if (token->next->type == PIPE)
+				return (syntax_error("|"));
+		}
+		if (is_redirection(token->type))
+		{
+			if(!token->next || token->next->type != WORD)
 			return (syntax_error("newline"));
+		}
 		token = token->next;
 	}
 	return (SYNTAX_OK);
