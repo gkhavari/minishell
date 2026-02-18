@@ -98,7 +98,6 @@ void	tokenize_input(t_shell *shell)
 	state = ST_NORMAL;
 	word = NULL;
 	i = 0;
-	shell->tokens = NULL;
 	tokenizer_loop(shell, &i, &state, &word);
 	flush_word(shell, &word, &shell->tokens);
 	free(shell->input);

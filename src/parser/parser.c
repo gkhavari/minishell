@@ -44,23 +44,23 @@ RETURN:
 * A pointer to the head of the newly built command list.
 * The list will contain at least one command, even if no pipe tokens were found.
  **/
-static t_command	*parse_tokens(t_shell *shell)
+static t_command	*parse_tokens(t_shell *shell, t_token *token)
 {
 	t_command	*head;
 	t_command	*cmd;
 
 	head = new_command(shell);
 	cmd = head;
-	while (shell->tokens)
+	while (token)
 	{
-		if (shell->tokens->type == PIPE)
+		if (token->type == PIPE)
 		{
 			cmd->next = new_command(shell);
 			cmd = cmd->next;
 		}
 		else
-			add_token_to_command(shell, cmd, shell->tokens);
-		shell->tokens = shell->tokens->next;
+			add_token_to_command(shell, cmd, token);
+		token = token->next;
 	}
 	return (head);
 }
@@ -92,6 +92,6 @@ void	parse_input(t_shell *shell)
 		shell->last_exit = EXIT_SYNTAX_ERROR;
 		return ;
 	}
-	shell->commands = parse_tokens(shell);
+	shell->commands = parse_tokens(shell, shell->tokens);
 	finalize_all_commands(shell->commands);
 }

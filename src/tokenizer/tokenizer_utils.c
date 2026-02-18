@@ -126,8 +126,6 @@ t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 	t_token	*token;
 
 	token = msh_calloc(shell, 1, sizeof(*token));
-	if (!token)
-		return (NULL); //todo: error handling
 	token->type = type;
 	token->value = ft_strdup(value);
 	token->next = NULL;
