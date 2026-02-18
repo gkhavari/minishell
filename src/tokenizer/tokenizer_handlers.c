@@ -112,7 +112,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
 	if (is_op_char(shell->input[*i]))
 	{
-		flush_word(word, &shell->tokens);
+		flush_word(shell, word, &shell->tokens);
 		*i += read_operator(&shell->input[*i], &shell->tokens);
 		return (1);
 	}
@@ -141,7 +141,7 @@ int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
 	if (isspace(shell->input[*i])) //todo: add this function to libft.
 	{
-		flush_word(word, &shell->tokens);
+		flush_word(shell, word, &shell->tokens);
 		(*i)++;
 		return (1);
 	}
@@ -164,8 +164,8 @@ BEHAVIOR:
 * Calls append_char(word, c) to append the character to the word buffer.
 * Increments *i to move to the next character in the input.
 **/
-void	process_normal_char(char c, size_t *i, char **word)
+void	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
 {
-	append_char(word, c);
+	append_char(shell, word, c);
 	(*i)++;
 }

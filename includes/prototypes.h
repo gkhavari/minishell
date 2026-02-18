@@ -27,17 +27,17 @@ char	**ft_arrdup(char **envp);
 void	tokenize_input(t_shell *shell);
 
 /* tokenizer_utils.c */
-void	flush_word(char **word, t_token **token);
+void	flush_word(t_shell *shell, char **word, t_token **token);
 void	add_token(t_token **head, t_token *new);
-t_token	*new_token(t_tokentype type, char *value);
-void	append_char(char **dst, char c);
+t_token	*new_token(t_shell *shell, t_tokentype type, char *value);
+void	append_char(t_shell *shell, char **dst, char c);
 
 /* tokenizer_handlers.c */
 int		handle_end_of_string(t_shell *shell, t_state *state);
 int		process_quote(char c, t_state *state);
 int		handle_operator(t_shell *shell, size_t *i, char **word);
 int		handle_whitespace(t_shell *shell, size_t *i, char **word);
-void	process_normal_char(char c, size_t *i, char **word);
+void	process_normal_char(t_shell *shell, char c, size_t *i, char **word);
 
 /* tokenizer_quotes.c */
 int		handle_single_quote(t_shell *shell, size_t *i, char **word,

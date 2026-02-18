@@ -100,7 +100,7 @@ void	tokenize_input(t_shell *shell)
 	i = 0;
 	shell->tokens = NULL;
 	tokenizer_loop(shell, &i, &state, &word);
-	flush_word(&word, &shell->tokens);
+	flush_word(shell, &word);
 	free(shell->input);
 	shell->input = NULL;
 }
