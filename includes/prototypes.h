@@ -79,6 +79,7 @@ void	finalize_argv(t_command *cmd);
 /* free.c */
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
+void	free_commands(t_command *cmd);
 void	free_args(t_arg *arg);
 
 /* heredoc.c */

@@ -101,6 +101,8 @@ static void     shell_loop(t_shell *shell)
                         print_tokens(shell);
                         //reset_shell(shell);
                 }
+                free_commands(shell->commands);
+                shell->commands = NULL;
                 free_tokens(shell->tokens);
                 shell->tokens = NULL;
                 free(shell->input);

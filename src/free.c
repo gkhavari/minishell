@@ -55,7 +55,7 @@ static void	free_argv(char **argv)
 	free(argv);
 }
 
-static void	free_commands(t_command *cmd)
+void	free_commands(t_command *cmd)
 {
 	t_command	*tmp;
 
