@@ -37,10 +37,10 @@ BEHAVIOR BY TOKEN TYPE:
 * HEREDOC (<<) Calls process_heredoc() using the following
 	token as the delimiter.
 **/
-void	add_token_to_command(t_command *cmd, t_token *token)
+void	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
 	if (token->type == WORD)
-		add_word_to_cmd(cmd, token->value);
+		add_word_to_cmd(shell, cmd, token->value);
 	else if (token->type == REDIR_IN)
 		cmd->input_file = ft_strdup(token->next->value);
 	else if (token->type == REDIR_OUT)
@@ -73,12 +73,12 @@ BEHAVIOR:
 * If cmd->args is empty, the new node becomes the head.
 * Otherwise, it is appended to the end of the argument list.
 **/
-void	add_word_to_cmd(t_command *cmd, char *word)
+void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 {
 	t_arg	*new;
 	t_arg	*tmp;
 
-	new = malloc(sizeof(t_arg));
+	new = msh_calloc(shell, 1, sizeof(t_arg));
 	new->value = ft_strdup(word);
 	new->next = NULL;
 	if (!cmd->args)

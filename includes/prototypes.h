@@ -47,7 +47,7 @@ int		handle_double_quote(t_shell *shell, size_t *i, char **word,
 
 /* tokenizer_ops.c */
 int		is_op_char(char c);
-size_t	read_operator(const char *s, t_token **list);
+size_t	read_operator(t_shell *shell, const char *s, t_token **list);
 
 /* expansion.c */
 int		handle_variable_expansion(t_shell *shell, size_t *i, char **word);
@@ -55,7 +55,7 @@ char	*expand_var(t_shell *shell, size_t *i);
 
 /* expansion_utils.c */
 void	append_expansion_quoted(char **word, const char *exp);
-void	append_expansion_unquoted(char **word, const char *exp,
+void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 			t_token **tokens);
 
 /* continuation.c */
@@ -65,8 +65,8 @@ int		append_continuation(char **s, t_state state);
 void	parse_input(t_shell *shell);
 
 /* add_token_to_cmd.c*/
-void	add_token_to_command(t_command *cmd, t_token *token);
-void	add_word_to_cmd(t_command *cmd, char *word);
+void	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token);
+void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word);
 
 /* parser_syntax_check.c*/
 int		syntax_check(t_token *token);

@@ -113,7 +113,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	if (is_op_char(shell->input[*i]))
 	{
 		flush_word(shell, word, &shell->tokens);
-		*i += read_operator(&shell->input[*i], &shell->tokens);
+		*i += read_operator(shell, &shell->input[*i], &shell->tokens);
 		return (1);
 	}
 	return (0);

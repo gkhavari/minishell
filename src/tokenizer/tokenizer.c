@@ -68,7 +68,7 @@ static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 			continue ;
 		if (handle_whitespace(shell, i, word))
 			continue ;
-		process_normal_char(shell->input[*i], i, word);
+		process_normal_char(shell, shell->input[*i], i, word);
 	}
 }
 
@@ -100,7 +100,7 @@ void	tokenize_input(t_shell *shell)
 	i = 0;
 	shell->tokens = NULL;
 	tokenizer_loop(shell, &i, &state, &word);
-	flush_word(shell, &word);
+	flush_word(shell, &word, &shell->tokens);
 	free(shell->input);
 	shell->input = NULL;
 }
