@@ -24,6 +24,53 @@ void	print_tokens(t_shell *shell)
 	}
 }
 
+void print_commands(t_shell *shell)
+{
+    if (!shell || !shell->commands)
+    {
+        printf("No commands to display.\n");
+        return;
+    }
+
+    t_command *cmd = shell->commands;
+    int cmd_num = 1;
+
+    while (cmd)
+    {
+        printf("Command %d:\n", cmd_num);
+
+        // Print argv (command and its arguments)
+        if (cmd->argv)
+        {
+            printf("  argv: ");
+            for (int i = 0; cmd->argv[i]; i++)
+                printf("\"%s\" ", cmd->argv[i]);
+            printf("\n");
+        }
+
+        // Input redirection
+        if (cmd->input_file)
+            printf("  input_file: %s\n", cmd->input_file);
+
+        // Output redirection
+        if (cmd->output_file)
+            printf("  output_file: %s%s\n", cmd->output_file,
+                   cmd->append ? " (append)" : "");
+
+        // Heredoc
+        if (cmd->heredoc_fd != -1)
+            printf("  heredoc: delimiter \"%s\", fd=%d\n",
+                   cmd->heredoc_delim ? cmd->heredoc_delim : "", cmd->heredoc_fd);
+
+        // Builtin
+        printf("  is_builtin: %s\n", cmd->is_builtin ? "Yes" : "No");
+
+        printf("\n");
+        cmd = cmd->next;
+        cmd_num++;
+    }
+}
+
 void	disable_ctrl_echo(void)
 {
 	struct termios term;
@@ -99,6 +146,7 @@ static void     shell_loop(t_shell *shell)
                         parse_input(shell);
                         //execute_commands(shell);
                         print_tokens(shell);
+						print_commands(shell);
                         //reset_shell(shell);
                 }
                 free_commands(shell->commands);

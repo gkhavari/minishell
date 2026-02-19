@@ -59,7 +59,7 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 			cmd = cmd->next;
 		}
 		else
-			add_token_to_command(shell, cmd, token);
+			add_token_to_command(shell, cmd, &token);
 		token = token->next;
 	}
 	return (head);
