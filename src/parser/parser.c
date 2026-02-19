@@ -95,5 +95,5 @@ void	parse_input(t_shell *shell)
 		return ;
 	}
 	shell->commands = parse_tokens(shell, shell->tokens);
-	finalize_all_commands(shell->commands);
+	finalize_all_commands(shell, shell->commands);
 }

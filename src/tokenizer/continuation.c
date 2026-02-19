@@ -30,7 +30,7 @@
   NOTES:
  * Caller is responsible for freeing the returned string.
  **/
-static char	*read_continuation_line(char quote_char)
+static char	*read_continuation_line(t_shell *shell, char quote_char)
 {
 	char	*line;
 	char	*prompt;
@@ -45,9 +45,7 @@ static char	*read_continuation_line(char quote_char)
 	if (!line)
 		return (NULL);
 	len = ft_strlen(line);
-	with_newline = malloc(len + 2);
-	if (!with_newline)
-		exit(1);
+	with_newline = msh_calloc(shell, len + 2, sizeof(char));
 	ft_memcpy(with_newline, line, len);
 	with_newline[len] = '\n';
 	with_newline[len + 1] = '\0';
@@ -94,15 +92,13 @@ static char	get_quote_char(t_state state)
  * This is used before appending continuation lines to maintain
  	correct structure.
  **/
-static void	ensure_trailing_newline(char **s, size_t *old_len)
+static void	ensure_trailing_newline(t_shell *shell, char **s, size_t *old_len)
 {
 	char	*tmp;
 
 	if (*old_len > 0 && (*s)[*old_len - 1] == '\n')
 		return ;
-	tmp = malloc(*old_len + 2);
-	if (!tmp)
-		exit(1);
+	tmp = msh_calloc(shell, *old_len + 2, sizeof(char));
 	ft_memcpy(tmp, *s, *old_len);
 	tmp[*old_len] = '\n';
 	tmp[*old_len + 1] = '\0';
@@ -128,14 +124,12 @@ static void	ensure_trailing_newline(char **s, size_t *old_len)
  * Allocates a new buffer (old_len + cont_len + 1).
  * Frees the old buffer and replaces *s.
  **/
-static void	append_to_input(char **s, char *cont, size_t old_len,
+static void	append_to_input(t_shell *shell, char **s, char *cont, size_t old_len,
 		size_t cont_len)
 {
 	char	*new_input;
 
-	new_input = malloc(old_len + cont_len + 1);
-	if (!new_input)
-		exit(1);
+	new_input = msh_calloc(shell, old_len + cont_len + 1, sizeof(char));
 	ft_memcpy(new_input, *s, old_len);
 	ft_memcpy(new_input + old_len, cont, cont_len);
 	new_input[old_len + cont_len] = '\0';
@@ -162,7 +156,7 @@ static void	append_to_input(char **s, char *cont, size_t old_len,
  * 0 when readline returns NULL.
  * The resulting full input (including continuations) is stored in *s.
  **/
-int	append_continuation(char **s, t_state state)
+int	append_continuation(t_shell *shell, char **s, t_state state)
 {
 	char	quote_char;
 	char	*cont;
@@ -170,13 +164,13 @@ int	append_continuation(char **s, t_state state)
 	size_t	cont_len;
 
 	quote_char = get_quote_char(state);
-	cont = read_continuation_line(quote_char);
+	cont = read_continuation_line(shell, quote_char);
 	if (!cont)
 		return (0);
 	old_len = ft_strlen(*s);
 	cont_len = ft_strlen(cont);
-	ensure_trailing_newline(s, &old_len);
-	append_to_input(s, cont, old_len, cont_len);
+	ensure_trailing_newline(shell, s, &old_len);
+	append_to_input(shell, s, cont, old_len, cont_len);
 	free(cont);
 	return (1);
 }

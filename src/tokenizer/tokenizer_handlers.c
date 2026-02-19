@@ -38,7 +38,7 @@ int	handle_end_of_string(t_shell *shell, t_state *state)
 {
 	if (*state == ST_SQUOTE || *state == ST_DQUOTE)
 	{
-		if (!append_continuation(&shell->input, *state))
+		if (!append_continuation(shell, &shell->input, *state))
 			return (0);
 		return (1);
 	}

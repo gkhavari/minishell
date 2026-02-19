@@ -27,11 +27,11 @@ BEHAVIOR:
 * Calls finalize_argv(cmd) to construct cmd->argv.
 * Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
 **/
-void	finalize_all_commands(t_command *cmd)
+void	finalize_all_commands(t_shell *shell, t_command *cmd)
 {
 	while (cmd)
 	{
-		finalize_argv(cmd);
+		finalize_argv(shell, cmd);
 		cmd->is_builtin = is_builtin(cmd->argv[0]);
 		cmd = cmd->next;
 	}
@@ -62,7 +62,7 @@ argv[1] = second argument
 argv[count-1] = last argument  
 argv[count] = NULL  
 **/
-void	finalize_argv(t_command *cmd)
+void	finalize_argv(t_shell *shell, t_command *cmd)
 {
 	t_arg	*tmp;
 	size_t	count;
@@ -75,7 +75,7 @@ void	finalize_argv(t_command *cmd)
 		count++;
 		tmp = tmp->next;
 	}
-	cmd->argv = malloc(sizeof(char *) * (count + 1));
+	cmd->argv = msh_calloc(shell, count + 1, sizeof(char *));
 	tmp = cmd->args;
 	i = 0;
 	while (i < count)

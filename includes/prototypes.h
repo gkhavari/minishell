@@ -59,7 +59,7 @@ void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 			t_token **tokens);
 
 /* continuation.c */
-int		append_continuation(char **s, t_state state);
+int		append_continuation(t_shell *shell, char **s, t_state state);
 
 /* parser.c */
 void	parse_input(t_shell *shell);
@@ -73,8 +73,8 @@ int		syntax_check(t_token *token);
 int		syntax_error(const char *msg);
 
 /* argv_build.c*/
-void	finalize_all_commands(t_command *cmd);
-void	finalize_argv(t_command *cmd);
+void	finalize_all_commands(t_shell *shell, t_command *cmd);
+void	finalize_argv(t_shell *shell, t_command *cmd);
 
 /* free.c */
 void	free_all(t_shell *shell);
