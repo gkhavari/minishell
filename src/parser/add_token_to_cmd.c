@@ -37,29 +37,40 @@ BEHAVIOR BY TOKEN TYPE:
 * HEREDOC (<<) Calls process_heredoc() using the following
 	token as the delimiter.
 **/
-void	add_token_to_command(t_shell *shell, t_command *cmd, t_token **token)
+int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
-	if ((*token)->type == WORD)
-		add_word_to_cmd(shell, cmd, (*token)->value);
-	else if ((*token)->type == REDIR_IN)
+	if (token->type == WORD)
 	{
-		cmd->input_file = ft_strdup((*token)->next->value);
-		*token = (*token)->next;
+		add_word_to_cmd(shell, cmd, token->value);
+		return (1);
 	}
-	else if ((*token)->type == REDIR_OUT)
+	else if (token->type == REDIR_IN)
 	{
-		cmd->output_file = ft_strdup((*token)->next->value);
+		if (token->next)
+			cmd->input_file = ft_strdup(token->next->value);
+		return (2);
+	}
+	else if (token->type == REDIR_OUT)
+	{
+		if (token->next)
+			cmd->output_file = ft_strdup(token->next->value);
 		cmd->append = 0;
-		*token = (*token)->next;
+		return (2);
 	}
-	else if ((*token)->type == APPEND)
+	else if (token->type == APPEND)
 	{
-		cmd->output_file = ft_strdup((*token)->next->value);
+		if (token->next)
+			cmd->output_file = ft_strdup(token->next->value);
 		cmd->append = 1;
-		*token = (*token)->next;
+		return (2);
 	}
-	else if ((*token)->type == HEREDOC)
-		process_heredoc(cmd, (*token)->next->value);
+	else if (token->type == HEREDOC)
+	{
+		if (token->next)
+			process_heredoc(cmd, token->next->value);
+		return (2);
+	}
+	return (1);
 }
 
 /**

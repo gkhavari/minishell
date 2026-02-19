@@ -48,6 +48,7 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 {
 	t_command	*head;
 	t_command	*cmd;
+	size_t		consumed;
 
 	head = new_command(shell);
 	cmd = head;
@@ -57,10 +58,17 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 		{
 			cmd->next = new_command(shell);
 			cmd = cmd->next;
+			token = token->next;
 		}
 		else
-			add_token_to_command(shell, cmd, &token);
-		token = token->next;
+		{
+			consumed = add_token_to_command(shell, cmd, token);
+			while (consumed > 0)
+			{
+				token = token->next;
+				consumed--;
+			}
+		}
 	}
 	return (head);
 }
