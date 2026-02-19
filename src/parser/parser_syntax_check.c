@@ -12,9 +12,10 @@
 
 #include "minishell.h"
 
-static int is_redirection(t_tokentype type)
+static int	is_redirection(t_tokentype type)
 {
-	return (type == REDIR_IN || type == REDIR_OUT || type == APPEND || type == HEREDOC);
+	return (type == REDIR_IN || type == REDIR_OUT
+		|| type == APPEND || type == HEREDOC);
 }
 
 /**
@@ -46,7 +47,7 @@ BEHAVOIR:
 int	syntax_check(t_token *token)
 {
 	if (!token)
-		return(SYNTAX_OK);
+		return (SYNTAX_OK);
 	if (token->type == PIPE)
 		return (syntax_error("|"));
 	while (token)
@@ -60,8 +61,8 @@ int	syntax_check(t_token *token)
 		}
 		if (is_redirection(token->type))
 		{
-			if(!token->next || token->next->type != WORD)
-			return (syntax_error("newline"));
+			if (!token->next || token->next->type != WORD)
+				return (syntax_error("newline"));
 		}
 		token = token->next;
 	}

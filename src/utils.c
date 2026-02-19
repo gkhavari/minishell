@@ -75,7 +75,6 @@ char	**ft_arrdup(char **envp)
 	return (copy);
 }
 
-
 /*Helper to get environment variables*/
 char	*get_env_value(char **envp, const char *key)
 {
