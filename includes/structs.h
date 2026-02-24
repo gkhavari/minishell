@@ -46,8 +46,8 @@ typedef struct s_token
 
 typedef struct s_arg
 {
-	char *value;
-	struct s_arg *next;
+	char			*value;
+	struct s_arg	*next;
 }	t_arg;
 
 typedef struct s_command
@@ -56,9 +56,9 @@ typedef struct s_command
 	char				**argv;			// Array for execve
 	char				*input_file;	// Input redirection if < exists
 	char				*output_file;	// Output redirection if > or >> exists
-	int					append;			// Flag for >> append
-	int					heredoc_fd;		// Flag for << heredoc input (-1 is invalid)
-	char				*heredoc_delim;// Delimiter for heredoc 
+	int					append;			// Flag for append
+	int					heredoc_fd;		// Flag for heredoc input (invalid -1)
+	char				*heredoc_delim; // Delimiter for heredoc 
 	int					is_builtin;		// 1 if command is builtin
 	struct s_command	*next;			// Next command in a pipeline
 }	t_command;
