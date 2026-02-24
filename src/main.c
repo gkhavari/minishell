@@ -153,12 +153,19 @@ int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
 	int		last_exit;
+	char	**msh_envp;
 	//char  *promt;
 
 	(void) argc;
 	(void) argv;
 	ft_bzero(&shell, sizeof(t_shell));
-	init_shell(&shell, ft_arrdup(envp));
+	msh_envp = ft_arrdup(envp);
+	if (!msh_envp)
+	{
+		free_all(&shell);
+		exit(EXIT_FAILURE);
+	}
+	init_shell(&shell, msh_envp);
 	//disable_ctrl_echo();
 	shell_loop(&shell);
 	rl_clear_history();
