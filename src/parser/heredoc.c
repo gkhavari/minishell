@@ -44,15 +44,25 @@ BEHAVIOR:
 * Converts the counter to a string (ft_itoa).
 * Concatenates it to the heredoc filename prefix.
 **/
-char	*heredoc_filename(void)
+char	*heredoc_filename(t_shell *shell)
 {
 	static int	counter = 0;
 	char		*num;
 	char		*name;
 
 	num = ft_itoa(counter++);
+	if (!num)
+	{
+		perror("minishell");
+		return (NULL);
+	}
 	name = ft_strjoin("/tmp/.minishell_heredoc_", num);
 	free(num);
+	if (!name)
+	{
+		perror("minishell");
+		return (NULL);
+	}
 	return (name);
 }
 
@@ -85,26 +95,39 @@ BEHAVIOR:
 * Frees any previously assigned cmd->input_file.
 * Assigns the new path to cmd->input_file.
 **/
-void	process_heredoc(t_command *cmd, char *delimiter)
+int	process_heredoc(t_shell *shell, t_command *cmd, char *delimiter)
 {
 	char	*line;
 	char	*path;
 	int		fd;
 
-	path = heredoc_filename();
+	path = heredoc_filename(shell);
 	if (!path)
-		return ;
+	{
+		perror("minishell");
+    	shell->last_exit = 1;
+    	return (FAILURE);
+	}
 	fd = open(path, O_CREAT | O_EXCL | O_WRONLY, 0600);
 	if (fd < 0)
 	{
-		perror("heredoc");
+		fprintf(stderr, "minishell: ");
+		perror(path);
 		free(path);
-		return ;
+		shell->last_exit = 1;
+		return (FAILURE);
 	}
 	while (1)
 	{
 		line = readline("> ");
-		if (!line || ft_strcmp(line, delimiter) == 0) // if delimiter is "" then delimiter is '\n' (changes in syntax check also needed)
+		if (!line)
+		{
+			unlink(path);
+			free(path);
+			shell->last_exit = 130;
+			return (FAILURE);
+		}
+		if (ft_strcmp(line, delimiter) == 0)
 		{
 			free(line);
 			break ;
@@ -117,4 +140,5 @@ void	process_heredoc(t_command *cmd, char *delimiter)
 	if (cmd->input_file)
 		free(cmd->input_file);
 	cmd->input_file = path;
+	return (SUCESS);
 }

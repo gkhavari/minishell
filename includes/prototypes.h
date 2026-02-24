@@ -84,7 +84,7 @@ void	free_args(t_arg *arg);
 
 /* heredoc.c */
 int		is_heredoc(char *f);
-void	process_heredoc(t_command *cmd, char *delimiter);
+int		process_heredoc(t_shell *shell, t_command *cmd, char *delimiter);
 
 /* builtins */
 int	builtin_cd(char **args, t_shell *shell);

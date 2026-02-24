@@ -63,6 +63,11 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 		else
 		{
 			consumed = add_token_to_command(shell, cmd, token);
+			if (consumed == FAILURE)
+			{
+				free_commands(cmd);
+				return (NULL);
+			}
 			while (consumed > 0)
 			{
 				token = token->next;

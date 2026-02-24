@@ -13,6 +13,9 @@
 #ifndef DEFINES_H
 # define DEFINES_H
 
+# define SUCESS 0
+# define FAILURE -1
+
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"
 # define PROMPT_SUFFIX "$ "

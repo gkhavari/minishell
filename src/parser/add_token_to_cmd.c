@@ -67,8 +67,10 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 	else if (token->type == HEREDOC)
 	{
 		if (token->next)
-			process_heredoc(cmd, token->next->value);
-		return (2);
+		{
+			if (process_heredoc(shell, cmd, token->next->value) == FAILURE)
+				return (FAILURE);
+    }		return (2);
 	}
 	return (1);
 }
