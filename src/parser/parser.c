@@ -29,26 +29,76 @@ static t_command	*new_command(t_shell *shell)
 }
 
 /**
- DESCRIPTION:
-* Parses a linked list of tokens and builds a linked list of t_command 
-	structures.
-* Each occurrence of a PIPE token indicates the start of a new command, 
-	causing a new t_command to be allocated.
-* Non-pipe tokens are processed and assigned to the current command via
-	add_token_to_command().
+ * DESCRIPTION:
+ * Adds tokens to a given command until a PIPE or the end of the list is reached.
+ * Uses add_token_to_command() to process tokens.
+ *
+ * PARAMETERS:
+ * shell - Pointer to the shell state used during token processing.
+ * cmd   - Pointer to the command structure being filled.
+ * token - Pointer to the first token to process.
+ *
+ * RETURN:
+ * Pointer to the next unprocessed token after consumption, 
+ * or NULL if an error occurs.
+ */
+static t_token	*consume_command_tokens(t_shell *shell, t_command *cmd,
+	t_token *token)
+{
+	int	consumed;
 
-PARAMETERS:
-* shell: A pointer to all variables used (containing the tokenlist).
+	consumed = add_token_to_command(shell, cmd, token);
+	if (consumed == FAILURE)
+	{
+		free_commands(cmd);
+		return (NULL);
+	}
+	while (consumed > 0 && token)
+	{
+		token = token->next;
+		consumed--;
+	}
+	return (token);
+}
 
-RETURN:
-* A pointer to the head of the newly built command list.
-* The list will contain at least one command, even if no pipe tokens were found.
- **/
+/**
+ * DESCRIPTION:
+ * Handles the creation of a new command when a PIPE token is encountered.
+ * Links the new command to the current command's next pointer.
+ *
+ * PARAMETERS:
+ * shell - Pointer to the shell state used to allocate the new command.
+ * cmd   - Pointer to the current command structure.
+ *
+ * RETURN:
+ * Pointer to the newly created command.
+ */
+static t_command	*add_pipe_command(t_shell *shell, t_command *cmd)
+{
+	cmd->next = new_command(shell);
+	return (cmd->next);
+}
+
+/**
+ * DESCRIPTION:
+ * Iterates through a linked list of tokens and constructs a linked list of 
+ 	t_command structures.
+ * Each PIPE token starts a new command. Other tokens are added to the
+ 	current command.
+ * Delegates token consumption and pipe handling to helper functions for clarity.
+ *
+ * PARAMETERS:
+ * shell - Pointer to the shell state containing token information.
+ * token - Pointer to the first token in the linked list to parse.
+ *
+ * RETURN:
+ * Pointer to the head of the constructed t_command list, or NULL on failure.
+ * The list will always contain at least one command.
+ */
 static t_command	*parse_tokens(t_shell *shell, t_token *token)
 {
 	t_command	*head;
 	t_command	*cmd;
-	int			consumed;
 
 	head = new_command(shell);
 	cmd = head;
@@ -56,23 +106,14 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 	{
 		if (token->type == PIPE)
 		{
-			cmd->next = new_command(shell);
-			cmd = cmd->next;
+			cmd = add_pipe_command(shell, cmd);
 			token = token->next;
 		}
 		else
 		{
-			consumed = add_token_to_command(shell, cmd, token);
-			if (consumed == FAILURE)
-			{
-				free_commands(cmd);
+			token = consume_command_tokens(shell, cmd, token);
+			if (!token)
 				return (NULL);
-			}
-			while (consumed > 0)
-			{
-				token = token->next;
-				consumed--;
-			}
 		}
 	}
 	return (head);
