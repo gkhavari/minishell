@@ -44,7 +44,7 @@ BEHAVIOR:
 * Converts the counter to a string (ft_itoa).
 * Concatenates it to the heredoc filename prefix.
 **/
-char	*heredoc_filename(t_shell *shell)
+static char	*heredoc_filename(void)
 {
 	static int	counter = 0;
 	char		*num;
@@ -101,7 +101,7 @@ int	process_heredoc(t_shell *shell, t_command *cmd, char *delimiter)
 	char	*path;
 	int		fd;
 
-	path = heredoc_filename(shell);
+	path = heredoc_filename();
 	if (!path)
 	{
 		perror("minishell");
