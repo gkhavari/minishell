@@ -100,6 +100,22 @@ static void     process_input(t_shell *shell)
         free_simple_argv(argv);
 }
 */
+
+static void	reset_shell(t_shell *shell)
+{
+	if (!shell)
+		return ;
+	if (shell->tokens)
+		free_tokens(shell->tokens);
+	shell->tokens = NULL;
+	if (shell->commands)
+		free_commands(shell->commands);
+	shell->commands = NULL;
+	if (shell->input)
+		free(shell->input);
+	shell->input = NULL;
+}
+
 /*
 ** Main shell loop following architecture:
 ** 1. Check signals
@@ -125,27 +141,15 @@ static void	shell_loop(t_shell *shell)
 			ft_putstr_fd("exit\n", STDOUT_FILENO);
 			break ;
 		}
-		if (check_signal_received(shell))
-		{
-			free(shell->input);
-			shell->input = NULL;
-			continue ;
-		}
-		if (shell->input[0])
+		if (!check_signal_received(shell) && shell->input[0])
 		{
 			tokenize_input(shell);
 			parse_input(shell);
 			//execute_commands(shell);
 			print_tokens(shell);
 			print_commands(shell);
-			//reset_shell(shell);
 		}
-		free_commands(shell->commands);
-		shell->commands = NULL;
-		free_tokens(shell->tokens);
-		shell->tokens = NULL;
-		free(shell->input);
-		shell->input = NULL;
+		reset_shell(shell);
 	}
 }
 
@@ -154,7 +158,6 @@ int	main(int argc, char **argv, char **envp)
 	t_shell	shell;
 	int		last_exit;
 	char	**msh_envp;
-	//char  *promt;
 
 	(void) argc;
 	(void) argv;
