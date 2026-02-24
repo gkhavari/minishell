@@ -66,7 +66,6 @@ void	parse_input(t_shell *shell);
 
 /* add_token_to_cmd.c*/
 int		add_token_to_command(t_shell *shell, t_command *cmd, t_token *token);
-void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word);
 
 /* parser_syntax_check.c*/
 int		syntax_check(t_token *token);

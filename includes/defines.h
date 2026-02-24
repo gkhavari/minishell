@@ -13,7 +13,7 @@
 #ifndef DEFINES_H
 # define DEFINES_H
 
-# define SUCESS 0
+# define SUCCESS 0
 # define FAILURE -1
 
 /*PROMT SYNTAX*/

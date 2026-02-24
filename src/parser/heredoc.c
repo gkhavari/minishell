@@ -105,8 +105,8 @@ int	process_heredoc(t_shell *shell, t_command *cmd, char *delimiter)
 	if (!path)
 	{
 		perror("minishell");
-    	shell->last_exit = 1;
-    	return (FAILURE);
+		shell->last_exit = 1;
+		return (FAILURE);
 	}
 	fd = open(path, O_CREAT | O_EXCL | O_WRONLY, 0600);
 	if (fd < 0)
@@ -140,5 +140,5 @@ int	process_heredoc(t_shell *shell, t_command *cmd, char *delimiter)
 	if (cmd->input_file)
 		free(cmd->input_file);
 	cmd->input_file = path;
-	return (SUCESS);
+	return (SUCCESS);
 }
