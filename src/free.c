@@ -27,6 +27,19 @@ static void	free_argv(char **argv)
 	free(argv);
 }
 
+static void	free_out_redirs(t_redir *r)
+{
+	t_redir	*tmp;
+
+	while (r)
+	{
+		tmp = r->next;
+		free(r->file);
+		free(r);
+		r = tmp;
+	}
+}
+
 void	free_commands(t_command *cmd)
 {
 	t_command	*tmp;
@@ -37,7 +50,7 @@ void	free_commands(t_command *cmd)
 		free_args(cmd->args);
 		free_argv(cmd->argv);
 		free(cmd->input_file);
-		free(cmd->output_file);
+		free_out_redirs(cmd->out_redirs);
 		free(cmd->heredoc_delim);
 		if (cmd->heredoc_fd != -1)
 			close(cmd->heredoc_fd);

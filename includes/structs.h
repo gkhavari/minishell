@@ -56,13 +56,19 @@ typedef struct s_arg
 	struct s_arg	*next;
 }	t_arg;
 
+typedef struct s_redir
+{
+	char			*file;
+	int				append;
+	struct s_redir	*next;
+}	t_redir;
+
 typedef struct s_command
 {
 	t_arg				*args;
 	char				**argv;
 	char				*input_file;
-	char				*output_file;
-	int					append;
+	t_redir				*out_redirs;
 	int					heredoc_fd;
 	char				*heredoc_delim;
 	int					heredoc_quoted;

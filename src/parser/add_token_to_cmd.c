@@ -26,6 +26,32 @@ static void	handle_heredoc_token(t_command *cmd, t_token *token)
 }
 
 /*
+** append_out_redir - Append an output redirection to the command's list.
+** Builds a linked list so all output redirections are applied in order.
+*/
+static void	append_out_redir(t_command *cmd, char *file, int append)
+{
+	t_redir	*r;
+	t_redir	*tmp;
+
+	r = malloc(sizeof(t_redir));
+	if (!r)
+		return ;
+	r->file = ft_strdup(file);
+	r->append = append;
+	r->next = NULL;
+	if (!cmd->out_redirs)
+		cmd->out_redirs = r;
+	else
+	{
+		tmp = cmd->out_redirs;
+		while (tmp->next)
+			tmp = tmp->next;
+		tmp->next = r;
+	}
+}
+
+/*
 ** add_token_to_command - Dispatch a token into the command structure
 ** WORD tokens become command arguments.
 ** Redirection tokens (< > >> <<) set the appropriate file/delimiter.
@@ -41,17 +67,9 @@ void	add_token_to_command(t_command *cmd, t_token *token)
 		cmd->input_file = ft_strdup(token->next->value);
 	}
 	else if (token->type == REDIR_OUT)
-	{
-		free(cmd->output_file);
-		cmd->output_file = ft_strdup(token->next->value);
-		cmd->append = 0;
-	}
+		append_out_redir(cmd, token->next->value, 0);
 	else if (token->type == APPEND)
-	{
-		free(cmd->output_file);
-		cmd->output_file = ft_strdup(token->next->value);
-		cmd->append = 1;
-	}
+		append_out_redir(cmd, token->next->value, 1);
 	else if (token->type == HEREDOC)
 		handle_heredoc_token(cmd, token);
 }

@@ -26,8 +26,7 @@ t_command	*new_command(void)
 	cmd->args = NULL;
 	cmd->argv = NULL;
 	cmd->input_file = NULL;
-	cmd->output_file = NULL;
-	cmd->append = 0;
+	cmd->out_redirs = NULL;
 	cmd->is_builtin = 0;
 	cmd->heredoc_delim = NULL;
 	cmd->heredoc_fd = -1;

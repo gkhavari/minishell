@@ -35,20 +35,22 @@ static int	apply_input_redir(t_command *cmd)
 
 static int	apply_output_redir(t_command *cmd)
 {
-	int	fd;
+	t_redir	*r;
+	int		fd;
 
-	if (cmd->output_file)
+	r = cmd->out_redirs;
+	while (r)
 	{
-		if (cmd->append)
-			fd = open(cmd->output_file,
-					O_WRONLY | O_CREAT | O_APPEND, 0644);
+		if (r->append)
+			fd = open(r->file, O_WRONLY | O_CREAT | O_APPEND, 0644);
 		else
-			fd = open(cmd->output_file,
-					O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1)
 			return (perror("minishell"), 1);
-		dup2(fd, STDOUT_FILENO);
+		if (!r->next)
+			dup2(fd, STDOUT_FILENO);
 		close(fd);
+		r = r->next;
 	}
 	return (0);
 }
