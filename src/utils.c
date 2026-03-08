@@ -30,40 +30,6 @@ char	*ft_strcat(char *dest, const char *src)
 	return (dest);
 }
 
-/**
- * ft_realloc - Reallocate a null-terminated string buffer.
- * @ptr:       Pointer to an existing null-terminated string, or NULL.
- * @new_size:  Size in bytes of the new buffer to allocate.
- *
- * This function re-allocates a memory block intended to hold a
- * null-terminated C-string. The contents of the original string are
- * copied into the newly allocated buffer, up to the maximum number of
- * bytes that can fit while preserving a terminating '\0'. If the
- * original string is longer than the new buffer, it is truncated.
- *
- * Behavior:
- *   • If @ptr is NULL, the function behaves like malloc() and returns
- *     a newly allocated empty string buffer of @new_size bytes.
- *
- *   • If @new_size is 0, the function frees @ptr and returns NULL.
- *
- *   • Otherwise, a new buffer of @new_size bytes is allocated, the
- *     existing string contents are copied into it, and the old buffer
- *     is freed. The result is always explicitly null-terminated.
- *
- * Return value:
- *   • Pointer to the newly allocated string buffer.
- *   • NULL if allocation fails or if @new_size == 0.
- *
- * Notes:
- *   • The input buffer must contain valid null-terminated text.
- *     Using this function on raw binary data produces undefined
- *     behavior because ft_strlen() is used internally.
- *
- *   • This function differs from the standard realloc() because it
- *     guarantees string null-termination and truncates safely if
- *     needed.
- */
 char	*ft_realloc(char *ptr, const size_t new_size)
 {
 	char	*res;
@@ -86,8 +52,15 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	else
 		copy_size = new_size - 1;
 	ft_memcpy(res, ptr, copy_size);
-	free (ptr);
+	free(ptr);
 	return (res);
+}
+
+static void	ft_arrdup_cleanup(char **copy, size_t i)
+{
+	while (i > 0)
+		free(copy[--i]);
+	free(copy);
 }
 
 char	**ft_arrdup(char **envp)
@@ -109,20 +82,13 @@ char	**ft_arrdup(char **envp)
 	{
 		copy[i] = ft_strdup(envp[i]);
 		if (!copy[i])
-		{
-			while (i > 0)
-				free(copy[--i]);
-			free(copy);
-			return (NULL);
-		}
+			return (ft_arrdup_cleanup(copy, i), NULL);
 		i++;
 	}
 	copy[count] = NULL;
 	return (copy);
 }
 
-
-/*Helper to get environment variables*/
 char	*get_env_value(char **envp, const char *key)
 {
 	int		i;
@@ -137,9 +103,4 @@ char	*get_env_value(char **envp, const char *key)
 		i++;
 	}
 	return (NULL);
-}
-
-char	*get_env(char **envp, const char *key)
-{
-	return (get_env_value(envp, key));
 }

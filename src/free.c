@@ -6,39 +6,11 @@
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 22:50:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/29 22:50:52 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-void	free_tokens(t_token *token)
-{
-	t_token	*tmp;
-
-	while (token)
-	{
-		tmp = token->next;
-		if (token->value)
-			free(token->value);
-		free(token);
-		token = tmp;
-	}
-}
-
-void	free_args(t_arg *arg)
-{
-	t_arg	*tmp;
-
-	while (arg)
-	{
-		tmp = arg->next;
-		if (arg->value)
-			free(arg->value);
-		free(arg);
-		arg = tmp;
-	}
-}
 
 static void	free_argv(char **argv)
 {
@@ -61,15 +33,14 @@ void	free_commands(t_command *cmd)
 
 	while (cmd)
 	{
-		if (cmd->input_file && is_heredoc(cmd->input_file))
-			unlink(cmd->input_file);
 		tmp = cmd->next;
 		free_args(cmd->args);
 		free_argv(cmd->argv);
-		if (cmd->input_file)
-			free(cmd->input_file);
-		if (cmd->output_file)
-			free(cmd->output_file);
+		free(cmd->input_file);
+		free(cmd->output_file);
+		free(cmd->heredoc_delim);
+		if (cmd->heredoc_fd != -1)
+			close(cmd->heredoc_fd);
 		free(cmd);
 		cmd = tmp;
 	}
@@ -85,11 +56,9 @@ static void	free_envp(char **envp)
 	while (envp[i])
 	{
 		free(envp[i]);
-		envp[i] = NULL;
 		i++;
 	}
 	free(envp);
-	envp = NULL;
 }
 
 void	free_all(t_shell *shell)
@@ -102,19 +71,7 @@ void	free_all(t_shell *shell)
 		free_commands(shell->commands);
 	if (shell->envp)
 		free_envp(shell->envp);
-	if (shell->user)
-	{
-		free(shell->user);
-		shell->user = NULL;
-	}
-	if (shell->cwd)
-	{
-		free(shell->cwd);
-		shell->cwd = NULL;
-	}
-	if (shell->input)
-	{
-		free(shell->input);
-		shell->input = NULL;
-	}
+	free(shell->user);
+	free(shell->cwd);
+	free(shell->input);
 }
