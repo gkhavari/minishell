@@ -6,59 +6,92 @@
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:56:43 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/08 21:56:46 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-int	is_heredoc(char *f)
+static void	write_heredoc_line(char *line, int fd, int expand,
+		t_shell *shell)
 {
-	return (ft_strncmp(f, "/tmp/.minishell_heredoc_", 25) == 0);
+	char	*expanded;
+
+	if (expand)
+	{
+		expanded = expand_heredoc_line(line, shell);
+		ft_putendl_fd(expanded, fd);
+		free(expanded);
+	}
+	else
+		ft_putendl_fd(line, fd);
 }
 
-char	*heredoc_filename(void)
+static int	heredoc_check_delim(char *line, t_command *cmd,
+		int *pipe_fd)
 {
-	static int	counter = 0;
-	char		*num;
-	char		*name;
-
-	num = ft_itoa(counter++);
-	name = ft_strjoin("/tmp/.minishell_heredoc_", num);
-	free(num);
-	return (name);
+	if (ft_strcmp(line, cmd->heredoc_delim) == 0)
+	{
+		free(line);
+		close(pipe_fd[1]);
+		cmd->heredoc_fd = pipe_fd[0];
+		return (1);
+	}
+	return (0);
 }
 
-void	process_heredoc(t_command *cmd, char *delimiter)
+static int	heredoc_read_loop(t_command *cmd, t_shell *shell,
+		int *pipe_fd, int expand)
 {
 	char	*line;
-	char	*path;
-	int		fd;
 
-	path = heredoc_filename();
-	if (!path)
-		return ;
-	fd = open(path, O_CREAT | O_EXCL | O_WRONLY, 0600);
-	if (fd < 0)
-	{
-		perror("heredoc");
-		free(path);
-		return ;
-	}
 	while (1)
 	{
 		line = readline("> ");
-		if (!line || ft_strcmp(line, delimiter) == 0) // if delimiter is "" then delimiter is '\n' (changes in syntax check also needed)
+		if (g_signum == SIGINT)
+			return (free(line), close(pipe_fd[0]),
+				close(pipe_fd[1]), 1);
+		if (!line)
 		{
-			free(line);
+			ft_putstr_fd(
+				"minishell: warning: here-document delimited"
+				" by EOF\n", 2);
 			break ;
 		}
-		write(fd, line, ft_strlen(line));
-		write(fd, "\n", 1);
+		if (heredoc_check_delim(line, cmd, pipe_fd))
+			return (0);
+		write_heredoc_line(line, pipe_fd[1], expand, shell);
 		free(line);
 	}
-	close(fd);
-	if (cmd->input_file)
-		free(cmd->input_file);
-	cmd->input_file = path;
+	close(pipe_fd[1]);
+	cmd->heredoc_fd = pipe_fd[0];
+	return (0);
+}
+
+int	read_heredoc(t_command *cmd, t_shell *shell)
+{
+	int		pipe_fd[2];
+	int		expand;
+
+	if (pipe(pipe_fd) == -1)
+		return (1);
+	expand = !cmd->heredoc_quoted;
+	return (heredoc_read_loop(cmd, shell, pipe_fd, expand));
+}
+
+int	process_heredocs(t_shell *shell)
+{
+	t_command	*cmd;
+
+	cmd = shell->commands;
+	while (cmd)
+	{
+		if (cmd->heredoc_delim)
+		{
+			if (read_heredoc(cmd, shell))
+				return (1);
+		}
+		cmd = cmd->next;
+	}
+	return (0);
 }

@@ -1,27 +1,40 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   argv_build.c                                       :+:      :+:    :+:   */
+/*   argv_build.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:01:23 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/08 21:01:24 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+/*
+** finalize_all_commands - Walk the command list and build argv for each
+** Also sets the is_builtin flag by checking the command name against
+** our builtin list. Safely handles commands with no arguments.
+*/
 void	finalize_all_commands(t_command *cmd)
 {
 	while (cmd)
 	{
 		finalize_argv(cmd);
-		cmd->is_builtin = is_builtin(cmd->argv[0]);
+		if (cmd->argv && cmd->argv[0])
+			cmd->is_builtin = is_builtin(cmd->argv[0]);
+		else
+			cmd->is_builtin = 0;
 		cmd = cmd->next;
 	}
 }
 
+/*
+** finalize_argv - Convert the t_arg linked list into a char** array
+** The resulting argv is NULL-terminated, ready for execve().
+** If the command has no arguments, argv will be {NULL}.
+*/
 void	finalize_argv(t_command *cmd)
 {
 	t_arg	*tmp;
@@ -36,6 +49,8 @@ void	finalize_argv(t_command *cmd)
 		tmp = tmp->next;
 	}
 	cmd->argv = malloc(sizeof(char *) * (count + 1));
+	if (!cmd->argv)
+		return ;
 	tmp = cmd->args;
 	i = 0;
 	while (i < count)
