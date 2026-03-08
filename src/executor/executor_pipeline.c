@@ -104,7 +104,11 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
 		pipe_fd[0] = -1;
 		pipe_fd[1] = -1;
 		if (cmd->next && pipe(pipe_fd) == -1)
+		{
+			if (prev_fd != -1)
+				close(prev_fd);
 			break ;
+		}
 		pids[i] = fork_pipeline_cmd(cmd, shell, prev_fd, pipe_fd);
 		if (prev_fd != -1)
 			close(prev_fd);
