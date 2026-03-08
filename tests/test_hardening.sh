@@ -185,7 +185,8 @@ pwd"
 run_cmp_path "cd HOME"                  "cd
 pwd"
 run_grep "cd nonexistent"               "cd /nonexistent_xyz_12345"  "No such file"
-run_grep "cd too many args"             "cd /tmp /var"               "too many"
+run_cmp_path "cd with extra args"       "cd /tmp /var
+pwd"
 
 # =========================================================================== #
 echo ""
