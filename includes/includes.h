@@ -25,5 +25,6 @@
 # include <signal.h>
 # include <termios.h>
 # include <fcntl.h>
+# include <sys/stat.h>
 
 #endif

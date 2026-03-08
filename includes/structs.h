@@ -13,13 +13,6 @@
 #ifndef STRUCTS_H
 # define STRUCTS_H
 
-/**
- * PIPE			|
- * REDIR_IN		<
- * REDIR_OUT	>
- * APPEND		>>
- * HEREDOC		<<
-**/
 typedef enum e_tokentype
 {
 	WORD,
@@ -37,7 +30,6 @@ typedef enum e_state
 	ST_DQUOTE
 }	t_state;
 
-/* Builtin command types */
 typedef enum e_builtin
 {
 	NOT_BUILTIN = 0,
@@ -54,37 +46,39 @@ typedef struct s_token
 {
 	t_tokentype		type;
 	char			*value;
+	int				quoted;
 	struct s_token	*next;
 }	t_token;
 
 typedef struct s_arg
 {
-	char *value;
-	struct s_arg *next;
+	char			*value;
+	struct s_arg	*next;
 }	t_arg;
 
 typedef struct s_command
 {
-	t_arg				*args;			// List of execve
-	char				**argv;			// Array for execve
-	char				*input_file;	// Input redirection if < exists
-	char				*output_file;	// Output redirection if > or >> exists
-	int					append;			// Flag for >> append
-	int					heredoc_fd;		// Flag for << heredoc input (-1 is invalid)
-	char				*heredoc_delim;// Delimiter for heredoc 
-	int					is_builtin;		// 1 if command is builtin
-	struct s_command	*next;			// Next command in a pipeline
+	t_arg				*args;
+	char				**argv;
+	char				*input_file;
+	char				*output_file;
+	int					append;
+	int					heredoc_fd;
+	char				*heredoc_delim;
+	int					heredoc_quoted;
+	int					is_builtin;
+	struct s_command	*next;
 }	t_command;
 
 typedef struct s_shell
 {
-	char		**envp;			// copy of environment variables
-	char		*user;			// current username
-	char		*cwd;			// current working directory
-	int			last_exit;		// last command exit status
-	t_token		*tokens;		// Tokenized input
-	t_command	*commands;		// Parsed commands
-	char		*input;			// Raw user input
+	char		**envp;
+	char		*user;
+	char		*cwd;
+	int			last_exit;
+	t_token		*tokens;
+	t_command	*commands;
+	char		*input;
 }	t_shell;
 
 #endif
