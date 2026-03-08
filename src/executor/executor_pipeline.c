@@ -38,8 +38,8 @@ static void	setup_child_pipes(int prev_fd, int pipe_fd[2], int has_next)
 ** then executes the command (never returns).
 ** Returns the child PID to the parent, or -1 on fork failure.
 */
-static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell,
-		int prev_fd, int pipe_fd[2])
+static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
+		int pipe_fd[2])
 {
 	pid_t	pid;
 
@@ -58,65 +58,47 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell,
 }
 
 /*
-** wait_pipeline - Wait for all pipeline children and get last exit status
-** Bash convention: pipeline exit status = exit status of the LAST command.
-*/
-static int	wait_pipeline(pid_t *pids, int n)
-{
-	int	status;
-	int	last;
-	int	i;
-
-	last = 0;
-	i = 0;
-	while (i < n)
-	{
-		waitpid(pids[i], &status, 0);
-		if (i == n - 1)
-		{
-			if (WIFEXITED(status))
-				last = WEXITSTATUS(status);
-			else if (WIFSIGNALED(status))
-				last = 128 + WTERMSIG(status);
-		}
-		i++;
-	}
-	return (last);
-}
-
-/*
 ** run_pipeline_loop - Fork each command and connect them with pipes
 ** Iterates through the command list, creating a pipe before each
 ** non-last command. Each child gets prev_fd as stdin and pipe write-end
 ** as stdout. Parent closes used FDs and passes the read-end forward.
 ** Returns the number of children forked.
 */
+static int	handle_pipe_step(t_command *cmd, t_shell *shell, int *prev_fd,
+		pid_t *pid)
+{
+	int	pipe_fd[2];
+
+	pipe_fd[0] = -1;
+	pipe_fd[1] = -1;
+	if (cmd->next && pipe(pipe_fd) == -1)
+	{
+		if (*prev_fd != -1)
+			close(*prev_fd);
+		return (0);
+	}
+	*pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd);
+	if (*prev_fd != -1)
+		close(*prev_fd);
+	if (cmd->next)
+	{
+		close(pipe_fd[1]);
+		*prev_fd = pipe_fd[0];
+	}
+	return (1);
+}
+
 static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
 {
 	int	prev_fd;
-	int	pipe_fd[2];
 	int	i;
 
 	prev_fd = -1;
 	i = 0;
 	while (cmd)
 	{
-		pipe_fd[0] = -1;
-		pipe_fd[1] = -1;
-		if (cmd->next && pipe(pipe_fd) == -1)
-		{
-			if (prev_fd != -1)
-				close(prev_fd);
+		if (!handle_pipe_step(cmd, shell, &prev_fd, &pids[i]))
 			break ;
-		}
-		pids[i] = fork_pipeline_cmd(cmd, shell, prev_fd, pipe_fd);
-		if (prev_fd != -1)
-			close(prev_fd);
-		if (cmd->next)
-		{
-			close(pipe_fd[1]);
-			prev_fd = pipe_fd[0];
-		}
 		cmd = cmd->next;
 		i++;
 	}
