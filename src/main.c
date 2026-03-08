@@ -94,6 +94,7 @@ static int	read_input(t_shell *shell)
 static void	shell_loop(t_shell *shell)
 {
 	int	status;
+	int	syntax_err;
 
 	while (1)
 	{
@@ -103,14 +104,19 @@ static void	shell_loop(t_shell *shell)
 			break ;
 		if (status == -1)
 			continue ;
+		syntax_err = 0;
 		if (shell->input[0])
 			process_input(shell);
+		if (!shell->commands && shell->last_exit == 2)
+			syntax_err = 1;
 		free_commands(shell->commands);
 		shell->commands = NULL;
 		free_tokens(shell->tokens);
 		shell->tokens = NULL;
 		free(shell->input);
 		shell->input = NULL;
+		if (!isatty(STDIN_FILENO) && syntax_err)
+			break ;
 	}
 }
 
