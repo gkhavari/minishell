@@ -7,35 +7,39 @@
 ## 1. Global State & Signal Handling
 
 ### 1.1 The Global Variable Rule
+
 ```c
 /* ONLY global variable allowed in the entire project */
 volatile sig_atomic_t	g_signal_received = 0;
 ```
 
-| Value | Meaning | Action Required |
-|-------|---------|-----------------|
-| `0` | No signal | Continue normally |
+| Value        | Meaning         | Action Required                                    |
+| ------------ | --------------- | -------------------------------------------------- |
+| `0`          | No signal       | Continue normally                                  |
 | `SIGINT (2)` | Ctrl+C received | Print newline, new prompt, set `exit_status = 130` |
 
 **Critical Rules:**
+
 - ❌ Do NOT store structs, pointers, or flags in global
 - ❌ Do NOT access `t_shell` from signal handler
 - ✅ Only store the signal NUMBER
 - ✅ Check `g_signal_received` in main loop AFTER `readline()` returns
 
 **Why `volatile sig_atomic_t`?**
+
 - `volatile`: Tells compiler the value can change at any time (by signal handler)
 - `sig_atomic_t`: Guaranteed atomic read/write (no partial updates)
 
 ### 1.2 Signal Behavior (Bash Reference)
 
-| Signal | Interactive Mode | During Execution | During Heredoc |
-|--------|------------------|------------------|----------------|
-| `SIGINT` (Ctrl+C) | New prompt, `$?=130` | Kill child, new prompt | Stop heredoc, new prompt, `$?=130` |
-| `SIGQUIT` (Ctrl+\) | Ignored | Kill child + "Quit (core dumped)" | Ignored |
-| `EOF` (Ctrl+D) | Exit shell | N/A (not a signal) | Close heredoc input |
+| Signal             | Interactive Mode     | During Execution                  | During Heredoc                     |
+| ------------------ | -------------------- | --------------------------------- | ---------------------------------- |
+| `SIGINT` (Ctrl+C)  | New prompt, `$?=130` | Kill child, new prompt            | Stop heredoc, new prompt, `$?=130` |
+| `SIGQUIT` (Ctrl+\) | Ignored              | Kill child + "Quit (core dumped)" | Ignored                            |
+| `EOF` (Ctrl+D)     | Exit shell           | N/A (not a signal)                | Close heredoc input                |
 
 **Implementation Pattern:**
+
 ```c
 /* In main loop, AFTER readline returns */
 if (g_signal_received == SIGINT)
@@ -63,6 +67,7 @@ init_shell(t_shell *shell, char **envp)
 ```
 
 **Defensive Check - SHLVL:**
+
 ```c
 /* Bash behavior: SHLVL starts at 1, increments for nested shells */
 char *shlvl = get_env_value(shell, "SHLVL");
@@ -132,6 +137,7 @@ if (level > 1000)
 ## 3. Lexer (Tokenization)
 
 ### 3.1 Token Types (Matching Your structs.h)
+
 ```c
 typedef enum e_tokentype
 {
@@ -173,22 +179,27 @@ State: DOUBLE_QUOTED (")
 ### 3.3 Syntax Error Detection (Defensive Checks)
 
 **Error: Unclosed Quotes**
+
 ```bash
 $ echo "hello        # bash: unexpected EOF while looking for matching `"'
 $ echo 'hello        # bash: unexpected EOF while looking for matching `''
 ```
+
 **Our behavior:** Print error, set `last_exit = 2`, do NOT execute.
 
 **Error: Invalid Pipe Usage**
+
 ```bash
 $ | ls              # bash: syntax error near unexpected token `|'
 $ ls |              # bash: syntax error near unexpected token `newline'
 $ ls || cat         # We don't handle || (logical OR) - treat as syntax error
 $ ls | | cat        # bash: syntax error near unexpected token `|'
 ```
+
 **Our behavior:** Print `minishell: syntax error near unexpected token`, set `last_exit = 2`.
 
 **Error: Invalid Redirection**
+
 ```bash
 $ ls >              # bash: syntax error near unexpected token `newline'
 $ ls > > file       # bash: syntax error near unexpected token `>'
@@ -208,16 +219,16 @@ int	validate_syntax(t_token *tokens)
         /* Rule 1: Pipe cannot be first or last */
         if (curr->type == PIPE && (prev == NULL || curr->next == NULL))
             return (syntax_error("|"));
-        
+
         /* Rule 2: Pipe cannot follow pipe */
         if (curr->type == PIPE && prev && prev->type == PIPE)
             return (syntax_error("|"));
-        
+
         /* Rule 3: Redirection must be followed by WORD */
-        if (is_redirection(curr->type) && 
+        if (is_redirection(curr->type) &&
             (curr->next == NULL || curr->next->type != WORD))
             return (syntax_error(get_token_str(curr->type)));
-        
+
         /* Rule 4: Redirection cannot follow redirection directly */
         if (is_redirection(curr->type) && prev && is_redirection(prev->type))
             return (syntax_error(get_token_str(curr->type)));
@@ -265,18 +276,19 @@ int	validate_syntax(t_token *tokens)
 
 ### 4.2 Variable Expansion Rules
 
-| Input | Context | Result | Explanation |
-|-------|---------|--------|-------------|
-| `$HOME` | Unquoted | `/home/user` | Normal expansion |
-| `"$HOME"` | Double quotes | `/home/user` | Expansion works in "" |
-| `'$HOME'` | Single quotes | `$HOME` | NO expansion in '' |
-| `$?` | Any (except '') | `0` (or last exit) | Exit status |
-| `$UNDEFINED` | Any | `` (empty) | Unset → empty string |
-| `$` | End of word | `$` | Literal $ (no var name) |
-| `$123` | Any | `$123` | Invalid var name → literal |
-| `"$"` | Double quotes | `$` | Lone $ is literal |
+| Input        | Context         | Result             | Explanation                |
+| ------------ | --------------- | ------------------ | -------------------------- |
+| `$HOME`      | Unquoted        | `/home/user`       | Normal expansion           |
+| `"$HOME"`    | Double quotes   | `/home/user`       | Expansion works in ""      |
+| `'$HOME'`    | Single quotes   | `$HOME`            | NO expansion in ''         |
+| `$?`         | Any (except '') | `0` (or last exit) | Exit status                |
+| `$UNDEFINED` | Any             | `` (empty)         | Unset → empty string       |
+| `$`          | End of word     | `$`                | Literal $ (no var name)    |
+| `$123`       | Any             | `$123`             | Invalid var name → literal |
+| `"$"`        | Double quotes   | `$`                | Lone $ is literal          |
 
 ### 4.3 Variable Name Rules
+
 ```c
 /* Valid variable name: starts with letter or _, followed by alnum or _ */
 int is_valid_var_char(char c, int is_first)
@@ -315,15 +327,28 @@ echo $USER_NAME         # (value of USER_NAME, not USER + _NAME)
 ### 5.1 Command Structure
 
 ```c
+typedef struct s_arg
+{
+    char            *value;
+    struct s_arg    *next;
+}   t_arg;
+
+typedef struct s_redir
+{
+    char            *file;
+    int             append;
+    struct s_redir  *next;
+}   t_redir;
+
 typedef struct s_command
 {
-    t_token             *tokens;        /* Original tokens for this cmd */
+    t_arg               *args;          /* Linked list of args before finalizing */
     char                **argv;         /* ["ls", "-la", NULL] for execve */
     char                *input_file;    /* Filename for < */
-    char                *output_file;   /* Filename for > or >> */
-    int                 append;         /* 1 if >>, 0 if > */
+    t_redir             *out_redirs;    /* Linked list of output redirections */
     int                 heredoc_fd;     /* FD for heredoc input (or -1) */
     char                *heredoc_delim; /* Delimiter for heredoc */
+    int                 heredoc_quoted; /* Flag if delimiter was quoted */
     int                 is_builtin;     /* Enum or flag */
     struct s_command    *next;          /* Next command in pipeline */
 }   t_command;
@@ -347,7 +372,7 @@ Tokens: [echo] [hello] [|] [cat] [<] [file.txt]
         ▼                       ▼
    argv: ["echo",          argv: ["cat", NULL]
           "hello",         input_file: "file.txt"
-          NULL]            
+          NULL]
 ```
 
 ### 5.3 Redirection Parsing (Right-to-Left for Multiple)
@@ -398,7 +423,7 @@ t_builtin   get_builtin_type(char *cmd)
 ```
 CRITICAL: Process ALL heredocs BEFORE forking for execution!
 
-Why? 
+Why?
 1. Heredoc reads from stdin (same as your prompt)
 2. If you fork first, child and parent fight for stdin
 3. Signals during heredoc need special handling
@@ -440,16 +465,16 @@ Command: cat << EOF << END
 char *read_heredoc_line(char *delimiter)
 {
     char *line;
-    
+
     line = readline("> ");
-    
+
     /* Check for Ctrl+C */
     if (g_signal_received == SIGINT)
     {
         free(line);
         return (NULL);  /* Signal to stop heredoc */
     }
-    
+
     /* Check for Ctrl+D (EOF) */
     if (line == NULL)
     {
@@ -457,7 +482,7 @@ char *read_heredoc_line(char *delimiter)
         ft_putstr_fd("minishell: warning: here-document delimited by EOF\n", 2);
         return (NULL);
     }
-    
+
     return (line);
 }
 ```
@@ -542,9 +567,10 @@ EOF
 ```
 
 **Why run cd/export/unset/exit in parent?**
+
 - `cd`: Must change parent's working directory
 - `export`: Must modify parent's environment
-- `unset`: Must modify parent's environment  
+- `unset`: Must modify parent's environment
 - `exit`: Must exit the parent shell
 
 **Simplification for 42:** Run ALL builtins in parent for single commands. It's easier and matches bash behavior.
@@ -552,7 +578,7 @@ EOF
 ### 7.3 Single Command with Redirections
 
 ```c
-int execute_single_builtin(t_command *cmd, t_shell *shell)
+int execute_single_command(t_command *cmd, t_shell *shell)
 {
     int stdin_backup;
     int stdout_backup;
@@ -561,20 +587,23 @@ int execute_single_builtin(t_command *cmd, t_shell *shell)
     /* Step 1: Backup original FDs */
     stdin_backup = dup(STDIN_FILENO);
     stdout_backup = dup(STDOUT_FILENO);
-    
+
     /* Step 2: Apply redirections */
     if (apply_redirections(cmd) == -1)
     {
         restore_fds(stdin_backup, stdout_backup);
         return (1);
     }
-    
-    /* Step 3: Execute builtin */
-    status = run_builtin(cmd, shell);
-    
+
+    /* Step 3: Execute builtin/external */
+    if (cmd->is_builtin)
+        status = execute_builtin(cmd, shell);
+    else
+        status = execute_external(cmd, shell);
+
     /* Step 4: Restore original FDs */
     restore_fds(stdin_backup, stdout_backup);
-    
+
     return (status);
 }
 ```
@@ -618,13 +647,13 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
     t_command *cmd = cmds;
 
     pids = malloc(sizeof(pid_t) * count_commands(cmds));
-    
+
     while (cmd)
     {
         /* Create pipe if not last command */
         if (cmd->next)
             pipe(pipe_fd);
-        
+
         pids[i] = fork();
         if (pids[i] == 0)
         {
@@ -648,7 +677,7 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
             execute_command(cmd, shell);
             exit(shell->last_exit);
         }
-        
+
         /* PARENT */
         if (prev_fd != -1)
             close(prev_fd);
@@ -657,11 +686,11 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
             close(pipe_fd[1]);  /* Close write end */
             prev_fd = pipe_fd[0];  /* Save read end for next iteration */
         }
-        
+
         cmd = cmd->next;
         i++;
     }
-    
+
     /* Wait for all children */
     wait_for_children(pids, i, shell);
     free(pids);
@@ -681,11 +710,11 @@ void execute_command(t_command *cmd, t_shell *shell)
         shell->last_exit = run_builtin(cmd, shell);
         exit(shell->last_exit);
     }
-    
+
     /* External command */
     if (cmd->argv[0] == NULL)
         exit(0);
-    
+
     /* Find executable path */
     path = find_command_path(cmd->argv[0], shell);
     if (!path)
@@ -695,10 +724,10 @@ void execute_command(t_command *cmd, t_shell *shell)
         ft_putstr_fd(": command not found\n", 2);
         exit(127);
     }
-    
+
     /* Execute */
     execve(path, cmd->argv, shell->envp);
-    
+
     /* If execve returns, it failed */
     perror("minishell");
     exit(126);
@@ -722,12 +751,12 @@ char *find_command_path(char *cmd, t_shell *shell)
             return (ft_strdup(cmd));
         return (NULL);
     }
-    
+
     /* Case 2: Search in PATH */
     path_env = get_env_value(shell, "PATH");
     if (!path_env)
         return (NULL);  /* No PATH = can't find command */
-    
+
     paths = ft_split(path_env, ':');
     i = 0;
     while (paths[i])
@@ -750,24 +779,25 @@ char *find_command_path(char *cmd, t_shell *shell)
 
 ## 8. Exit Status Reference
 
-| Scenario | Exit Code | Bash Behavior |
-|----------|-----------|---------------|
-| Command success | `0` | Normal |
-| Command general error | `1` | General errors |
-| Syntax error | `2` | Misuse of shell command |
-| Command not found | `127` | Command not in PATH |
-| Permission denied | `126` | Cannot execute |
-| Signal + core dump | `128 + signal` | Killed by signal |
-| Ctrl+C | `130` | `128 + 2 (SIGINT)` |
-| Ctrl+\ | `131` | `128 + 3 (SIGQUIT)` |
-| `exit` with arg | `arg % 256` | Exit with specific code |
-| `exit` with non-numeric | `2` | "numeric argument required" |
+| Scenario                | Exit Code      | Bash Behavior               |
+| ----------------------- | -------------- | --------------------------- |
+| Command success         | `0`            | Normal                      |
+| Command general error   | `1`            | General errors              |
+| Syntax error            | `2`            | Misuse of shell command     |
+| Command not found       | `127`          | Command not in PATH         |
+| Permission denied       | `126`          | Cannot execute              |
+| Signal + core dump      | `128 + signal` | Killed by signal            |
+| Ctrl+C                  | `130`          | `128 + 2 (SIGINT)`          |
+| Ctrl+\                  | `131`          | `128 + 3 (SIGQUIT)`         |
+| `exit` with arg         | `arg % 256`    | Exit with specific code     |
+| `exit` with non-numeric | `2`            | "numeric argument required" |
 
 ---
 
 ## 9. Built-in Commands (Detailed Specs)
 
 ### 9.1 echo [-n] [args...]
+
 ```bash
 # Behavior:
 echo hello world        # "hello world\n"
@@ -781,6 +811,7 @@ echo -n                 # "" (nothing, not even newline)
 ```
 
 ### 9.2 cd [path]
+
 ```bash
 # Behavior:
 cd /tmp                 # Change to /tmp
@@ -796,6 +827,7 @@ cd nonexistent          # Error: "No such file or directory"
 ```
 
 ### 9.3 pwd
+
 ```bash
 # Behavior:
 pwd                     # Print current working directory
@@ -804,6 +836,7 @@ pwd                     # Print current working directory
 ```
 
 ### 9.4 export [name[=value]...]
+
 ```bash
 # Behavior:
 export                  # Print all exported vars (sorted, with "declare -x")
@@ -815,6 +848,7 @@ export VAR=hello=world  # VAR = "hello=world" (only first = splits)
 ```
 
 ### 9.5 unset [name...]
+
 ```bash
 # Behavior:
 unset VAR               # Remove VAR from environment
@@ -824,6 +858,7 @@ unset 1VAR              # Error: not a valid identifier
 ```
 
 ### 9.6 env
+
 ```bash
 # Behavior:
 env                     # Print all environment variables
@@ -832,6 +867,7 @@ env                     # Print all environment variables
 ```
 
 ### 9.7 exit [n]
+
 ```bash
 # Behavior:
 exit                    # Exit with last command's status
@@ -868,6 +904,7 @@ ft_putstr_fd("\n", 2);
 ## 11. Memory Management & Cleanup
 
 ### 11.1 Per-Loop Cleanup
+
 ```c
 void reset_shell(t_shell *shell)
 {
@@ -882,6 +919,7 @@ void reset_shell(t_shell *shell)
 ```
 
 ### 11.2 Exit Cleanup
+
 ```c
 void free_all(t_shell *shell)
 {
@@ -894,6 +932,7 @@ void free_all(t_shell *shell)
 ```
 
 ### 11.3 Defensive Free Pattern
+
 ```c
 void safe_free(void **ptr)
 {
@@ -910,12 +949,14 @@ void safe_free(void **ptr)
 ## 12. Testing Checklist
 
 ### 12.1 Basic Commands
+
 - [ ] `ls`, `cat`, `echo`, `pwd` work
 - [ ] Commands with arguments work
 - [ ] Absolute paths work: `/bin/ls`
 - [ ] Relative paths work: `./minishell`
 
 ### 12.2 Builtins
+
 - [ ] `echo` with and without `-n`
 - [ ] `cd` with path, no args, `-`
 - [ ] `pwd` prints correct directory
@@ -925,6 +966,7 @@ void safe_free(void **ptr)
 - [ ] `exit` with and without code
 
 ### 12.3 Redirections
+
 - [ ] `< file` reads from file
 - [ ] `> file` writes to file (creates/truncates)
 - [ ] `>> file` appends to file
@@ -932,12 +974,14 @@ void safe_free(void **ptr)
 - [ ] Multiple redirections work
 
 ### 12.4 Pipes
+
 - [ ] `ls | cat` works
 - [ ] `ls | cat | wc` works
 - [ ] `cat | cat | cat` works
 - [ ] Pipes with builtins work
 
 ### 12.5 Expansion
+
 - [ ] `$HOME` expands correctly
 - [ ] `$?` expands to exit code
 - [ ] `"$VAR"` expands in double quotes
@@ -945,12 +989,14 @@ void safe_free(void **ptr)
 - [ ] `$UNDEFINED` becomes empty
 
 ### 12.6 Signals
+
 - [ ] Ctrl+C shows new prompt
 - [ ] Ctrl+D exits shell
 - [ ] Ctrl+\ does nothing in prompt
 - [ ] Ctrl+C during `cat` kills cat
 
 ### 12.7 Edge Cases
+
 - [ ] Empty input (just Enter)
 - [ ] Only spaces/tabs
 - [ ] Unclosed quotes error
