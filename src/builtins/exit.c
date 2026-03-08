@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                             :+:      :+:    :+:   */
+/*   exit.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:32 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 22:07:14 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,8 @@
 #include <limits.h>
 
 /*
-** check_overflow - Check if adding digit would overflow
-** @result: current result
-** @digit: digit to add
-** @sign: sign of the number (1 or -1)
-** Return: 1 if overflow, 0 otherwise
+** check_overflow - Check if adding a digit would overflow long
+** Returns 1 if overflow would occur, 0 otherwise.
 */
 static int	check_overflow(long result, int digit, int sign)
 {
@@ -37,9 +34,7 @@ static int	check_overflow(long result, int digit, int sign)
 
 /*
 ** ft_atol_safe - Convert string to long with overflow detection
-** @str: string to convert
-** @overflow: pointer to set if overflow occurs
-** Return: long value (0 if overflow)
+** Sets *overflow to 1 if the value exceeds LONG_MIN/LONG_MAX.
 */
 static long	ft_atol_safe(const char *str, int *overflow)
 {
@@ -71,9 +66,8 @@ static long	ft_atol_safe(const char *str, int *overflow)
 }
 
 /*
-** is_valid_exit_arg - Check if string is valid numeric and within range
-** @str: string to check
-** Return: 1 if valid, 0 otherwise
+** is_valid_exit_arg - Check if string is a valid numeric argument
+** Must be optional sign followed by one or more digits, within long range.
 */
 static int	is_valid_exit_arg(char *str)
 {
@@ -100,38 +94,43 @@ static int	is_valid_exit_arg(char *str)
 }
 
 /*
-** exit_numeric_error - Print error for non-numeric argument and exit
-** @arg: the invalid argument
+** clean_exit - Free all shell resources and exit with given code
+** Called by builtin_exit to avoid memory leaks on exit.
 */
-static void	exit_numeric_error(char *arg)
+static void	clean_exit(t_shell *shell, int code)
 {
-	ft_putstr_fd("minishell: exit: ", 2);
-	ft_putstr_fd(arg, 2);
-	ft_putendl_fd(": numeric argument required", 2);
-	exit(2);
+	rl_clear_history();
+	free_all(shell);
+	exit(code);
 }
 
 /*
-** builtin_exit - Exit the shell with optional exit code
-** @args: command arguments (args[1] = exit code or empty)
-** @shell: shell state for last_exit
-** Return: 1 if too many args, otherwise exits
+** builtin_exit - Exit the shell with an optional exit code
+** Prints "exit" to match bash behavior.
+** Non-numeric arg: error + exit 2.  Too many args: error, don't exit.
 */
 int	builtin_exit(char **args, t_shell *shell)
 {
 	long	exit_code;
 	int		overflow;
 
-	ft_putendl_fd("exit", 1);
+	if (isatty(STDIN_FILENO))
+		ft_putendl_fd("exit", STDERR_FILENO);
 	if (!args[1])
-		exit(shell->last_exit);
+		clean_exit(shell, shell->last_exit);
 	if (!is_valid_exit_arg(args[1]))
-		exit_numeric_error(args[1]);
+	{
+		ft_putstr_fd("minishell: exit: ", 2);
+		ft_putstr_fd(args[1], 2);
+		ft_putendl_fd(": numeric argument required", 2);
+		clean_exit(shell, 2);
+	}
 	if (args[2])
 	{
 		ft_putendl_fd("minishell: exit: too many arguments", 2);
 		return (1);
 	}
 	exit_code = ft_atol_safe(args[1], &overflow);
-	exit((exit_code % 256 + 256) % 256);
+	clean_exit(shell, (exit_code % 256 + 256) % 256);
+	return (0);
 }
