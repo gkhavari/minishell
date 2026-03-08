@@ -52,21 +52,17 @@ jobs:
         id: mandatory
         run: |
           cd "$HOME/42_minishell_tester"
-          # tester.sh expects minishell at ../minishell relative to its location
-          # so we symlink our binary where it expects it
-          mkdir -p "$(dirname "$HOME/42_minishell_tester/../minishell")"
-          ln -sf "$GITHUB_WORKSPACE/minishell" "$HOME/minishell"
-
-          # Run mandatory (non-valgrind) first for a baseline report
           timeout 10m bash tester.sh m 2>&1 | tee /tmp/mandatory.log || true
         env:
-          MINISHELL_PATH: ${{ github.workspace }}/minishell
+          MINISHELL_PATH: ${{ github.workspace }}
 
       - name: Run 42 mandatory tests with Valgrind
         id: valgrind_run
         run: |
           cd "$HOME/42_minishell_tester"
           timeout 30m bash tester.sh vm 2>&1 | tee /tmp/valgrind.log || true
+        env:
+          MINISHELL_PATH: ${{ github.workspace }}
 
       - name: Build valgrind summary report
         if: always()
