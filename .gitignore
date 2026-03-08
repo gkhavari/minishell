@@ -18,9 +18,6 @@ vgcore.*
 
 # document helpers
 
-docs/
-
-
 # Build directories (if you create any)
 build/
 obj/
@@ -28,6 +25,7 @@ bin/
 
 # Logs
 *.log
+logs/
 
 # MacOS / Linux metadata
 .DS_Store
@@ -50,3 +48,4 @@ outfiles/
 .vscode/
 minishellv*.pdf
 _codeql_detected_source_root
+.claude

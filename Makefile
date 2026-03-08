@@ -45,9 +45,6 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/heredoc.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
 
-# utils
-SRCS		+=	$(SRC_DIR)/utils/simple_split.c
-
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \
 			   $(SRC_DIR)/executor/executor_utils.c \
