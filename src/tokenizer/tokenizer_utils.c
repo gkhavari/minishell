@@ -12,26 +12,40 @@
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
- * Appends a single character to the end of a dynamically allocated string.
- * This function grows the buffer by allocating a new one, copying the 
- 	existing data, adding the new character, and replacing the old pointer. 
-	This is used during tokenization to gradually build words one character 
-	at a time.
+static int	g_word_quoted;
+static int	g_heredoc_mode;
 
- PARAMETERS:
- * dst: Pointer to a dynamically allocated string. If *dst is NULL, a new 
- 	1-character string is created.
- * c: The character to append.
+void	mark_word_quoted(void)
+{
+	g_word_quoted = 1;
+}
 
- RETURN VALUE:
- * None.
- * The buffer referenced by *dst is replaced with an enlarged version 
- 	containing the new character.
- * The original *dest is freed.
- * resulting string is null-terminated.
-**/
+void	set_heredoc_mode(int mode)
+{
+	g_heredoc_mode = mode;
+}
+
+int	is_heredoc_mode(void)
+{
+	return (g_heredoc_mode);
+}
+
+void	flush_word(char **word, t_token **token)
+{
+	t_token	*tok;
+
+	if (*word)
+	{
+		tok = new_token(WORD, *word);
+		tok->quoted = g_word_quoted;
+		add_token(token, tok);
+		free(*word);
+		*word = NULL;
+	}
+	g_word_quoted = 0;
+	g_heredoc_mode = 0;
+}
+
 void	append_char(char **dst, char c)
 {
 	size_t	len;
@@ -50,87 +64,4 @@ void	append_char(char **dst, char c)
 	new[len + 1] = '\0';
 	free(*dst);
 	*dst = new;
-}
-
-/**
- DESCRIPTION:
- * Finalizes the current accumulated word and converts it into a WORD token.
- * If a partial word is being built (via append_char), this function:
- ** Wraps it into a new token.
- ** Adds the token to the token list.
- ** Frees the word buffer.
- ** Resets the pointer to NULL.
-
- PARAMETERS:
- * word: pointer to the buffer, storing the current built word.
- * token: pointer to the tokenlist, where the word token will be appended
-
- RETURN VALUE:
- * none
-**/
-void	flush_word(char **word, t_token **token)
-{
-	if (*word)
-	{
-		add_token(token, new_token(WORD, *word));
-		free(*word);
-		*word = NULL;
-	}
-}
-
-/** 
- DESCRIPTION:
- * Appends a token to the end of a linked list of tokens.
- * If the list is empty, the new token becomes the head.
- * Otherwise, the function walks to the end of the list and inserts the 
- 	new token.
-
- PARAMETERS:
- * head: Pointer to the head pointer of the token list.
- * new: The token to append.
-
- RETURN VALUE:
- * None.
- **/
-void	add_token(t_token **head, t_token *new)
-{
-	t_token	*tmp;
-
-	if (!(*head))
-		*head = new;
-	else
-	{
-		tmp = *head;
-		while (tmp->next)
-			tmp = tmp->next;
-		tmp->next = new;
-	}
-}
-
-/** 
- DESCRIPTION:
- * Creates and initializes a new token.
- * This allocates memory for a token structure, sets its type, duplicates its 
- 	string value, and initializes its next pointer to NULL.
- 
- PARAMETERS:
- * type: The token type (e.g., WORD, PIPE, REDIR_IN, etc.).
- * value: The string value associated with the token. 
- 	This is duplicated internally.
-
-RETURN VALUE:
- * A pointer to the newly created token.
- * NULL if memory allocation fails.
-**/
-t_token	*new_token(t_tokentype type, char *value)
-{
-	t_token	*token;
-
-	token = malloc(sizeof(*token));
-	if (!token)
-		return (NULL); //todo: error handling
-	token->type = type;
-	token->value = ft_strdup(value);
-	token->next = NULL;
-	return (token);
 }

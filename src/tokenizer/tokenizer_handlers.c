@@ -70,6 +70,7 @@ int	process_quote(char c, t_state *state)
 	if (*state == ST_NORMAL && c == '\'')
 	{
 		*state = ST_SQUOTE;
+		mark_word_quoted();
 		return (1);
 	}
 	if (*state == ST_SQUOTE && c == '\'')
@@ -80,6 +81,7 @@ int	process_quote(char c, t_state *state)
 	if (*state == ST_NORMAL && c == '"')
 	{
 		*state = ST_DQUOTE;
+		mark_word_quoted();
 		return (1);
 	}
 	if (*state == ST_DQUOTE && c == '"')
@@ -113,6 +115,8 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	if (is_op_char(shell->input[*i]))
 	{
 		flush_word(word, &shell->tokens);
+		if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
+			set_heredoc_mode(1);
 		*i += read_operator(&shell->input[*i], &shell->tokens);
 		return (1);
 	}
@@ -139,7 +143,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
  **/
 int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
-	if (isspace(shell->input[*i])) //todo: add this function to libft.
+	if (shell->input[*i] == ' ' || shell->input[*i] == '\t')
 	{
 		flush_word(word, &shell->tokens);
 		(*i)++;

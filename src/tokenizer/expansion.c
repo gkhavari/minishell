@@ -40,14 +40,19 @@ RETURN VALUE:
 static char	*expand_special_var(t_shell *shell, size_t *i)
 {
 	size_t	start;
-	char	buf[12];
+	char	*str;
 
 	start = *i + 1;
 	if (shell->input[start] == '?')
 	{
-		snprintf(buf, sizeof(buf), "%d", shell->last_exit);
+		str = ft_itoa(shell->last_exit);
 		*i += 2;
-		return (ft_strdup(buf));
+		return (str);
+	}
+	if (shell->input[start] == '"' || shell->input[start] == '\'')
+	{
+		(*i)++;
+		return (ft_strdup(""));
 	}
 	if (!(ft_isalpha(shell->input[start]) || shell->input[start] == '_'))
 	{
@@ -92,10 +97,12 @@ static char	*expand_normal_var(t_shell *shell, size_t *i)
 		|| shell->input[start + len] == '_')
 		len++;
 	name = ft_strndup(shell->input + start, len);
-	value = ft_strdup(get_env_value(shell->envp, name));
+	value = get_env_value(shell->envp, name);
 	free(name);
 	*i = start + len;
-	return (value);
+	if (!value)
+		return (ft_strdup(""));
+	return (ft_strdup(value));
 }
 
 /**
