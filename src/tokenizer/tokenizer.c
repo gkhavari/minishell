@@ -28,6 +28,8 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		return (1);
 	if (!is_heredoc_mode() && handle_variable_expansion(shell, i, word))
 		return (1);
+	if (!is_heredoc_mode() && handle_tilde_expansion(shell, i, word))
+		return (1);
 	return (0);
 }
 
