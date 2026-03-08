@@ -76,7 +76,14 @@ int	builtin_export(char **args, t_shell *shell)
 	ret = 0;
 	while (args[i])
 	{
-		if (set_env_var(shell, args[i]))
+		if (args[i][0] == '-')
+		{
+			ft_putstr_fd("minishell: export: ", 2);
+			ft_putstr_fd(args[i], 2);
+			ft_putendl_fd(": invalid option", 2);
+			ret = 2;
+		}
+		else if (set_env_var(shell, args[i]))
 			ret = 1;
 		i++;
 	}

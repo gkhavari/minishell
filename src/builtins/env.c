@@ -23,12 +23,7 @@ int	builtin_env(char **args, t_shell *shell)
 	int	i;
 
 	if (args[1])
-	{
-		ft_putstr_fd("env: '", 2);
-		ft_putstr_fd(args[1], 2);
-		ft_putendl_fd("': No such file or directory", 2);
-		return (127);
-	}
+		return (1);
 	if (!shell->envp)
 		return (1);
 	i = 0;

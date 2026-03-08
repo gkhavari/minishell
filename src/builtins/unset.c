@@ -93,7 +93,14 @@ int	builtin_unset(char **args, t_shell *shell)
 	ret = 0;
 	while (args[i])
 	{
-		if (!is_valid_unset_name(args[i]))
+		if (args[i][0] == '-')
+		{
+			ft_putstr_fd("minishell: unset: -", 2);
+			ft_putstr_fd(args[i] + 1, 2);
+			ft_putendl_fd(": invalid option", 2);
+			ret = 2;
+		}
+		else if (!is_valid_unset_name(args[i]))
 		{
 			ft_putstr_fd("minishell: unset: '", 2);
 			ft_putstr_fd(args[i], 2);
