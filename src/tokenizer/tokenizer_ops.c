@@ -44,17 +44,17 @@ int	is_op_char(char c)
  * 1 or 2: number of characters that form the operator.
  * 0: no operator found
  **/
-size_t	read_operator(const char *s, t_token **list)
+size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 {
 	if (s[0] == '|')
-		return (add_token(list, new_token(PIPE, "|")), 1);
+		return (add_token(list, new_token(shell, PIPE, "|")), 1);
 	if (s[0] == '<' && s[1] == '<')
-		return (add_token(list, new_token(HEREDOC, "<<")), 2);
+		return (add_token(list, new_token(shell, HEREDOC, "<<")), 2);
 	if (s[0] == '>' && s[1] == '>')
-		return (add_token(list, new_token(APPEND, ">>")), 2);
+		return (add_token(list, new_token(shell, APPEND, ">>")), 2);
 	if (s[0] == '<')
-		return (add_token(list, new_token(REDIR_IN, "<")), 1);
+		return (add_token(list, new_token(shell, REDIR_IN, "<")), 1);
 	if (s[0] == '>')
-		return (add_token(list, new_token(REDIR_OUT, ">")), 1);
+		return (add_token(list, new_token(shell, REDIR_OUT, ">")), 1);
 	return (0);
 }

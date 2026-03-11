@@ -128,7 +128,6 @@ int	readline_event_hook(void)
 	{
 		g_signum = 0;
 		rl_on_new_line();
-		rl_replace_line("", 0);
 		rl_redisplay();
 	}
 	return (0);
@@ -144,7 +143,7 @@ int	check_signal_received(t_shell *shell)
 {
 	if (g_signum == SIGINT)
 	{
-		shell->last_exit = 130;
+		shell->last_exit = EXIT_SIGINT;
 		g_signum = 0;
 		return (1);
 	}

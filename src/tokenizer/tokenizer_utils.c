@@ -32,7 +32,7 @@
  * The original *dest is freed.
  * resulting string is null-terminated.
 **/
-void	append_char(char **dst, char c)
+void	append_char(t_shell *shell, char **dst, char c)
 {
 	size_t	len;
 	char	*new;
@@ -41,9 +41,7 @@ void	append_char(char **dst, char c)
 		len = 0;
 	else
 		len = ft_strlen(*dst);
-	new = malloc(len + 2);
-	if (!new)
-		exit(1);
+	new = msh_calloc(shell, sizeof(char), len + 2);
 	if (*dst)
 		ft_memcpy(new, *dst, len);
 	new[len] = c;
@@ -62,17 +60,18 @@ void	append_char(char **dst, char c)
  ** Resets the pointer to NULL.
 
  PARAMETERS:
+ * shell: pointer to the shell containing all variables including the tokenlist, where the word token will be appended
  * word: pointer to the buffer, storing the current built word.
  * token: pointer to the tokenlist, where the word token will be appended
 
  RETURN VALUE:
  * none
 **/
-void	flush_word(char **word, t_token **token)
+void	flush_word(t_shell *shell, char **word, t_token **token)
 {
 	if (*word)
 	{
-		add_token(token, new_token(WORD, *word));
+		add_token(token, new_token(shell, WORD, *word));
 		free(*word);
 		*word = NULL;
 	}
@@ -122,13 +121,11 @@ RETURN VALUE:
  * A pointer to the newly created token.
  * NULL if memory allocation fails.
 **/
-t_token	*new_token(t_tokentype type, char *value)
+t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 {
 	t_token	*token;
 
-	token = malloc(sizeof(*token));
-	if (!token)
-		return (NULL); //todo: error handling
+	token = msh_calloc(shell, 1, sizeof(*token));
 	token->type = type;
 	token->value = ft_strdup(value);
 	token->next = NULL;

@@ -21,24 +21,24 @@ void	init_shell(t_shell *shell, char **envp);
 char	*get_env_value(char **envp, const char *key);
 char	*get_env(char **envp, const char *key);
 char	*ft_strcat(char *dest, const char *src);
-char	*ft_realloc(char *ptr, const size_t new_size);
+void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
 char	**ft_arrdup(char **envp);
 
 /* tokenizer.c */
 void	tokenize_input(t_shell *shell);
 
 /* tokenizer_utils.c */
-void	flush_word(char **word, t_token **token);
+void	flush_word(t_shell *shell, char **word, t_token **token);
 void	add_token(t_token **head, t_token *new);
-t_token	*new_token(t_tokentype type, char *value);
-void	append_char(char **dst, char c);
+t_token	*new_token(t_shell *shell, t_tokentype type, char *value);
+void	append_char(t_shell *shell, char **dst, char c);
 
 /* tokenizer_handlers.c */
 int		handle_end_of_string(t_shell *shell, t_state *state);
 int		process_quote(char c, t_state *state);
 int		handle_operator(t_shell *shell, size_t *i, char **word);
 int		handle_whitespace(t_shell *shell, size_t *i, char **word);
-void	process_normal_char(char c, size_t *i, char **word);
+void	process_normal_char(t_shell *shell, char c, size_t *i, char **word);
 
 /* tokenizer_quotes.c */
 int		handle_single_quote(t_shell *shell, size_t *i, char **word,
@@ -48,7 +48,7 @@ int		handle_double_quote(t_shell *shell, size_t *i, char **word,
 
 /* tokenizer_ops.c */
 int		is_op_char(char c);
-size_t	read_operator(const char *s, t_token **list);
+size_t	read_operator(t_shell *shell, const char *s, t_token **list);
 
 /* expansion.c */
 int		handle_variable_expansion(t_shell *shell, size_t *i, char **word);
@@ -56,46 +56,41 @@ char	*expand_var(t_shell *shell, size_t *i);
 
 /* expansion_utils.c */
 void	append_expansion_quoted(char **word, const char *exp);
-void	append_expansion_unquoted(char **word, const char *exp,
+void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 			t_token **tokens);
 
 /* continuation.c */
-int		append_continuation(char **s, t_state state);
+int		append_continuation(t_shell *shell, char **s, t_state state);
 
 /* parser.c */
 void	parse_input(t_shell *shell);
 
 /* add_token_to_cmd.c*/
-void	add_token_to_command(t_command *cmd, t_token *token);
-void	add_word_to_cmd(t_command *cmd, char *word);
+int		add_token_to_command(t_shell *shell, t_command *cmd, t_token *token);
 
 /* parser_syntax_check.c*/
 int		syntax_check(t_token *token);
 int		syntax_error(const char *msg);
 
 /* argv_build.c*/
-void	finalize_all_commands(t_command *cmd);
-void	finalize_argv(t_command *cmd);
+void	finalize_all_commands(t_shell *shell, t_command *cmd);
+void	finalize_argv(t_shell *shell, t_command *cmd);
 
 /* free.c */
 void	free_all(t_shell *shell);
 void	free_tokens(t_token *token);
-void	free_args(t_arg *arg);
 void	free_commands(t_command *cmd);
+void	free_args(t_arg *arg);
 
 /* heredoc.c */
-int			is_heredoc(char *f);
-void	process_heredoc(t_command *cmd, char *delimiter);
+int		is_heredoc(char *f);
+int		process_heredoc(t_shell *shell, t_command *cmd, char *delimiter);
 
 /* parser */
 /* Parse flat token list into commands */
-t_command	*parse_tokens(t_token *token);
 void	parse_input(t_shell *shell);
-t_command	*parse_command(t_token **tokens);
-int		handle_redirection(t_command *cmd, t_token **tokens);
 int		process_heredocs(t_shell *shell);
 int		read_heredoc(t_command *cmd, t_shell *shell);
-int		is_redirection(t_tokentype type);
 t_builtin	get_builtin_type(char *cmd);
 void	free_command(t_command *cmd);
 int		is_quoted_delimiter(char *delim);
@@ -112,13 +107,13 @@ char	*find_command_path(char *cmd, t_shell *shell);
 void	free_array(char **arr);
 
 /* builtins */
-int	builtin_cd(char **args, t_shell *shell);
-int	builtin_pwd(char **args, t_shell *shell);
-int	builtin_env(char **args, t_shell *shell);
-int	builtin_echo(char **args, t_shell *shell);
-int	builtin_export(char **args, t_shell *shell);
-int	builtin_unset(char **args, t_shell *shell);
-int	builtin_exit(char **args, t_shell *shell);
+int		builtin_cd(char **args, t_shell *shell);
+int		builtin_pwd(char **args, t_shell *shell);
+int		builtin_env(char **args, t_shell *shell);
+int		builtin_echo(char **args, t_shell *shell);
+int		builtin_export(char **args, t_shell *shell);
+int		builtin_unset(char **args, t_shell *shell);
+int		builtin_exit(char **args, t_shell *shell);
 
 /* export_utils.c */
 int		is_valid_export_name(char *name);

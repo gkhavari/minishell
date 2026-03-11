@@ -18,6 +18,4 @@
 # include "structs.h"
 # include "prototypes.h"
 
-
-
 #endif
