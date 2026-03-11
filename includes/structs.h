@@ -37,6 +37,19 @@ typedef enum e_state
 	ST_DQUOTE
 }	t_state;
 
+/* Builtin command types */
+typedef enum e_builtin
+{
+	NOT_BUILTIN = 0,
+	BUILTIN_ECHO,
+	BUILTIN_CD,
+	BUILTIN_PWD,
+	BUILTIN_EXPORT,
+	BUILTIN_UNSET,
+	BUILTIN_ENV,
+	BUILTIN_EXIT
+}	t_builtin;
+
 typedef struct s_token
 {
 	t_tokentype		type;

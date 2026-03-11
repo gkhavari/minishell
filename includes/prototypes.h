@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/30 20:21:43 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/01/16 16:32:33 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ void	init_shell(t_shell *shell, char **envp);
 
 /* utils.c */
 char	*get_env_value(char **envp, const char *key);
+char	*get_env(char **envp, const char *key);
 char	*ft_strcat(char *dest, const char *src);
 void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
 char	**ft_arrdup(char **envp);
@@ -85,6 +86,26 @@ void	free_args(t_arg *arg);
 int		is_heredoc(char *f);
 int		process_heredoc(t_shell *shell, t_command *cmd, char *delimiter);
 
+/* parser */
+/* Parse flat token list into commands */
+void	parse_input(t_shell *shell);
+int		process_heredocs(t_shell *shell);
+int		read_heredoc(t_command *cmd, t_shell *shell);
+t_builtin	get_builtin_type(char *cmd);
+void	free_command(t_command *cmd);
+int		is_quoted_delimiter(char *delim);
+char	*expand_heredoc_line(char *line, t_shell *shell);
+
+/* executor */
+int		execute_commands(t_shell *shell);
+int		execute_single_command(t_command *cmd, t_shell *shell);
+int		apply_redirections(t_command *cmd);
+void	restore_fds(int stdin_backup, int stdout_backup);
+int		execute_builtin(t_command *cmd, t_shell *shell);
+int		execute_external(t_command *cmd, t_shell *shell);
+char	*find_command_path(char *cmd, t_shell *shell);
+void	free_array(char **arr);
+
 /* builtins */
 int		builtin_cd(char **args, t_shell *shell);
 int		builtin_pwd(char **args, t_shell *shell);
@@ -105,6 +126,10 @@ int		set_signals_ignore(void);
 int		set_signals_interactive(void);
 int		handle_child_exit(int *last_exit_status, pid_t pid);
 int		check_signal_received(t_shell *shell);
+int		readline_event_hook(void);
+
+/* Global signal status (set in signal_handler.c) */
+extern volatile sig_atomic_t g_signum;
 
 /* builtin_dispatcher.c */
 int		is_builtin(char *cmd);
