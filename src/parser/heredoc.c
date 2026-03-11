@@ -38,14 +38,16 @@ static char	*read_heredoc_line(void)
 	len = 0;
 	while (line && read(STDIN_FILENO, &c, 1) > 0)
 	{
+		char	*tmp;
+
 		if (c == '\n')
 			return (line);
-		line = ft_realloc(line, len + 2);
-		if (line)
-		{
-			line[len++] = c;
-			line[len] = '\0';
-		}
+		tmp = ft_realloc(line, len + 2);
+		if (!tmp)
+			return (line);
+		line = tmp;
+		line[len++] = c;
+		line[len] = '\0';
 	}
 	if (len == 0)
 		return (free(line), NULL);
