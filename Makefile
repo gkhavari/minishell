@@ -46,8 +46,7 @@ SRCS		+=	$(SRC_DIR)/utils/simple_split.c \
 				$(SRC_DIR)/utils/arrdup.c
 
 # executor
-#SRCS        += $(SRC_DIR)/executor/executor.c \
-               $(SRC_DIR)/executor/commands.c
+SRCS        += $(SRC_DIR)/executor.c
 
 # builtins
 # builtins - uncomment/add the specific builtins as you implement them
