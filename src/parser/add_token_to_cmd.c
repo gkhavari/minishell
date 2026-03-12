@@ -57,10 +57,10 @@ static void	append_out_redir(t_command *cmd, char *file, int append)
 ** Redirection tokens (< > >> <<) set the appropriate file/delimiter.
 ** Note: parse_tokens() already skips the filename WORD after redirections.
 */
-void	add_token_to_command(t_command *cmd, t_token *token)
+void	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
 	if (token->type == WORD)
-		add_word_to_cmd(cmd, token->value);
+		add_word_to_cmd(shell, cmd, token->value);
 	else if (token->type == REDIR_IN)
 	{
 		free(cmd->input_file);

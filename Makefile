@@ -19,8 +19,7 @@ RLFLAGS		= -L$(RL_DIR)/lib -lreadline -lncurses
 SRCS		=	$(SRC_DIR)/main.c \
 				$(SRC_DIR)/init.c \
 				$(SRC_DIR)/utils.c \
-				$(SRC_DIR)/free.c \
-				$(SRC_DIR)/free_utils.c
+				$(SRC_DIR)/free_utils.c \
 				$(SRC_DIR)/free_runtime.c \
 				$(SRC_DIR)/free_shell.c 
 
@@ -45,7 +44,7 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/add_token_to_cmd.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
-				$(SRC_DIR)/parser/heredoc_utils.c
+				$(SRC_DIR)/parser/heredoc_utils.c \
 				$(SRC_DIR)/parser/heredoc.c
 
 # utils

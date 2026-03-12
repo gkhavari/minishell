@@ -198,7 +198,7 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	home = get_env_value(shell->envp, "HOME");
 	if (!home)
 		home = "";
-	append_expansion_unquoted(word, home, &shell->tokens);
+	append_expansion_unquoted(shell, word, home, &shell->tokens);
 	(*i)++;
 	return (1);
 }
