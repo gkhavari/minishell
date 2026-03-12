@@ -21,6 +21,8 @@ SRCS		=	$(SRC_DIR)/main.c \
 				$(SRC_DIR)/utils.c \
 				$(SRC_DIR)/free.c \
 				$(SRC_DIR)/free_utils.c
+				$(SRC_DIR)/free_runtime.c \
+				$(SRC_DIR)/free_shell.c 
 
 # signals
 SRCS		+=	$(SRC_DIR)/signals/signal_handler.c \
@@ -44,6 +46,11 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
+				$(SRC_DIR)/parser/heredoc.c
+
+# utils
+SRCS		+=	$(SRC_DIR)/utils/simple_split.c \
+				$(SRC_DIR)/utils/arrdup.c
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \

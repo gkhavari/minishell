@@ -30,13 +30,68 @@ int	is_heredoc_mode(void)
 	return (g_heredoc_mode);
 }
 
-void	flush_word(char **word, t_token **token)
+/**
+ DESCRIPTION:
+ * Appends a single character to the end of a dynamically allocated string.
+ * This function grows the buffer by allocating a new one, copying the 
+ 	existing data, adding the new character, and replacing the old pointer. 
+	This is used during tokenization to gradually build words one character 
+	at a time.
+
+ PARAMETERS:
+ * dst: Pointer to a dynamically allocated string. If *dst is NULL, a new 
+ 	1-character string is created.
+ * c: The character to append.
+
+ RETURN VALUE:
+ * None.
+ * The buffer referenced by *dst is replaced with an enlarged version 
+ 	containing the new character.
+ * The original *dest is freed.
+ * resulting string is null-terminated.
+**/
+void	append_char(t_shell *shell, char **dst, char c)
+{
+	size_t	len;
+	char	*new;
+
+	if (!(*dst))
+		len = 0;
+	else
+		len = ft_strlen(*dst);
+	new = msh_calloc(shell, sizeof(char), len + 2);
+	if (*dst)
+		ft_memcpy(new, *dst, len);
+	new[len] = c;
+	new[len + 1] = '\0';
+	free(*dst);
+	*dst = new;
+}
+
+/**
+ DESCRIPTION:
+ * Finalizes the current accumulated word and converts it into a WORD token.
+ * If a partial word is being built (via append_char), this function:
+ ** Wraps it into a new token.
+ ** Adds the token to the token list.
+ ** Frees the word buffer.
+ ** Resets the pointer to NULL.
+
+ PARAMETERS:
+ * shell: pointer to the shell containing all variables including the tokenlist, where the word token will be appended
+ * word: pointer to the buffer, storing the current built word.
+ * token: pointer to the tokenlist, where the word token will be appended
+
+ RETURN VALUE:
+ * none
+**/
+void	flush_word(t_shell *shell, char **word, t_token **token)
 {
 	t_token	*tok;
 
 	if (*word)
 	{
-		tok = new_token(WORD, *word);
+		tok = new_token(shell, WORD, *word);
 		tok->quoted = g_word_quoted;
 		add_token(token, tok);
 		free(*word);
@@ -46,22 +101,57 @@ void	flush_word(char **word, t_token **token)
 	g_heredoc_mode = 0;
 }
 
-void	append_char(char **dst, char c)
-{
-	size_t	len;
-	char	*new;
+/** 
+ DESCRIPTION:
+ * Appends a token to the end of a linked list of tokens.
+ * If the list is empty, the new token becomes the head.
+ * Otherwise, the function walks to the end of the list and inserts the 
+ 	new token.
 
-	if (!(*dst))
-		len = 0;
+ PARAMETERS:
+ * head: Pointer to the head pointer of the token list.
+ * new: The token to append.
+
+ RETURN VALUE:
+ * None.
+ **/
+void	add_token(t_token **head, t_token *new)
+{
+	t_token	*tmp;
+
+	if (!(*head))
+		*head = new;
 	else
-		len = ft_strlen(*dst);
-	new = malloc(len + 2);
-	if (!new)
-		exit(1);
-	if (*dst)
-		ft_memcpy(new, *dst, len);
-	new[len] = c;
-	new[len + 1] = '\0';
-	free(*dst);
-	*dst = new;
+	{
+		tmp = *head;
+		while (tmp->next)
+			tmp = tmp->next;
+		tmp->next = new;
+	}
+}
+
+/** 
+ DESCRIPTION:
+ * Creates and initializes a new token.
+ * This allocates memory for a token structure, sets its type, duplicates its 
+ 	string value, and initializes its next pointer to NULL.
+ 
+ PARAMETERS:
+ * type: The token type (e.g., WORD, PIPE, REDIR_IN, etc.).
+ * value: The string value associated with the token. 
+ 	This is duplicated internally.
+
+RETURN VALUE:
+ * A pointer to the newly created token.
+ * NULL if memory allocation fails.
+**/
+t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
+{
+	t_token	*token;
+
+	token = msh_calloc(shell, 1, sizeof(*token));
+	token->type = type;
+	token->value = ft_strdup(value);
+	token->next = NULL;
+	return (token);
 }

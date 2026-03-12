@@ -74,6 +74,8 @@ typedef struct s_command
 	int					heredoc_quoted;
 	int					is_builtin;
 	struct s_command	*next;
+	char				*output_file;	// Output redirection if > or >> exists
+	int					append;			// Flag for append
 }	t_command;
 
 typedef struct s_shell

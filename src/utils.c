@@ -56,6 +56,20 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	return (res);
 }
 
+void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
+{
+	char	*res;
+
+	res = ft_calloc(nmemb, size);
+	if (!res)
+	{
+		perror("minishell");
+		free_all(shell);
+		exit(EXIT_FAILURE);
+	}
+	return (res);
+}
+
 static void	ft_arrdup_cleanup(char **copy, size_t i)
 {
 	while (i > 0)

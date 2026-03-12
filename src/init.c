@@ -35,9 +35,7 @@ char	*build_prompt(t_shell *shell)
 		cwd = PROMPT_DEFAULT_CWD;
 	total_len = ft_strlen(user) + ft_strlen(cwd)
 		+ ft_strlen(PROMPT_PREFIX) + ft_strlen(PROMPT_SUFFIX);
-	prompt = ft_calloc(total_len + 1, sizeof(char));
-	if (!prompt)
-		return (perror("Error: malloc"), NULL);
+	prompt = msh_calloc(shell, total_len + 1, sizeof(char));
 	ft_strcat(prompt, user);
 	ft_strcat(prompt, PROMPT_PREFIX);
 	ft_strcat(prompt, cwd);

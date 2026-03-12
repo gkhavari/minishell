@@ -65,3 +65,68 @@ int	set_signals_interactive(void)
 	sigaction(SIGINT, &sa, NULL);
 	return (0);
 }
+
+/*
+** Handle child process termination and set exit status
+** Returns: 0 on success, -1 on error
+*/
+int	handle_child_exit(int *last_exit_status, pid_t pid)
+{
+	int	status;
+
+	status = 0;
+	if (waitpid(pid, &status, 0) == -1)
+	{
+		*last_exit_status = 1;
+		return (-1);
+	}
+	if (WIFSIGNALED(status))
+	{
+		*last_exit_status = 128 + WTERMSIG(status);
+		if (WTERMSIG(status) == SIGQUIT)
+			ft_putstr_fd("Quit (core dumped)\n", STDOUT_FILENO);
+		else if (WTERMSIG(status) == SIGINT)
+			ft_putstr_fd("\n", STDOUT_FILENO);
+	}
+	else if (WIFEXITED(status))
+		*last_exit_status = WEXITSTATUS(status);
+	else
+		*last_exit_status = EXIT_FAILURE;
+	return (0);
+}
+
+/*
+** Event hook for readline - called periodically DURING readline input
+** Checks for pending signals and handles them safely
+** This is safe to call readline functions because it runs outside the signal handler context
+** Note: Multiple rapid SIGINTs may coalesce into a single handling, which is acceptable
+** Note: This function runs only while readline is active, not concurrently with check_signal_received
+** Returns: 0 to continue readline operation
+*/
+int	readline_event_hook(void)
+{
+	if (g_signum == SIGINT)
+	{
+		g_signum = 0;
+		rl_on_new_line();
+		rl_redisplay();
+	}
+	return (0);
+}
+
+/*
+** Check and handle signal received during readline
+** Call this AFTER readline returns in main loop
+** This function runs only after readline exits, not concurrently with readline_event_hook
+** Returns: 1 if signal was handled, 0 otherwise
+*/
+int	check_signal_received(t_shell *shell)
+{
+	if (g_signum == SIGINT)
+	{
+		shell->last_exit = EXIT_SIGINT;
+		g_signum = 0;
+		return (1);
+	}
+	return (0);
+}

@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   free.c                                             :+:      :+:    :+:   */
+/*   free_runtime.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -46,14 +46,20 @@ void	free_commands(t_command *cmd)
 
 	while (cmd)
 	{
+		if (cmd->input_file && is_heredoc(cmd->input_file))
+			unlink(cmd->input_file);
+		if (cmd->heredoc_fd != -1)
+			close(cmd->heredoc_fd);
 		tmp = cmd->next;
 		free_args(cmd->args);
 		free_argv(cmd->argv);
-		free(cmd->input_file);
+		if (cmd->input_file)
+			free(cmd->input_file);
 		free_out_redirs(cmd->out_redirs);
-		free(cmd->heredoc_delim);
-		if (cmd->heredoc_fd != -1)
-			close(cmd->heredoc_fd);
+		if (cmd->output_file)
+			free(cmd->output_file);
+		if (cmd->heredoc_delim)
+			free(cmd->heredoc_delim);
 		free(cmd);
 		cmd = tmp;
 	}
