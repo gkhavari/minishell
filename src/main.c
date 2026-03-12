@@ -120,8 +120,9 @@ static void	shell_loop(t_shell *shell)
 		{
 			tokenize_input(shell);
 			parse_input(shell);
-			print_tokens(shell);
-			print_commands(shell);
+			execute_commands(shell);
+			//print_tokens(shell);
+			//print_commands(shell);
 		}
 		reset_shell(shell);
 	}
