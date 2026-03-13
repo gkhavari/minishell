@@ -47,7 +47,7 @@ This document explicitly outlines the intended behavior of the minishell, specif
 ## 5. Signals
 
 - **`Ctrl-C` (`SIGINT`)**:
-  - _Interactive prompt_: Prints a newline, displays a fresh prompt, clears the current input buffer, and sets `$?` to `1`.
+  - _Interactive prompt_: Prints a newline, displays a fresh prompt, clears the current input buffer, and sets `$?` to `130`.
   - _During execution_: Safely interrupts the running child processes and sets `$?` to `130`.
 - **`Ctrl-D` (EOF on stdin)**: Gracefully exits the shell, returning the status of the last executed command.
 - **`Ctrl-\` (`SIGQUIT`)**:
