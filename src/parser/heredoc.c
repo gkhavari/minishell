@@ -30,6 +30,7 @@ static char	*read_heredoc_line(void)
 {
 	char	c;
 	char	*line;
+	char	*tmp;
 	size_t	len;
 
 	if (isatty(STDIN_FILENO))
@@ -38,8 +39,6 @@ static char	*read_heredoc_line(void)
 	len = 0;
 	while (line && read(STDIN_FILENO, &c, 1) > 0)
 	{
-		char	*tmp;
-
 		if (c == '\n')
 			return (line);
 		tmp = ft_realloc(line, len + 2);

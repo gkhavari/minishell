@@ -44,12 +44,9 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/add_token_to_cmd.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
-				$(SRC_DIR)/parser/heredoc_utils.c \
-				$(SRC_DIR)/parser/heredoc.c
+				$(SRC_DIR)/parser/heredoc_utils.c
 
-# utils
-SRCS		+=	$(SRC_DIR)/utils/simple_split.c \
-				$(SRC_DIR)/utils/arrdup.c
+# utils (ft_arrdup is in utils.c; arrdup.c removed to avoid duplicate symbol)
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \

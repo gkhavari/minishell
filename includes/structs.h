@@ -59,6 +59,7 @@ typedef struct s_arg
 typedef struct s_redir
 {
 	char			*file;
+	int				is_input;
 	int				append;
 	struct s_redir	*next;
 }	t_redir;
@@ -67,15 +68,12 @@ typedef struct s_command
 {
 	t_arg				*args;
 	char				**argv;
-	char				*input_file;
-	t_redir				*out_redirs;
+	t_redir				*redirs;
 	int					heredoc_fd;
 	char				*heredoc_delim;
 	int					heredoc_quoted;
 	int					is_builtin;
 	struct s_command	*next;
-	char				*output_file;	// Output redirection if > or >> exists
-	int					append;			// Flag for append
 }	t_command;
 
 typedef struct s_shell

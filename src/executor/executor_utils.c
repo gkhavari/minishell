@@ -6,40 +6,31 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/13 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static int	apply_input_redir(t_command *cmd)
+/*
+** apply_one_redir - Open one redirection and dup2 to stdin or stdout.
+** Sets *had_input if it's an input redirect.
+** Returns 0 on success, 1 on error.
+*/
+static int	apply_one_redir(t_redir *r, int *had_input)
 {
 	int	fd;
 
-	if (cmd->heredoc_fd != -1 && !cmd->input_file)
+	if (r->is_input)
 	{
-		dup2(cmd->heredoc_fd, STDIN_FILENO);
-		close(cmd->heredoc_fd);
-		cmd->heredoc_fd = -1;
-	}
-	if (cmd->input_file)
-	{
-		fd = open(cmd->input_file, O_RDONLY);
+		fd = open(r->file, O_RDONLY);
 		if (fd == -1)
 			return (perror("minishell"), 1);
 		dup2(fd, STDIN_FILENO);
 		close(fd);
+		*had_input = 1;
 	}
-	return (0);
-}
-
-static int	apply_output_redir(t_command *cmd)
-{
-	t_redir	*r;
-	int		fd;
-
-	r = cmd->out_redirs;
-	while (r)
+	else
 	{
 		if (r->append)
 			fd = open(r->file, O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -47,19 +38,37 @@ static int	apply_output_redir(t_command *cmd)
 			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1)
 			return (perror("minishell"), 1);
-		if (!r->next)
-			dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDOUT_FILENO);
 		close(fd);
-		r = r->next;
 	}
 	return (0);
 }
 
+/*
+** apply_redirections - Apply all redirections in their original order.
+** Processes cmd->redirs list in order, stopping on first failure.
+** Applies heredoc only if no input file redirection exists.
+*/
 int	apply_redirections(t_command *cmd)
 {
-	if (apply_input_redir(cmd))
-		return (1);
-	return (apply_output_redir(cmd));
+	t_redir	*r;
+	int		had_input;
+
+	had_input = 0;
+	r = cmd->redirs;
+	while (r)
+	{
+		if (apply_one_redir(r, &had_input))
+			return (1);
+		r = r->next;
+	}
+	if (cmd->heredoc_fd != -1 && !had_input)
+	{
+		dup2(cmd->heredoc_fd, STDIN_FILENO);
+		close(cmd->heredoc_fd);
+		cmd->heredoc_fd = -1;
+	}
+	return (0);
 }
 
 void	restore_fds(int stdin_backup, int stdout_backup)

@@ -12,22 +12,7 @@
 
 #include "minishell.h"
 
-void	add_token(t_token **head, t_token *new)
-{
-	t_token	*tmp;
-
-	if (!(*head))
-		*head = new;
-	else
-	{
-		tmp = *head;
-		while (tmp->next)
-			tmp = tmp->next;
-		tmp->next = new;
-	}
-}
-
-/** 
+/**
  DESCRIPTION:
  * Creates and initializes a new token.
  * This allocates memory for a token structure, sets its type, duplicates its 

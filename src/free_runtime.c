@@ -46,18 +46,12 @@ void	free_commands(t_command *cmd)
 
 	while (cmd)
 	{
-		if (cmd->input_file && is_heredoc(cmd->input_file))
-			unlink(cmd->input_file);
 		if (cmd->heredoc_fd != -1)
 			close(cmd->heredoc_fd);
 		tmp = cmd->next;
 		free_args(cmd->args);
 		free_argv(cmd->argv);
-		if (cmd->input_file)
-			free(cmd->input_file);
-		free_out_redirs(cmd->out_redirs);
-		if (cmd->output_file)
-			free(cmd->output_file);
+		free_out_redirs(cmd->redirs);
 		if (cmd->heredoc_delim)
 			free(cmd->heredoc_delim);
 		free(cmd);
@@ -65,32 +59,4 @@ void	free_commands(t_command *cmd)
 	}
 }
 
-static void	free_envp(char **envp)
-{
-	int	i;
-
-	if (!envp)
-		return ;
-	i = 0;
-	while (envp[i])
-	{
-		free(envp[i]);
-		i++;
-	}
-	free(envp);
-}
-
-void	free_all(t_shell *shell)
-{
-	if (!shell)
-		return ;
-	if (shell->tokens)
-		free_tokens(shell->tokens);
-	if (shell->commands)
-		free_commands(shell->commands);
-	if (shell->envp)
-		free_envp(shell->envp);
-	free(shell->user);
-	free(shell->cwd);
-	free(shell->input);
-}
+/* free_all is in free_shell.c to avoid duplicate symbol */

@@ -85,21 +85,6 @@ static int	read_input(t_shell *shell)
 	return (1);
 }
 
-static void	reset_shell(t_shell *shell)
-{
-	if (!shell)
-		return ;
-	if (shell->tokens)
-		free_tokens(shell->tokens);
-	shell->tokens = NULL;
-	if (shell->commands)
-		free_commands(shell->commands);
-	shell->commands = NULL;
-	if (shell->input)
-		free(shell->input);
-	shell->input = NULL;
-}
-
 /*
 ** shell_loop - Main REPL loop following architecture doc
 ** 1. Check signals  2. Build prompt  3. Read input
