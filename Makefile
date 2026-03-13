@@ -5,14 +5,21 @@
 NAME        = minishell
 
 CC          = cc
-RL_DIR		= /opt/homebrew/opt/readline
+# Linux (CI): readline from /usr; macOS Homebrew: /opt/homebrew/opt/readline
+UNAME_S     = $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+  RL_DIR    = /usr
+  RLFLAGS   = -L$(RL_DIR)/lib -L/usr/lib/x86_64-linux-gnu -lreadline -lncurses
+else
+  RL_DIR    = /opt/homebrew/opt/readline
+  RLFLAGS   = -L$(RL_DIR)/lib -lreadline -lncurses
+endif
 CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -I$(RL_DIR)/include
 
 SRC_DIR     = src
 OBJ_DIR     = obj
 INCLUDES 	= includes
 LIBFT_DIR	= libft
-RLFLAGS		= -L$(RL_DIR)/lib -lreadline -lncurses
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
