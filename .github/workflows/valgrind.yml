@@ -48,6 +48,10 @@ jobs:
           git clone --depth=1 \
             https://github.com/zstenger93/42_minishell_tester.git \
             "$HOME/42_minishell_tester"
+          # Tester script sets MINISHELL_PATH=./ which overwrites our env; patch so it keeps CI path
+          sed -i 's|^export MINISHELL_PATH=\./|export MINISHELL_PATH="${MINISHELL_PATH:-./}"|' \
+            "$HOME/42_minishell_tester/tester.sh"
+          grep -n "MINISHELL_PATH" "$HOME/42_minishell_tester/tester.sh" | head -3
           echo "Tester cloned. MINISHELL_PATH=$MINISHELL_PATH (dir containing minishell binary)"
 
       - name: Run local hardening tests
