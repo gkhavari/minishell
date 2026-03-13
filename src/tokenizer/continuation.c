@@ -124,11 +124,14 @@ static void	ensure_trailing_newline(t_shell *shell, char **s, size_t *old_len)
  * Allocates a new buffer (old_len + cont_len + 1).
  * Frees the old buffer and replaces *s.
  **/
-static void	append_to_input(t_shell *shell, char **s, char *cont, size_t old_len,
-		size_t cont_len)
+static void	append_to_input(t_shell *shell, char **s, char *cont)
 {
 	char	*new_input;
+	size_t	old_len;
+	size_t	cont_len;
 
+	old_len = ft_strlen(*s);
+	cont_len = ft_strlen(cont);
 	new_input = msh_calloc(shell, old_len + cont_len + 1, sizeof(char));
 	ft_memcpy(new_input, *s, old_len);
 	ft_memcpy(new_input + old_len, cont, cont_len);
@@ -161,16 +164,14 @@ int	append_continuation(t_shell *shell, char **s, t_state state)
 	char	quote_char;
 	char	*cont;
 	size_t	old_len;
-	size_t	cont_len;
 
 	quote_char = get_quote_char(state);
 	cont = read_continuation_line(shell, quote_char);
 	if (!cont)
 		return (0);
 	old_len = ft_strlen(*s);
-	cont_len = ft_strlen(cont);
 	ensure_trailing_newline(shell, s, &old_len);
-	append_to_input(shell, s, cont, old_len, cont_len);
+	append_to_input(shell, s, cont);
 	free(cont);
 	return (1);
 }

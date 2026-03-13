@@ -102,19 +102,3 @@ char	**ft_arrdup(char **envp)
 	copy[count] = NULL;
 	return (copy);
 }
-
-char	*get_env_value(char **envp, const char *key)
-{
-	int		i;
-	size_t	len;
-
-	i = 0;
-	len = ft_strlen(key);
-	while (envp[i])
-	{
-		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-			return (envp[i] + len + 1);
-		i++;
-	}
-	return (NULL);
-}

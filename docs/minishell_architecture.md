@@ -10,7 +10,7 @@
 
 ```c
 /* ONLY global variable allowed in the entire project */
-volatile sig_atomic_t	g_signal_received = 0;
+volatile sig_atomic_t	g_signum = 0;
 ```
 
 | Value        | Meaning         | Action Required                                    |
@@ -23,7 +23,7 @@ volatile sig_atomic_t	g_signal_received = 0;
 - ❌ Do NOT store structs, pointers, or flags in global
 - ❌ Do NOT access `t_shell` from signal handler
 - ✅ Only store the signal NUMBER
-- ✅ Check `g_signal_received` in main loop AFTER `readline()` returns
+- ✅ Check `g_signum` in main loop AFTER `readline()` returns
 
 **Why `volatile sig_atomic_t`?**
 
@@ -42,10 +42,10 @@ volatile sig_atomic_t	g_signal_received = 0;
 
 ```c
 /* In main loop, AFTER readline returns */
-if (g_signal_received == SIGINT)
+if (g_signum == SIGINT)
 {
     shell->last_exit = 130;
-    g_signal_received = 0;  /* Reset for next iteration */
+    g_signum = 0;  /* Reset for next iteration */
 }
 ```
 
@@ -89,7 +89,7 @@ if (level > 1000)
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  1. CHECK g_signal_received                                 │
+│  1. CHECK g_signum                                          │
 │     └── If SIGINT: set last_exit=130, reset global          │
 └─────────────────────────────────────────────────────────────┘
          │
@@ -109,7 +109,7 @@ if (level > 1000)
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  4. CHECK g_signal_received AGAIN                           │
+│  4. CHECK g_signum AGAIN                                    │
 │     └── Ctrl+C during readline: skip processing, continue   │
 └─────────────────────────────────────────────────────────────┘
          │
@@ -469,7 +469,7 @@ char *read_heredoc_line(char *delimiter)
     line = readline("> ");
 
     /* Check for Ctrl+C */
-    if (g_signal_received == SIGINT)
+    if (g_signum == SIGINT)
     {
         free(line);
         return (NULL);  /* Signal to stop heredoc */
@@ -777,20 +777,41 @@ char *find_command_path(char *cmd, t_shell *shell)
 
 ---
 
-## 8. Exit Status Reference
+## 8. Exit Status Reference (Bash-Aligned)
 
-| Scenario                | Exit Code      | Bash Behavior               |
-| ----------------------- | -------------- | --------------------------- |
-| Command success         | `0`            | Normal                      |
-| Command general error   | `1`            | General errors              |
-| Syntax error            | `2`            | Misuse of shell command     |
-| Command not found       | `127`          | Command not in PATH         |
-| Permission denied       | `126`          | Cannot execute              |
-| Signal + core dump      | `128 + signal` | Killed by signal            |
-| Ctrl+C                  | `130`          | `128 + 2 (SIGINT)`          |
-| Ctrl+\                  | `131`          | `128 + 3 (SIGQUIT)`         |
-| `exit` with arg         | `arg % 256`    | Exit with specific code     |
-| `exit` with non-numeric | `2`            | "numeric argument required" |
+All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and common shell conventions so that `$?` and scripted behavior match bash.
+
+### 8.1 Summary Table
+
+| Scenario                     | Exit Code      | Bash reference / usage                          |
+| ---------------------------- | -------------- | ----------------------------------------------- |
+| Command success              | `0`            | Normal success                                  |
+| Command general error        | `1`            | General failure; builtin "too many args" return |
+| Syntax error (shell misuse)  | `2`            | Misuse of shell builtin / syntax error           |
+| Permission denied (exec)     | `126`          | File found but not executable                    |
+| Command not found            | `127`          | Command not in PATH                             |
+| Fatal signal N              | `128 + N`      | Child killed by signal N (e.g. 130 = SIGINT)     |
+| Ctrl+C (SIGINT)              | `130`          | `128 + 2`                                       |
+| Ctrl+\ (SIGQUIT)             | `131`          | `128 + 3`                                       |
+| `exit` with valid arg        | `arg % 256`    | 0–255; out-of-range wraps (e.g. 256 → 0)        |
+| `exit` with non-numeric      | `255`          | Print "numeric argument required" to stderr, exit 255 |
+| `exit` with too many args    | (no exit)      | Print error to stderr, return 1, shell continues |
+
+### 8.2 Where We Use Each Code
+
+- **0** – Successful builtin or external command.
+- **1** – Builtin failure (e.g. `exit 1 2`), redirection failure, or generic error.
+- **2** – Syntax error (`syntax_check`), or `exit` misuse when we do **not** exit (e.g. too many args); also used by some test flows for "numeric argument required" **return** (shell keeps running).
+- **126** – `execve` not attempted or failed: path is directory or not executable (`executor_child.c`).
+- **127** – Command not found (`executor_child.c`).
+- **128 + signal** – Child terminated by signal; e.g. **130** = SIGINT, **131** = SIGQUIT (`handle_child_exit`, `executor.c`, `executor_external.c`).
+- **255** – `exit <non-numeric>`: print error to stderr then **exit(255)** (`builtin_exit`).
+
+### 8.3 exit Builtin (Bash Reference)
+
+- **Interactive only:** In an interactive shell, bash prints `"exit\n"` (or `"logout\n"` for login shells) to **stderr** before exiting (see `builtins/exit.def`). We do the same: `ft_putendl_fd("exit", STDERR_FILENO)` when `isatty(STDIN_FILENO)`.
+- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. We match this.
+- **Too many arguments:** Bash does not exit; it prints an error and returns 1. We match this.
 
 ---
 
@@ -868,15 +889,17 @@ env                     # Print all environment variables
 
 ### 9.7 exit [n]
 
+Bash reference: message `"exit"` is printed to **stderr** in interactive mode only.
+
 ```bash
-# Behavior:
+# Behavior (exit codes match bash):
 exit                    # Exit with last command's status
 exit 0                  # Exit with 0
 exit 42                 # Exit with 42
-exit 256               # Exit with 0 (256 % 256)
-exit -1                # Exit with 255 (two's complement)
-exit abc               # Error: "numeric argument required", exit 2
-exit 1 2 3             # Error: "too many arguments", don't exit
+exit 256                # Exit with 0 (256 % 256)
+exit -1                 # Exit with 255 (two's complement)
+exit abc                # Error to stderr: "numeric argument required", then exit 255
+exit 1 2 3              # Error to stderr: "too many arguments", return 1, do NOT exit
 ```
 
 ---

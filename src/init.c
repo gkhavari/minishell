@@ -18,6 +18,22 @@
 ** Falls back to defaults if user or cwd are not set.
 ** Returns: newly allocated prompt string, or NULL on malloc failure.
 */
+char	*get_env_value(char **envp, const char *key)
+{
+	int		i;
+	size_t	len;
+
+	i = 0;
+	len = ft_strlen(key);
+	while (envp[i])
+	{
+		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
+			return (envp[i] + len + 1);
+		i++;
+	}
+	return (NULL);
+}
+
 char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;

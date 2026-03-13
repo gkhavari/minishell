@@ -37,3 +37,18 @@ t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 	token->next = NULL;
 	return (token);
 }
+
+void	add_token(t_token **head, t_token *new)
+{
+	t_token	*tmp;
+
+	if (!(*head))
+		*head = new;
+	else
+	{
+		tmp = *head;
+		while (tmp->next)
+			tmp = tmp->next;
+		tmp->next = new;
+	}
+}

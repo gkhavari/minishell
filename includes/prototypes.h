@@ -22,7 +22,6 @@ char		*get_env_value(char **envp, const char *key);
 char		*ft_strcat(char *dest, const char *src);
 char		*ft_realloc(char *ptr, const size_t new_size);
 char		**ft_arrdup(char **envp);
-char		*get_env(char **envp, const char *key);
 void		*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
 
 /* tokenizer.c */

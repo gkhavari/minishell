@@ -31,10 +31,11 @@ This document explicitly outlines the intended behavior of the minishell, specif
 
 ## 4. Builtins
 
-- **`exit`**:
+- **`exit`** (behavior and exit codes follow bash reference):
+  - In interactive mode, the word `exit` is printed to **stderr** before exiting (bash does the same).
   - `exit <numeric>`: Exits with `numeric % 256`. It properly parses signs and handles trailing/leading whitespace. It employs modular arithmetic to entirely avoid internal C-level overflow limitations.
-  - `exit <non-numeric>`: Prints `numeric argument required` to `stderr`, and forces the shell to exit with code `255`.
-  - `exit <numeric> <anything>`: Prints `too many arguments` to `stderr`, does _not_ close the shell, and sets the exit code to `1`.
+  - `exit <non-numeric>`: Prints `numeric argument required` to `stderr`, and exits the shell with code **255** (bash reference).
+  - `exit <numeric> <anything>`: Prints `too many arguments` to `stderr`, does _not_ exit the shell, and sets the exit code to **1** (bash reference).
 - **`cd`**:
   - Automatically updates `PWD` and `OLDPWD` in the environment to intuitively reflect directory changes.
   - Generates a descriptive error and returns `1` if the target directory doesn't exist or lacks permissions.
@@ -44,7 +45,21 @@ This document explicitly outlines the intended behavior of the minishell, specif
 - **`echo`**:
   - Correctly supports the `-n` flag, including repeated flags (e.g., `-nnnn`), and halts flag processing as soon as a non-flag argument is encountered.
 
-## 5. Signals
+## 5. Exit Codes (Bash Reference)
+
+Exit codes are aligned with bash so that `$?` and scripts behave consistently:
+
+| Code        | Meaning                    |
+| ----------- | -------------------------- |
+| 0           | Success                    |
+| 1           | General error / builtin failure |
+| 2           | Syntax error / misuse of shell builtin |
+| 126         | Command not executable     |
+| 127         | Command not found          |
+| 128 + N     | Terminated by signal N (e.g. 130 = SIGINT, 131 = SIGQUIT) |
+| 255         | `exit` with non-numeric arg (shell exits) |
+
+## 6. Signals
 
 - **`Ctrl-C` (`SIGINT`)**:
   - _Interactive prompt_: Prints a newline, displays a fresh prompt, clears the current input buffer, and sets `$?` to `130`.

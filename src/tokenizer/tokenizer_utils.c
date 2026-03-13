@@ -78,9 +78,9 @@ void	append_char(t_shell *shell, char **dst, char c)
  ** Resets the pointer to NULL.
 
  PARAMETERS:
- * shell: pointer to the shell containing all variables including the tokenlist, where the word token will be appended
- * word: pointer to the buffer, storing the current built word.
- * token: pointer to the tokenlist, where the word token will be appended
+ * shell: pointer to the shell (contains tokenlist to append to).
+ * word: pointer to the buffer storing the current built word.
+ * token: pointer to the tokenlist where the word token is appended
 
  RETURN VALUE:
  * none
@@ -99,33 +99,4 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 	}
 	g_word_quoted = 0;
 	g_heredoc_mode = 0;
-}
-
-/** 
- DESCRIPTION:
- * Appends a token to the end of a linked list of tokens.
- * If the list is empty, the new token becomes the head.
- * Otherwise, the function walks to the end of the list and inserts the 
- 	new token.
-
- PARAMETERS:
- * head: Pointer to the head pointer of the token list.
- * new: The token to append.
-
- RETURN VALUE:
- * None.
- **/
-void	add_token(t_token **head, t_token *new)
-{
-	t_token	*tmp;
-
-	if (!(*head))
-		*head = new;
-	else
-	{
-		tmp = *head;
-		while (tmp->next)
-			tmp = tmp->next;
-		tmp->next = new;
-	}
 }
