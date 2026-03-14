@@ -6,19 +6,12 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:45 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:46 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/*
-** replace_or_append - Replace existing or append new env var
-** @shell: shell state
-** @arg: KEY=value string
-** @key: extracted key
-** Return: 0 on success, 1 on failure
-*/
 static int	replace_or_append(t_shell *shell, char *arg, char *key)
 {
 	int	idx;
@@ -33,12 +26,20 @@ static int	replace_or_append(t_shell *shell, char *arg, char *key)
 	return (append_export_env(shell, arg));
 }
 
-/*
-** set_env_var - Parse and set environment variable
-** @shell: shell state
-** @arg: KEY=value string to set
-** Return: 0 on success or no '=', 1 on error
-*/
+static int	export_no_value(t_shell *shell, char *arg)
+{
+	if (!is_valid_export_name(arg))
+	{
+		ft_putstr_fd("minishell: export: '", 2);
+		ft_putstr_fd(arg, 2);
+		ft_putendl_fd("': not a valid identifier", 2);
+		return (1);
+	}
+	if (find_export_key_index(shell, arg, ft_strlen(arg)) < 0)
+		return (append_export_env(shell, arg));
+	return (0);
+}
+
 static int	set_env_var(t_shell *shell, char *arg)
 {
 	char	*eq;
@@ -47,7 +48,7 @@ static int	set_env_var(t_shell *shell, char *arg)
 
 	eq = ft_strchr(arg, '=');
 	if (!eq)
-		return (0);
+		return (export_no_value(shell, arg));
 	key = ft_substr(arg, 0, eq - arg);
 	if (!key)
 		return (1);
@@ -64,24 +65,25 @@ static int	set_env_var(t_shell *shell, char *arg)
 	return (ret);
 }
 
-/*
-** builtin_export - Set environment variables
-** @args: command arguments (args[1..n] = KEY=value)
-** @shell: shell state
-** Return: 0 on success, 1 if any arg failed
-*/
 int	builtin_export(char **args, t_shell *shell)
 {
 	int	i;
 	int	ret;
 
 	if (!args[1])
-		return (builtin_env(args, shell));
+		return (print_sorted_env(shell));
 	i = 1;
 	ret = 0;
 	while (args[i])
 	{
-		if (set_env_var(shell, args[i]))
+		if (args[i][0] == '-')
+		{
+			ft_putstr_fd("minishell: export: ", 2);
+			ft_putstr_fd(args[i], 2);
+			ft_putendl_fd(": invalid option", 2);
+			ret = 2;
+		}
+		else if (set_env_var(shell, args[i]))
 			ret = 1;
 		i++;
 	}

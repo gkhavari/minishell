@@ -15,13 +15,15 @@
 /**
  DESCRIPTION:
 * Handles expansion of special shell variables immediately following $.
-* Currently supports $? (last command exit status) 
-	and $ followed by a non-alphanumeric character.
+* Currently supports $? (last command exit status)
+																and $ followed
+by a non-alphanumeric character.
 
 PARAMETERS:
 * t_shell *shell: Pointer to the shell structure, which stores last_exit for $?.
-* size_t *i: Pointer to the current index in the input string. This index is 
-	updated to skip the expanded variable.
+* size_t *i: Pointer to the current index in the input string. This index is
+																updated to skip
+the expanded variable.
 
 BEHAVIOR:
 * If the character after $ is ?
@@ -33,23 +35,30 @@ BEHAVIOR:
 * Otherwise, returns NULL to indicate this is not a special variable.
 
 RETURN VALUE:
-* char *: A newly allocated string representing the expanded variable 
-	(caller must free).
+* char *: A newly allocated string representing the expanded variable
+																(caller must
+free).
 * NULL: No special variable matched.
 **/
 static char	*expand_special_var(t_shell *shell, size_t *i)
 {
-	size_t	start;
-	char	buf[12];
+	char	c;
 
-	start = *i + 1;
-	if (shell->input[start] == '?')
+	c = shell->input[*i + 1];
+	if (c == '?')
 	{
-		snprintf(buf, sizeof(buf), "%d", shell->last_exit);
 		*i += 2;
-		return (ft_strdup(buf));
+		return (ft_itoa(shell->last_exit));
 	}
-	if (!(ft_isalpha(shell->input[start]) || shell->input[start] == '_'))
+	if (c == '"' || c == '\'' || ft_isdigit(c))
+	{
+		if (c == '"' || c == '\'')
+			*i += 1;
+		else
+			*i += 2;
+		return (ft_strdup(""));
+	}
+	if (!(ft_isalpha(c) || c == '_'))
 	{
 		(*i)++;
 		return (ft_strdup("$"));
@@ -63,21 +72,25 @@ static char	*expand_special_var(t_shell *shell, size_t *i)
 * Only letters, digits, and _ are allowed in variable names.
 
  PARAMETERS:
-* t_shell *shell: Pointer to the shell structure containing envp 
-	(environment variables).
+* t_shell *shell: Pointer to the shell structure containing envp
+																(environment
+variables).
 * size_t *i: Pointer to the current index in the input string. Updated to
-	skip the variable name after expansion.
+																skip the
+variable name after expansion.
 
  BEHAVIOR:
 * Reads the variable name starting after $.
 * Extracts the name consisting of letters, digits, and underscores.
 * Retrieves the variable value from shell->envp (or NULL if it's not there)
 * Returns a dynamically allocated string containing the value
-	(NULL if undefined).
+																(NULL if
+undefined).
 * Frees temporary memory used for the variable name.
 
- RETURN VALUE: 
- * A newly allocated string representing the variable’s value (caller must free).
+ RETURN VALUE:
+ * A newly allocated string representing the variable’s value (caller must
+free).
  */
 static char	*expand_normal_var(t_shell *shell, size_t *i)
 {
@@ -85,17 +98,24 @@ static char	*expand_normal_var(t_shell *shell, size_t *i)
 	size_t	len;
 	char	*name;
 	char	*value;
+	char	c;
 
 	start = *i + 1;
 	len = 0;
-	while (ft_isalnum(shell->input[start + len])
-		|| shell->input[start + len] == '_')
+	while (1)
+	{
+		c = shell->input[start + len];
+		if (!(ft_isalnum(c) || c == '_'))
+			break ;
 		len++;
+	}
 	name = ft_strndup(shell->input + start, len);
-	value = ft_strdup(get_env_value(shell->envp, name));
+	value = get_env_value(shell->envp, name);
 	free(name);
 	*i = start + len;
-	return (value);
+	if (!value)
+		return (ft_strdup(""));
+	return (ft_strdup(value));
 }
 
 /**
@@ -129,7 +149,8 @@ char	*expand_var(t_shell *shell, size_t *i)
  DESCRIPTION:
 * Handles variable expansion in the main tokenizer loop when a $ is encountered.
 * Appends the expansion to the current word buffer and splits words if the
-	expansion occurs outside quotes.
+																expansion occurs
+outside quotes.
 
 PARAMETERS:
 * t_shell *shell: Pointer to the shell structure containing input and tokens.
@@ -142,7 +163,8 @@ BEHAVIOR:
 * Calls expand_var() to get the expanded string.
 * Appends the expansion to the word buffer using append_expansion_unquoted().
 * This ensures that whitespace in the expansion splits the current word into
-	multiple tokens if necessary.
+																multiple tokens
+if necessary.
 * Frees the temporary expanded string.
 * Returns 1 to indicate the character was handled.
 
@@ -159,5 +181,24 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	expanded = expand_var(shell, i);
 	append_expansion_unquoted(shell, word, expanded, &shell->tokens);
 	free(expanded);
+	return (1);
+}
+
+int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
+{
+	char	next;
+	char	*home;
+
+	if (shell->input[*i] != '~' || *word)
+		return (0);
+	next = shell->input[*i + 1];
+	if (next && next != '/' && next != ' ' && next != '\t'
+		&& !is_op_char(next))
+		return (0);
+	home = get_env_value(shell->envp, "HOME");
+	if (!home)
+		home = "";
+	append_expansion_unquoted(shell, word, home, &shell->tokens);
+	(*i)++;
 	return (1);
 }

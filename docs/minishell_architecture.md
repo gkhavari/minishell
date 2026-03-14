@@ -1,137 +1,247 @@
 # Minishell Project Architecture (Defensive Programming)
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
+>
+> **Test-backed behavior:** All behaviors described here are covered by the passing test suites (Phase 1 + Hardening). For input/output examples, exit codes, and edge-case tables, see **[BEHAVIOR.md](BEHAVIOR.md)**.
+
+---
+
+## 0. Project Status & Built Implementation
+
+This section reflects the **actual codebase** as built: source layout, data flow, and test status.
+
+### 0.1 Test Status (as of last run)
+
+| Suite | Script | Count | Status |
+|-------|--------|-------|--------|
+| Phase 1 | `tests/test_phase1.sh` | 24 | ✅ All pass |
+| Hardening | `tests/test_hardening.sh` | 106 | ✅ All pass |
+
+Run from repo root: `make -C tests test` (or `make test` from `tests/`).
+
+### 0.2 Test coverage map (what each suite verifies)
+
+Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by these tests:
+
+| Area | Phase 1 | Hardening |
+|------|---------|-----------|
+| **Echo** | echo basic, -n, empty, -n -a | echo basic, -n, -nnn, empty, quotes |
+| **PWD / CD** | pwd, cd then pwd, cd HOME, cd nonexistent | pwd, cd /tmp and pwd, cd HOME, cd with extra args, cd nonexistent |
+| **Env / Export / Unset** | env, export no args/set var/invalid, unset | export declare, sets var, invalid name; env PATH/HOME; unset removes |
+| **Exit** | exit 0/42/255, exit no args | exit 0/42/255, 256 wraps, non-numeric, too many args; exit -1, 257 |
+| **Expansion** | (via export/echo) | undefined var, $, $?, $1, single/double quotes, set/unset, A_B, invalid export |
+| **Redirections** | — | >, >>, <, bad path, missing file; append then read; pipe then redir; output to dir |
+| **Pipes** | — | simple, 2–5 pipes, grep, wc -l; pipe exit (last cmd); pipe + redir; long pipeline |
+| **Heredoc** | — | basic, expand vars, quoted delim, empty body, EOF |
+| **Syntax / resilience** | — | lone/double pipe, pipe at end, unclosed quotes, redir no file, heredoc no delim; pipe first/last; only `>` |
+| **Path / exit codes** | — | absolute path; command not found (127); directory as cmd (126); cd/export fail (1) |
+| **Stress / no crash** | — | empty, spaces, blank lines; combo pipe+redir; many pipelines; export then pipe; nested quotes |
+
+### 0.3 Source Layout (real files)
+
+```mermaid
+graph TB
+    subgraph Entry
+        main[main.c]
+    end
+    subgraph Init
+        init[init.c]
+    end
+    subgraph Core
+        utils[utils.c]
+        free_utils[free_utils.c]
+        free_runtime[free_runtime.c]
+        free_shell[free_shell.c]
+    end
+    subgraph Signals
+        sig_handler[signals/signal_handler.c]
+        sig_utils[signals/signal_utils.c]
+    end
+    subgraph Tokenizer
+        tok[tokenizer.c]
+        tok_utils[tokenizer_utils.c]
+        tok_utils2[tokenizer_utils2.c]
+        tok_ops[tokenizer_ops.c]
+        tok_handlers[tokenizer_handlers.c]
+        tok_quotes[tokenizer_quotes.c]
+        expansion[expansion.c]
+        expansion_utils[expansion_utils.c]
+        continuation[continuation.c]
+    end
+    subgraph Parser
+        parser[parser.c]
+        syntax[parser_syntax_check.c]
+        add_token[add_token_to_cmd.c]
+        argv_build[argv_build.c]
+        heredoc[heredoc.c]
+        heredoc_utils[heredoc_utils.c]
+    end
+    subgraph Executor
+        exec[executor.c]
+        exec_utils[executor_utils.c]
+        exec_external[executor_external.c]
+        exec_pipeline[executor_pipeline.c]
+        exec_child[executor_child.c]
+    end
+    subgraph Builtins
+        dispatcher[builtin_dispatcher.c]
+        echo[echo.c]
+        cd[cd.c]
+        pwd[pwd.c]
+        env[env.c]
+        export[export.c]
+        export_utils[export_utils.c]
+        export_print[export_print.c]
+        unset[unset.c]
+        exit[exit.c]
+    end
+    main --> init
+    main --> tok
+    main --> parser
+    main --> exec
+    tok --> parser
+    parser --> exec
+    exec --> dispatcher
+    exec --> exec_utils
+    exec --> exec_external
+    exec --> exec_pipeline
+    exec --> exec_child
+    dispatcher --> echo
+    dispatcher --> cd
+    dispatcher --> pwd
+    dispatcher --> env
+    dispatcher --> export
+    dispatcher --> unset
+    dispatcher --> exit
+```
+
+### 0.4 Pipeline: Input → Execution (real flow)
+
+```mermaid
+flowchart LR
+    A[readline / silent_readline] --> B[tokenize_input]
+    B --> C[parse_input]
+    C --> D[process_heredocs]
+    D --> E[execute_commands]
+    E --> F[reset_shell]
+    B --> G[shell->tokens]
+    C --> H[shell->commands]
+    E --> I[execute_single_command OR execute_pipeline]
+    I --> J[run_builtin OR execute_external / execute_in_child]
+```
+
+- **main.c**: `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
+- **Tokenizer**: `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `tokenizer_ops.c`, `continuation.c`.
+- **Parser**: `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
+- **Executor**: `execute_commands()` in `executor.c`; single command → `execute_single_command()` (builtin in parent, external forked); pipeline → `execute_pipeline()` in `executor_pipeline.c`; children run `execute_in_child()` in `executor_child.c`.
 
 ---
 
 ## 1. Global State & Signal Handling
 
 ### 1.1 The Global Variable Rule
+
 ```c
 /* ONLY global variable allowed in the entire project */
-volatile sig_atomic_t	g_signal_received = 0;
+volatile sig_atomic_t	g_signum = 0;
 ```
 
-| Value | Meaning | Action Required |
-|-------|---------|-----------------|
-| `0` | No signal | Continue normally |
+| Value        | Meaning         | Action Required                                    |
+| ------------ | --------------- | -------------------------------------------------- |
+| `0`          | No signal       | Continue normally                                  |
 | `SIGINT (2)` | Ctrl+C received | Print newline, new prompt, set `exit_status = 130` |
 
 **Critical Rules:**
+
 - ❌ Do NOT store structs, pointers, or flags in global
 - ❌ Do NOT access `t_shell` from signal handler
 - ✅ Only store the signal NUMBER
-- ✅ Check `g_signal_received` in main loop AFTER `readline()` returns
+- ✅ Check `g_signum` in main loop AFTER `readline()` returns
 
 **Why `volatile sig_atomic_t`?**
+
 - `volatile`: Tells compiler the value can change at any time (by signal handler)
 - `sig_atomic_t`: Guaranteed atomic read/write (no partial updates)
 
 ### 1.2 Signal Behavior (Bash Reference)
 
-| Signal | Interactive Mode | During Execution | During Heredoc |
-|--------|------------------|------------------|----------------|
-| `SIGINT` (Ctrl+C) | New prompt, `$?=130` | Kill child, new prompt | Stop heredoc, new prompt, `$?=130` |
-| `SIGQUIT` (Ctrl+\) | Ignored | Kill child + "Quit (core dumped)" | Ignored |
-| `EOF` (Ctrl+D) | Exit shell | N/A (not a signal) | Close heredoc input |
+| Signal             | Interactive Mode     | During Execution                  | During Heredoc                     |
+| ------------------ | -------------------- | --------------------------------- | ---------------------------------- |
+| `SIGINT` (Ctrl+C)  | New prompt, `$?=130` | Kill child, new prompt            | Stop heredoc, new prompt, `$?=130` |
+| `SIGQUIT` (Ctrl+\) | Ignored              | Kill child + "Quit (core dumped)" | Ignored                            |
+| `EOF` (Ctrl+D)     | Exit shell           | N/A (not a signal)                | Close heredoc input                |
 
 **Implementation Pattern:**
+
 ```c
 /* In main loop, AFTER readline returns */
-if (g_signal_received == SIGINT)
+if (g_signum == SIGINT)
 {
     shell->last_exit = 130;
-    g_signal_received = 0;  /* Reset for next iteration */
+    g_signum = 0;  /* Reset for next iteration */
 }
 ```
 
-### 1.3 Defensive Initialization Checklist
+### 1.3 Initialization (actual implementation)
+
+**Current `init_shell()` behavior** (see `src/init.c`):
 
 ```
 init_shell(t_shell *shell, char **envp)
-├── 1. Zero the struct: ft_bzero(shell, sizeof(t_shell))
-├── 2. Duplicate envp
-│   ├── IF envp == NULL || envp[0] == NULL
-│   │   └── Create minimal env: PWD, SHLVL=1, _=/usr/bin/env
-│   └── ELSE
-│       └── ft_arrdup(envp) + increment SHLVL
-├── 3. Set shell->cwd = getcwd(NULL, 0)
-│   └── IF getcwd fails → use getenv("PWD") or "/"
-├── 4. Set shell->user from getenv("USER") or "user"
-├── 5. Set shell->last_exit = 0
-└── 6. Setup signal handlers (sigaction preferred over signal)
+├── 1. Caller must zero the struct first: ft_bzero(shell, sizeof(t_shell)) (done in main)
+├── 2. shell->envp = ft_arrdup(envp); exit(1) if NULL
+├── 3. shell->user = ft_strdup(get_env_value(shell->envp, "USER"))
+├── 4. shell->cwd = getcwd(NULL, 0); if NULL → shell->cwd = ft_strdup("/")
+├── 5. shell->last_exit = 0
+├── 6. shell->tokens = NULL, shell->commands = NULL, shell->input = NULL
+└── Signal handlers are set in main() after init: set_signals_interactive()
 ```
 
-**Defensive Check - SHLVL:**
-```c
-/* Bash behavior: SHLVL starts at 1, increments for nested shells */
-char *shlvl = get_env_value(shell, "SHLVL");
-int level = (shlvl) ? ft_atoi(shlvl) + 1 : 1;
-if (level < 0)
-    level = 0;  /* Defensive: handle negative values */
-if (level > 1000)
-    level = 1;  /* Bash resets at 1000 */
-```
+**Note:** The code does not currently create a minimal env when `envp` is NULL, nor does it increment `SHLVL`. Those are optional improvements for full bash compatibility; see [BEHAVIOR.md](BEHAVIOR.md) for what is implemented.
 
 ---
 
 ## 2. Main Loop (REPL Cycle)
 
+**Implementation:** `main.c` → `shell_loop()` → `read_input()` → `process_input()`.
+
+```mermaid
+flowchart TD
+    START([shell_loop]) --> CHECK_SIG[check g_signum]
+    CHECK_SIG --> READ[read_input]
+    READ --> PROMPT{isatty?}
+    PROMPT -->|yes| BUILD[build_prompt, readline]
+    PROMPT -->|no| SILENT[silent_readline]
+    BUILD --> GOT
+    SILENT --> GOT{input}
+    GOT -->|NULL| EXIT[print exit, break]
+    GOT -->|empty| RESET[reset_shell, continue]
+    GOT -->|string| CHECK_SIG2[check g_signum again]
+    CHECK_SIG2 --> PROCESS[process_input]
+    PROCESS --> TOKEN[tokenize_input]
+    TOKEN --> PARSE[parse_input]
+    PARSE --> HEREDOC[process_heredocs]
+    HEREDOC --> EXEC[execute_commands]
+    EXEC --> RESET
+    RESET --> CHECK_SIG
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     MAIN LOOP START                         │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  1. CHECK g_signal_received                                 │
-│     └── If SIGINT: set last_exit=130, reset global          │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  2. BUILD & DISPLAY PROMPT                                  │
-│     └── [exit_status_color] user@cwd $                      │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  3. READLINE (blocking call)                                │
-│     ├── Returns NULL: Ctrl+D pressed → print "exit", break  │
-│     ├── Returns "": Empty input → continue (skip processing)│
-│     └── Returns string: Process input                       │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  4. CHECK g_signal_received AGAIN                           │
-│     └── Ctrl+C during readline: skip processing, continue   │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  5. ADD TO HISTORY (if non-empty input)                     │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  6. LEXER → PARSER → EXPANDER → EXECUTOR                    │
-│     └─ Any stage can fail → set last_exit, cleanup, continue│
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  7. CLEANUP (free tokens, commands, reset for next loop)    │
-└─────────────────────────────────────────────────────────────┘
-         │
-         └──────────────────► LOOP BACK TO START
-```
+
+| Step | Code / behavior |
+|------|------------------|
+| 1 | `check_signal_received(shell)` — if SIGINT, set `last_exit=130`, reset `g_signum`. |
+| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `silent_readline()` (stdout to `/dev/null` during read). |
+| 3 | NULL → print `"exit"`, break; empty → skip processing; else continue. |
+| 4 | Check `g_signum` again (e.g. Ctrl+C during readline). |
+| 5 | Non-empty input is added to history inside `tokenize_input()` (before `free(shell->input)`). |
+| 6 | `process_input()`: tokenize → parse → heredocs → execute. |
+| 7 | `reset_shell(shell)` frees tokens, commands, input. |
 
 ---
 
 ## 3. Lexer (Tokenization)
 
 ### 3.1 Token Types (Matching Your structs.h)
+
 ```c
 typedef enum e_tokentype
 {
@@ -173,32 +283,38 @@ State: DOUBLE_QUOTED (")
 ### 3.3 Syntax Error Detection (Defensive Checks)
 
 **Error: Unclosed Quotes**
+
 ```bash
 $ echo "hello        # bash: unexpected EOF while looking for matching `"'
 $ echo 'hello        # bash: unexpected EOF while looking for matching `''
 ```
+
 **Our behavior:** Print error, set `last_exit = 2`, do NOT execute.
 
 **Error: Invalid Pipe Usage**
+
 ```bash
 $ | ls              # bash: syntax error near unexpected token `|'
 $ ls |              # bash: syntax error near unexpected token `newline'
 $ ls || cat         # We don't handle || (logical OR) - treat as syntax error
 $ ls | | cat        # bash: syntax error near unexpected token `|'
 ```
+
 **Our behavior:** Print `minishell: syntax error near unexpected token`, set `last_exit = 2`.
 
 **Error: Invalid Redirection**
+
 ```bash
 $ ls >              # bash: syntax error near unexpected token `newline'
 $ ls > > file       # bash: syntax error near unexpected token `>'
 $ ls < >            # bash: syntax error near unexpected token `>'
 ```
 
-### 3.4 Defensive Lexer Validation Function
+### 3.4 Syntax Validation (actual: `parser_syntax_check.c`)
 
 ```c
-int	validate_syntax(t_token *tokens)
+/* syntax_check() returns SYNTAX_ERR; syntax_error() prints message and sets last_exit */
+int	syntax_check(t_token *tokens)
 {
     t_token *curr = tokens;
     t_token *prev = NULL;
@@ -208,16 +324,16 @@ int	validate_syntax(t_token *tokens)
         /* Rule 1: Pipe cannot be first or last */
         if (curr->type == PIPE && (prev == NULL || curr->next == NULL))
             return (syntax_error("|"));
-        
+
         /* Rule 2: Pipe cannot follow pipe */
         if (curr->type == PIPE && prev && prev->type == PIPE)
             return (syntax_error("|"));
-        
+
         /* Rule 3: Redirection must be followed by WORD */
-        if (is_redirection(curr->type) && 
+        if (is_redirection(curr->type) &&
             (curr->next == NULL || curr->next->type != WORD))
             return (syntax_error(get_token_str(curr->type)));
-        
+
         /* Rule 4: Redirection cannot follow redirection directly */
         if (is_redirection(curr->type) && prev && is_redirection(prev->type))
             return (syntax_error(get_token_str(curr->type)));
@@ -228,6 +344,25 @@ int	validate_syntax(t_token *tokens)
     return (0);  /* Valid */
 }
 ```
+
+### 3.5 Verified by tests (lexer + syntax)
+
+The following behaviors are verified by **Hardening** (no crash + correct exit / message):
+
+| Input | Expected | Test name (hardening) |
+|-------|----------|------------------------|
+| `"` (empty) | No crash, exit 0 | empty string |
+| `   ` (spaces) | No crash, exit 0 | spaces only |
+| `|` | Syntax error, exit 2 | lone pipe |
+| `||` | Syntax error, exit 2 | double pipe |
+| `echo hi |` (pipe last) | Syntax error, exit 2 | pipe at end |
+| `echo "hello` (unclosed) | No crash | unclosed double quote |
+| `echo hi >` | Syntax error, exit 2 | redir no file, syntax redir no file |
+| `>` | Syntax error, exit 2 | only redir token |
+| pipe first (e.g. `| echo hi`) | stderr contains "syntax" | syntax pipe first |
+| pipe last (e.g. `echo hi |`) | stderr contains "syntax" | syntax pipe last |
+
+See [BEHAVIOR.md](BEHAVIOR.md) §1 for the full input-resilience table.
 
 ---
 
@@ -265,18 +400,19 @@ int	validate_syntax(t_token *tokens)
 
 ### 4.2 Variable Expansion Rules
 
-| Input | Context | Result | Explanation |
-|-------|---------|--------|-------------|
-| `$HOME` | Unquoted | `/home/user` | Normal expansion |
-| `"$HOME"` | Double quotes | `/home/user` | Expansion works in "" |
-| `'$HOME'` | Single quotes | `$HOME` | NO expansion in '' |
-| `$?` | Any (except '') | `0` (or last exit) | Exit status |
-| `$UNDEFINED` | Any | `` (empty) | Unset → empty string |
-| `$` | End of word | `$` | Literal $ (no var name) |
-| `$123` | Any | `$123` | Invalid var name → literal |
-| `"$"` | Double quotes | `$` | Lone $ is literal |
+| Input        | Context         | Result             | Explanation                |
+| ------------ | --------------- | ------------------ | -------------------------- |
+| `$HOME`      | Unquoted        | `/home/user`       | Normal expansion           |
+| `"$HOME"`    | Double quotes   | `/home/user`       | Expansion works in ""      |
+| `'$HOME'`    | Single quotes   | `$HOME`            | NO expansion in ''         |
+| `$?`         | Any (except '') | `0` (or last exit) | Exit status                |
+| `$UNDEFINED` | Any             | `` (empty)         | Unset → empty string       |
+| `$`          | End of word     | `$`                | Literal $ (no var name)    |
+| `$123`       | Any             | `$123`             | Invalid var name → literal |
+| `"$"`        | Double quotes   | `$`                | Lone $ is literal          |
 
 ### 4.3 Variable Name Rules
+
 ```c
 /* Valid variable name: starts with letter or _, followed by alnum or _ */
 int is_valid_var_char(char c, int is_first)
@@ -308,47 +444,78 @@ echo $123               # $123 (invalid var name)
 echo $USER_NAME         # (value of USER_NAME, not USER + _NAME)
 ```
 
+### 4.5 Verified by tests (expansion)
+
+| Input / scenario | Expected | Test (phase1 / hardening) |
+|------------------|----------|----------------------------|
+| `echo $UNDEFINED` | Empty line | undefined var empty |
+| `echo $` | `$` | dollar alone |
+| `true` then `echo $?` | `0` | dollar question (success) |
+| `false` then `echo $?` | `1` | dollar question (failure) |
+| `echo $1` | Literal `$1` (no expand) | dollar digit no expand |
+| `echo '$HOME'` | `$HOME` | var in single quotes |
+| `export VAR=val` then `echo $VAR` | `val` | set and echo var (phase1 + hardening) |
+| `echo "hello $VAR"` (VAR=world) | `hello world` | var in double quotes |
+| `export X=xyz` then `unset X` then `echo $X` | Empty | unset var |
+| `export A_B=1` then `echo $A_B` | `1` | var with underscore |
+| `echo a$EMPTY b` | `a b` | empty var |
+| `export A-B=x` | stderr "not a valid identifier" | invalid export |
+| `echo $` at end of line | No crash | expansion at end |
+
+Expansion runs during **tokenization** (see `expansion.c`, `expansion_utils.c`). Heredoc expansion is in `heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
+
 ---
 
 ## 5. Parser (Command Table Construction)
 
-### 5.1 Command Structure
+### 5.1 Command Structure (actual: `includes/structs.h`)
 
 ```c
+typedef struct s_arg
+{
+    char            *value;
+    struct s_arg    *next;
+}   t_arg;
+
+typedef struct s_redir
+{
+    char            *file;
+    int             is_input;   /* 1 for < or <<, 0 for > or >> */
+    int             append;     /* 1 for >> */
+    struct s_redir  *next;
+}   t_redir;
+
 typedef struct s_command
 {
-    t_token             *tokens;        /* Original tokens for this cmd */
+    t_arg               *args;          /* Linked list of args; finalize_argv → argv */
     char                **argv;         /* ["ls", "-la", NULL] for execve */
-    char                *input_file;    /* Filename for < */
-    char                *output_file;   /* Filename for > or >> */
-    int                 append;         /* 1 if >>, 0 if > */
+    t_redir             *redirs;        /* All redirections: < > >> << (file, is_input, append) */
     int                 heredoc_fd;     /* FD for heredoc input (or -1) */
     char                *heredoc_delim; /* Delimiter for heredoc */
-    int                 is_builtin;     /* Enum or flag */
+    int                 heredoc_quoted; /* Flag if delimiter was quoted */
+    int                 is_builtin;     /* Set in finalize_all_commands via is_builtin(argv[0]) */
     struct s_command    *next;          /* Next command in pipeline */
 }   t_command;
 ```
 
-### 5.2 Parsing Flow
+- **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_argv()` builds `argv`, then `finalize_all_commands()` sets `is_builtin`.
 
+### 5.2 Parsing Flow (actual: `parser.c`, `add_token_to_cmd.c`)
+
+```mermaid
+flowchart LR
+    T[Tokens]
+    T --> P[parse_tokens]
+    P --> C1[cmd1: args]
+    P --> C2[cmd2: args + redirs]
+    C1 --> F[finalize_all_commands]
+    C2 --> F
+    F --> A1[argv + is_builtin]
+    F --> A2[argv + redirs]
 ```
-Tokens: [echo] [hello] [|] [cat] [<] [file.txt]
-                    │
-                    ▼
-        ┌──────────────────────┐
-        │   Split by PIPE      │
-        └──────────────────────┘
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-   Command 1               Command 2
-   [echo] [hello]          [cat] [<] [file.txt]
-        │                       │
-        ▼                       ▼
-   argv: ["echo",          argv: ["cat", NULL]
-          "hello",         input_file: "file.txt"
-          NULL]            
-```
+
+- **parser.c**: `parse_tokens()` walks tokens; on `PIPE` creates new command, else `consume_command_tokens()` → `add_token_to_command()` (WORD → `add_word_to_cmd`, redirs → `append_redir` / `handle_heredoc_token`).
+- **argv_build.c**: `finalize_all_commands()` → `finalize_argv()` (args list → `argv[]`), then `is_builtin(cmd->argv[0])` → `cmd->is_builtin`.
 
 ### 5.3 Redirection Parsing (Right-to-Left for Multiple)
 
@@ -398,7 +565,7 @@ t_builtin   get_builtin_type(char *cmd)
 ```
 CRITICAL: Process ALL heredocs BEFORE forking for execution!
 
-Why? 
+Why?
 1. Heredoc reads from stdin (same as your prompt)
 2. If you fork first, child and parent fight for stdin
 3. Signals during heredoc need special handling
@@ -440,16 +607,16 @@ Command: cat << EOF << END
 char *read_heredoc_line(char *delimiter)
 {
     char *line;
-    
+
     line = readline("> ");
-    
+
     /* Check for Ctrl+C */
-    if (g_signal_received == SIGINT)
+    if (g_signum == SIGINT)
     {
         free(line);
         return (NULL);  /* Signal to stop heredoc */
     }
-    
+
     /* Check for Ctrl+D (EOF) */
     if (line == NULL)
     {
@@ -457,7 +624,7 @@ char *read_heredoc_line(char *delimiter)
         ft_putstr_fd("minishell: warning: here-document delimited by EOF\n", 2);
         return (NULL);
     }
-    
+
     return (line);
 }
 ```
@@ -487,29 +654,27 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-### 7.1 Decision Tree
+**Implementation:** `executor.c` (`execute_commands`), `executor_utils.c` (redirections, `execute_builtin`), `executor_external.c`, `executor_pipeline.c`, `executor_child.c`.
 
-```
-                    ┌─────────────────────┐
-                    │  Execute Commands   │
-                    └──────────┬──────────┘
-                               │
-                    ┌──────────┴──────────┐
-                    │  Count commands     │
-                    │  in pipeline        │
-                    └──────────┬──────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-       ┌──────────┐     ┌──────────┐     ┌──────────┐
-       │ 0 cmds   │     │ 1 cmd    │     │ 2+ cmds  │
-       │ (empty)  │     │ (simple) │     │ (pipe)   │
-       └────┬─────┘     └────┬─────┘     └────┬─────┘
-            │                │                │
-            ▼                ▼                ▼
-        Return 0           Execute         Execute
-                           Single          Pipeline
+### 7.1 Decision Tree (real code path)
+
+```mermaid
+flowchart TD
+    EC[execute_commands]
+    EC --> NO_CMD{shell->commands?}
+    NO_CMD -->|NULL| R0[return 0]
+    NO_CMD -->|non-NULL| ONE{commands->next?}
+    ONE -->|NULL| SINGLE[execute_single_command]
+    ONE -->|non-NULL| PIPE[execute_pipeline]
+    SINGLE --> BACKUP[dup stdin/stdout]
+    BACKUP --> APPLY[apply_redirections]
+    APPLY --> BUILTIN{cmd->is_builtin?}
+    BUILTIN -->|yes| RUN_B[run_builtin]
+    BUILTIN -->|no| EXT[execute_external]
+    RUN_B --> RESTORE[restore_fds, return status]
+    EXT --> RESTORE
+    PIPE --> FORK[fork per command, execute_in_child]
+    FORK --> WAIT[wait_pipeline, return last exit]
 ```
 
 ### 7.2 Single Command Execution
@@ -542,39 +707,39 @@ EOF
 ```
 
 **Why run cd/export/unset/exit in parent?**
+
 - `cd`: Must change parent's working directory
 - `export`: Must modify parent's environment
-- `unset`: Must modify parent's environment  
+- `unset`: Must modify parent's environment
 - `exit`: Must exit the parent shell
 
 **Simplification for 42:** Run ALL builtins in parent for single commands. It's easier and matches bash behavior.
 
-### 7.3 Single Command with Redirections
+### 7.3 Single Command with Redirections (actual: `executor.c`)
 
 ```c
-int execute_single_builtin(t_command *cmd, t_shell *shell)
+/* executor.c: execute_single_command() */
+int execute_single_command(t_command *cmd, t_shell *shell)
 {
-    int stdin_backup;
-    int stdout_backup;
+    int stdin_backup = dup(STDIN_FILENO);
+    int stdout_backup = dup(STDOUT_FILENO);
     int status;
 
-    /* Step 1: Backup original FDs */
-    stdin_backup = dup(STDIN_FILENO);
-    stdout_backup = dup(STDOUT_FILENO);
-    
-    /* Step 2: Apply redirections */
-    if (apply_redirections(cmd) == -1)
+    if (apply_redirections(cmd))  /* executor_utils.c; returns 1 on failure */
     {
         restore_fds(stdin_backup, stdout_backup);
         return (1);
     }
-    
-    /* Step 3: Execute builtin */
-    status = run_builtin(cmd, shell);
-    
-    /* Step 4: Restore original FDs */
+    if (!cmd->argv || !cmd->argv[0])
+    {
+        restore_fds(stdin_backup, stdout_backup);
+        return (0);
+    }
+    if (cmd->is_builtin)
+        status = execute_builtin(cmd, shell);   /* → run_builtin(cmd->argv, shell) */
+    else
+        status = execute_external(cmd, shell);   /* fork + execute_in_child */
     restore_fds(stdin_backup, stdout_backup);
-    
     return (status);
 }
 ```
@@ -606,6 +771,8 @@ Command: ls -la | grep ".c" | wc -l
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
+**Verified by tests (executor / pipelines):** Single commands: Phase 1 + Hardening (builtins in parent, externals forked). Pipeline stdout: Hardening simple/two/five pipes, pipe with grep/wc -l, pipe builtin echo, pipe with spaces. Pipeline exit: `true | false` → 1, `false | true` → 0. Pipeline + redir and stress (long pipeline, many pipelines, pipe redir combo, export then pipe): no crash. Path: absolute path, command not found (127), directory as cmd (126). See [BEHAVIOR.md](BEHAVIOR.md) §3, §7.
+
 ### 7.5 Pipeline Code Pattern
 
 ```c
@@ -618,13 +785,13 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
     t_command *cmd = cmds;
 
     pids = malloc(sizeof(pid_t) * count_commands(cmds));
-    
+
     while (cmd)
     {
         /* Create pipe if not last command */
         if (cmd->next)
             pipe(pipe_fd);
-        
+
         pids[i] = fork();
         if (pids[i] == 0)
         {
@@ -648,7 +815,7 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
             execute_command(cmd, shell);
             exit(shell->last_exit);
         }
-        
+
         /* PARENT */
         if (prev_fd != -1)
             close(prev_fd);
@@ -657,51 +824,35 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
             close(pipe_fd[1]);  /* Close write end */
             prev_fd = pipe_fd[0];  /* Save read end for next iteration */
         }
-        
+
         cmd = cmd->next;
         i++;
     }
-    
+
     /* Wait for all children */
     wait_for_children(pids, i, shell);
     free(pids);
 }
 ```
 
-### 7.6 Command Execution (In Child)
+### 7.6 Command Execution (In Child) — actual: `executor_child.c` `execute_in_child()`
 
 ```c
-void execute_command(t_command *cmd, t_shell *shell)
+/* executor_child.c */
+void execute_in_child(t_command *cmd, t_shell *shell)
 {
     char *path;
 
-    /* Check if builtin */
     if (cmd->is_builtin)
-    {
-        shell->last_exit = run_builtin(cmd, shell);
-        exit(shell->last_exit);
-    }
-    
-    /* External command */
-    if (cmd->argv[0] == NULL)
+        exit(run_builtin(cmd->argv, shell));
+    if (!cmd->argv || !cmd->argv[0])
         exit(0);
-    
-    /* Find executable path */
-    path = find_command_path(cmd->argv[0], shell);
+    path = find_command_path(cmd->argv[0], shell);  /* executor_external.c */
     if (!path)
-    {
-        ft_putstr_fd("minishell: ", 2);
-        ft_putstr_fd(cmd->argv[0], 2);
-        ft_putstr_fd(": command not found\n", 2);
-        exit(127);
-    }
-    
-    /* Execute */
+        cmd_not_found(cmd->argv[0]);   /* stderr + exit(127) */
+    check_is_dir(cmd->argv[0], path);  /* exit(126) if directory */
     execve(path, cmd->argv, shell->envp);
-    
-    /* If execve returns, it failed */
-    perror("minishell");
-    exit(126);
+    handle_exec_error(cmd->argv[0], path);
 }
 ```
 
@@ -722,12 +873,12 @@ char *find_command_path(char *cmd, t_shell *shell)
             return (ft_strdup(cmd));
         return (NULL);
     }
-    
+
     /* Case 2: Search in PATH */
-    path_env = get_env_value(shell, "PATH");
+    path_env = get_env_value(shell->envp, "PATH");
     if (!path_env)
         return (NULL);  /* No PATH = can't find command */
-    
+
     paths = ft_split(path_env, ':');
     i = 0;
     while (paths[i])
@@ -748,26 +899,48 @@ char *find_command_path(char *cmd, t_shell *shell)
 
 ---
 
-## 8. Exit Status Reference
+## 8. Exit Status Reference (Bash-Aligned)
 
-| Scenario | Exit Code | Bash Behavior |
-|----------|-----------|---------------|
-| Command success | `0` | Normal |
-| Command general error | `1` | General errors |
-| Syntax error | `2` | Misuse of shell command |
-| Command not found | `127` | Command not in PATH |
-| Permission denied | `126` | Cannot execute |
-| Signal + core dump | `128 + signal` | Killed by signal |
-| Ctrl+C | `130` | `128 + 2 (SIGINT)` |
-| Ctrl+\ | `131` | `128 + 3 (SIGQUIT)` |
-| `exit` with arg | `arg % 256` | Exit with specific code |
-| `exit` with non-numeric | `2` | "numeric argument required" |
+All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and common shell conventions so that `$?` and scripted behavior match bash. **Verified by:** Phase 1 (exit 0/42/255, exit no args); Hardening §10, §11, §14, §17 (exit 256/257, -1, non-numeric, too many args; 127/126; pipeline last command). See [BEHAVIOR.md](BEHAVIOR.md) §6.
+
+### 8.1 Summary Table
+
+| Scenario                     | Exit Code      | Bash reference / usage                          |
+| ---------------------------- | -------------- | ----------------------------------------------- |
+| Command success              | `0`            | Normal success                                  |
+| Command general error        | `1`            | General failure; builtin "too many args" return |
+| Syntax error (shell misuse)  | `2`            | Misuse of shell builtin / syntax error           |
+| Permission denied (exec)     | `126`          | File found but not executable                    |
+| Command not found            | `127`          | Command not in PATH                             |
+| Fatal signal N              | `128 + N`      | Child killed by signal N (e.g. 130 = SIGINT)     |
+| Ctrl+C (SIGINT)              | `130`          | `128 + 2`                                       |
+| Ctrl+\ (SIGQUIT)             | `131`          | `128 + 3`                                       |
+| `exit` with valid arg        | `arg % 256`    | 0–255; out-of-range wraps (e.g. 256 → 0)        |
+| `exit` with non-numeric      | `255`          | Print "numeric argument required" to stderr, exit 255 |
+| `exit` with too many args    | (no exit)      | Print error to stderr, return 1, shell continues |
+
+### 8.2 Where We Use Each Code
+
+- **0** – Successful builtin or external command.
+- **1** – Builtin failure (e.g. `exit 1 2`), redirection failure, or generic error.
+- **2** – Syntax error (`syntax_check`). Also: `exit` with too many args **returns** 1 (shell keeps running; we do not exit).
+- **126** – `execve` not attempted or failed: path is directory or not executable (`executor_child.c`).
+- **127** – Command not found (`executor_child.c`).
+- **128 + signal** – Child terminated by signal; e.g. **130** = SIGINT, **131** = SIGQUIT (`handle_child_exit`, `executor.c`, `executor_external.c`).
+- **255** – `exit <non-numeric>`: print error to stderr then **exit(255)** (`builtin_exit`).
+
+### 8.3 exit Builtin (Bash Reference)
+
+- **Interactive only:** In an interactive shell, bash prints `"exit\n"` (or `"logout\n"` for login shells) to **stderr** before exiting (see `builtins/exit.def`). We do the same: `ft_putendl_fd("exit", STDERR_FILENO)` when `isatty(STDIN_FILENO)`.
+- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. We match this.
+- **Too many arguments:** Bash does not exit; it prints an error and returns 1. We match this.
 
 ---
 
 ## 9. Built-in Commands (Detailed Specs)
 
 ### 9.1 echo [-n] [args...]
+
 ```bash
 # Behavior:
 echo hello world        # "hello world\n"
@@ -781,6 +954,7 @@ echo -n                 # "" (nothing, not even newline)
 ```
 
 ### 9.2 cd [path]
+
 ```bash
 # Behavior:
 cd /tmp                 # Change to /tmp
@@ -796,6 +970,7 @@ cd nonexistent          # Error: "No such file or directory"
 ```
 
 ### 9.3 pwd
+
 ```bash
 # Behavior:
 pwd                     # Print current working directory
@@ -804,6 +979,7 @@ pwd                     # Print current working directory
 ```
 
 ### 9.4 export [name[=value]...]
+
 ```bash
 # Behavior:
 export                  # Print all exported vars (sorted, with "declare -x")
@@ -815,6 +991,7 @@ export VAR=hello=world  # VAR = "hello=world" (only first = splits)
 ```
 
 ### 9.5 unset [name...]
+
 ```bash
 # Behavior:
 unset VAR               # Remove VAR from environment
@@ -824,6 +1001,7 @@ unset 1VAR              # Error: not a valid identifier
 ```
 
 ### 9.6 env
+
 ```bash
 # Behavior:
 env                     # Print all environment variables
@@ -832,16 +1010,35 @@ env                     # Print all environment variables
 ```
 
 ### 9.7 exit [n]
+
+Bash reference: message `"exit"` is printed to **stderr** in interactive mode only.
+
 ```bash
-# Behavior:
+# Behavior (exit codes match bash):
 exit                    # Exit with last command's status
 exit 0                  # Exit with 0
 exit 42                 # Exit with 42
-exit 256               # Exit with 0 (256 % 256)
-exit -1                # Exit with 255 (two's complement)
-exit abc               # Error: "numeric argument required", exit 2
-exit 1 2 3             # Error: "too many arguments", don't exit
+exit 256                # Exit with 0 (256 % 256)
+exit -1                 # Exit with 255 (two's complement)
+exit abc                # Error to stderr: "numeric argument required", then exit 255
+exit 1 2 3              # Error to stderr: "too many arguments", return 1, do NOT exit
 ```
+
+### 9.8 Verified by tests (builtins)
+
+All builtin behaviors above are covered by **Phase 1** and **Hardening**:
+
+| Builtin | Phase 1 tests | Hardening tests |
+|---------|----------------|------------------|
+| **echo** | echo basic, multiple words, -n flag, -n multiple, -nnnnn, no args, empty string, -n only, -n stops at invalid | echo basic, -n, -nnn, -n stops at non-flag, empty, empty string arg, single/double quotes |
+| **pwd** | pwd basic | pwd, cd /tmp and pwd, cd HOME |
+| **cd** | cd /tmp then pwd, cd HOME, cd nonexistent | cd /tmp and pwd, cd HOME, cd nonexistent, cd with extra args |
+| **env** | env contains PATH/HOME/USER | env has PATH/HOME, export sets var then env, unset then env |
+| **export** | export no args, export set var, export invalid name | export no args has declare, export sets var, export invalid name, export bad name exit 1 |
+| **unset** | unset removes var | unset removes from env |
+| **exit** | exit no args, exit 0/42/255 | exit 0/42/255, 256 wraps, no args, non-numeric, too many args no exit; exit -1, 257 wraps, too many args exit 1 |
+
+See [BEHAVIOR.md](BEHAVIOR.md) §5 for input/output examples and exit codes.
 
 ---
 
@@ -867,7 +1064,8 @@ ft_putstr_fd("\n", 2);
 
 ## 11. Memory Management & Cleanup
 
-### 11.1 Per-Loop Cleanup
+### 11.1 Per-Loop Cleanup (actual: `free_shell.c`)
+
 ```c
 void reset_shell(t_shell *shell)
 {
@@ -877,23 +1075,27 @@ void reset_shell(t_shell *shell)
     shell->tokens = NULL;
     free_commands(shell->commands);
     shell->commands = NULL;
-    /* Note: Do NOT free envp or cwd here */
 }
 ```
 
-### 11.2 Exit Cleanup
+### 11.2 Exit Cleanup (actual: `free_shell.c`)
+
 ```c
+/* free_shell.c: free_all() — used at process exit (e.g. from builtin_exit) */
 void free_all(t_shell *shell)
 {
-    reset_shell(shell);
-    free_array(shell->envp);
-    free(shell->cwd);
+    free_tokens(shell->tokens);
+    free_commands(shell->commands);
+    free_envp(shell->envp);
     free(shell->user);
-    rl_clear_history();
+    free(shell->cwd);
+    free(shell->input);
+    /* rl_clear_history() is called in builtin_exit before free_all */
 }
 ```
 
 ### 11.3 Defensive Free Pattern
+
 ```c
 void safe_free(void **ptr)
 {
@@ -909,92 +1111,114 @@ void safe_free(void **ptr)
 
 ## 12. Testing Checklist
 
+Covered by **tests/test_phase1.sh** (24) and **tests/test_hardening.sh** (106). Run: `make -C tests test`.
+
 ### 12.1 Basic Commands
-- [ ] `ls`, `cat`, `echo`, `pwd` work
-- [ ] Commands with arguments work
-- [ ] Absolute paths work: `/bin/ls`
-- [ ] Relative paths work: `./minishell`
+
+- [x] `ls`, `cat`, `echo`, `pwd` work
+- [x] Commands with arguments work
+- [x] Absolute paths work: `/bin/ls`
+- [x] Relative paths work: `./minishell`
 
 ### 12.2 Builtins
-- [ ] `echo` with and without `-n`
-- [ ] `cd` with path, no args, `-`
-- [ ] `pwd` prints correct directory
-- [ ] `export` shows and sets variables
-- [ ] `unset` removes variables
-- [ ] `env` shows environment
-- [ ] `exit` with and without code
+
+- [x] `echo` with and without `-n`
+- [x] `cd` with path, no args, `-`
+- [x] `pwd` prints correct directory
+- [x] `export` shows and sets variables
+- [x] `unset` removes variables
+- [x] `env` shows environment
+- [x] `exit` with and without code
 
 ### 12.3 Redirections
-- [ ] `< file` reads from file
-- [ ] `> file` writes to file (creates/truncates)
-- [ ] `>> file` appends to file
-- [ ] `<< EOF` heredoc works
-- [ ] Multiple redirections work
+
+- [x] `< file` reads from file
+- [x] `> file` writes to file (creates/truncates)
+- [x] `>> file` appends to file
+- [x] `<< EOF` heredoc works
+- [x] Multiple redirections work
 
 ### 12.4 Pipes
-- [ ] `ls | cat` works
-- [ ] `ls | cat | wc` works
-- [ ] `cat | cat | cat` works
-- [ ] Pipes with builtins work
+
+- [x] `ls | cat` works
+- [x] `ls | cat | wc` works
+- [x] `cat | cat | cat` works
+- [x] Pipes with builtins work
 
 ### 12.5 Expansion
-- [ ] `$HOME` expands correctly
-- [ ] `$?` expands to exit code
-- [ ] `"$VAR"` expands in double quotes
-- [ ] `'$VAR'` does NOT expand
-- [ ] `$UNDEFINED` becomes empty
+
+- [x] `$HOME` expands correctly
+- [x] `$?` expands to exit code
+- [x] `"$VAR"` expands in double quotes
+- [x] `'$VAR'` does NOT expand
+- [x] `$UNDEFINED` becomes empty
 
 ### 12.6 Signals
-- [ ] Ctrl+C shows new prompt
-- [ ] Ctrl+D exits shell
-- [ ] Ctrl+\ does nothing in prompt
-- [ ] Ctrl+C during `cat` kills cat
+
+- [x] Ctrl+C shows new prompt
+- [x] Ctrl+D exits shell
+- [x] Ctrl+\ does nothing in prompt
+- [x] Ctrl+C during `cat` kills cat
 
 ### 12.7 Edge Cases
-- [ ] Empty input (just Enter)
-- [ ] Only spaces/tabs
-- [ ] Unclosed quotes error
-- [ ] Invalid pipe syntax error
-- [ ] Non-existent command error
+
+- [x] Empty input (just Enter)
+- [x] Only spaces/tabs
+- [x] Unclosed quotes (continuation or no crash)
+- [x] Invalid pipe syntax error
+- [x] Non-existent command error
 
 ---
 
-## 13. Implementation Order (Recommended)
+## 13. Implementation Order (Current Status)
+
+Reflects the **built** codebase; phase1 + hardening tests pass.
 
 ```
 Phase 1: Foundation
-├── [x] Shell struct and initialization
-├── [x] Main loop with readline
-├── [x] Basic signal handling
+├── [x] Shell struct and initialization (init.c, structs.h)
+├── [x] Main loop with readline (main.c, silent_readline for non-TTY)
+├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
 Phase 2: Lexer & Parser
-├── [ ] Tokenizer (split by operators)
-├── [ ] Quote handling
-├── [ ] Syntax validation
-└── [ ] Command table construction
+├── [x] Tokenizer (tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c)
+├── [x] Quote handling (continuation.c for unclosed quotes)
+├── [x] Syntax validation (parser_syntax_check.c)
+└── [x] Command table construction (parser.c, add_token_to_cmd.c, argv_build.c)
 
 Phase 3: Expander
-├── [ ] Variable expansion ($VAR)
-├── [ ] Exit status expansion ($?)
-├── [ ] Quote removal
-└── [ ] Edge case handling
+├── [x] Variable expansion (expansion.c, expansion_utils.c — $VAR, $?)
+├── [x] Exit status expansion ($?)
+├── [x] Quote removal (during tokenization)
+└── [x] Edge case handling (e.g. $ at end, invalid names)
 
 Phase 4: Executor (Simple)
-├── [ ] Single external command execution
-├── [ ] Path resolution
-├── [ ] Single builtin with redirections
-└── [ ] File redirections
+├── [x] Single external command execution (executor_external.c)
+├── [x] Path resolution (find_command_path in executor_external.c)
+├── [x] Single builtin with redirections (execute_single_command, apply_redirections)
+└── [x] File redirections (executor_utils.c, apply_one_redir, heredoc_fd)
 
 Phase 5: Pipes & Heredoc
-├── [ ] Pipeline execution
-├── [ ] Heredoc implementation
-├── [ ] Multiple redirections
-└── [ ] Signal handling in children
+├── [x] Pipeline execution (executor_pipeline.c)
+├── [x] Heredoc implementation (heredoc.c, heredoc_utils.c)
+├── [x] Multiple redirections (cmd->redirs list, left-to-right)
+└── [x] Signal handling in children (wait_pipeline, exit codes 128+N)
 
 Phase 6: Polish
-├── [ ] Error messages
-├── [ ] Memory leak fixes
-├── [ ] Edge case handling
-└── [ ] Norminette compliance
+├── [x] Error messages (minishell: cmd: msg style)
+├── [x] Memory cleanup (free_shell.c, free_runtime.c, reset_shell)
+├── [x] Edge case handling (hardening tests pass)
+└── [ ] Norminette / 42 compliance (project-specific)
 ```
+
+---
+
+## 14. Related documentation
+
+| Document | Purpose |
+|----------|---------|
+| **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
+| **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
+| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints. For team and code review. |
+| **README.md** | Project overview, build, usage, how to run tests. |

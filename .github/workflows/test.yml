@@ -22,11 +22,12 @@ jobs:
         run: |
           git clone https://github.com/LucasKuhn/minishell_tester.git minishell_tester
 
-
       - name: Limit minishell runtime inside tester script
         run: |
           # Ensure each invocation of the tested minishell is bounded to avoid hangs
           sed -i 's/\$MINISHELL_PATH/timeout 10s \$MINISHELL_PATH/g' minishell_tester/tester || true
+          # Prevent empty $PROMPT from crashing grep by defaulting to unmatchable string
+          sed -i 's/grep -vF "\$PROMPT"/grep -vF "${PROMPT:-UNMATCHABLE_PROMPT}"/g' minishell_tester/tester || true
           # Verify the change
           head -n 40 minishell_tester/tester | sed -n '1,80p' || true
       - name: Install dependencies
@@ -42,7 +43,7 @@ jobs:
         id: run_tests
         run: |
           cd minishell_tester
-          
+
           # Run tester and capture output (tester looks for ../minishell binary)
           echo "## Minishell Tester Results" > test_report.md
           echo "" >> test_report.md
@@ -58,7 +59,7 @@ jobs:
             # Extract summary (passed/failed counts)
           cat test_output.txt >> test_report.md
           echo '```' >> test_report.md
-          
+
           # Create summary - tester uses ✅ and ❌ emojis
           echo "" >> test_report.md
           echo "### Summary" >> test_report.md
@@ -73,11 +74,9 @@ jobs:
           if [ -n "$SCORE" ]; then
             echo "- 🎯 Score: $SCORE" >> test_report.md
           fi
-          
+
           # Copy report to project root (for artifact upload)
           cp test_report.md ../
-
-
 
       - name: Upload test report as artifact
         if: always()

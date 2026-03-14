@@ -41,7 +41,7 @@ void	append_expansion_quoted(char **word, const char *exp)
 		len_exp = ft_strlen(exp);
 	else
 		len_exp = 0;
-	*word = realloc(*word, len_word + len_exp + 1); //change to allowed function
+	*word = ft_realloc(*word, len_word + len_exp + 1);
 	if (!*word)
 		exit(1);
 	ft_memcpy(*word + len_word, exp, len_exp);
@@ -79,11 +79,11 @@ void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		return ;
 	while (exp[i])
 	{
-		if (isspace(exp[i]))
+		if (exp[i] == ' ' || exp[i] == '\t')
 		{
 			if (*word)
 				flush_word(shell, word, tokens);
-			while (isspace(exp[i]))
+			while (exp[i] == ' ' || exp[i] == '\t')
 				i++;
 		}
 		else

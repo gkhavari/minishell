@@ -12,6 +12,24 @@
 
 #include "minishell.h"
 
+static int	g_word_quoted;
+static int	g_heredoc_mode;
+
+void	mark_word_quoted(void)
+{
+	g_word_quoted = 1;
+}
+
+void	set_heredoc_mode(int mode)
+{
+	g_heredoc_mode = mode;
+}
+
+int	is_heredoc_mode(void)
+{
+	return (g_heredoc_mode);
+}
+
 /**
  DESCRIPTION:
  * Appends a single character to the end of a dynamically allocated string.
@@ -60,74 +78,25 @@ void	append_char(t_shell *shell, char **dst, char c)
  ** Resets the pointer to NULL.
 
  PARAMETERS:
- * shell: pointer to the shell containing all variables including the tokenlist, where the word token will be appended
- * word: pointer to the buffer, storing the current built word.
- * token: pointer to the tokenlist, where the word token will be appended
+ * shell: pointer to the shell (contains tokenlist to append to).
+ * word: pointer to the buffer storing the current built word.
+ * token: pointer to the tokenlist where the word token is appended
 
  RETURN VALUE:
  * none
 **/
 void	flush_word(t_shell *shell, char **word, t_token **token)
 {
+	t_token	*tok;
+
 	if (*word)
 	{
-		add_token(token, new_token(shell, WORD, *word));
+		tok = new_token(shell, WORD, *word);
+		tok->quoted = g_word_quoted;
+		add_token(token, tok);
 		free(*word);
 		*word = NULL;
 	}
-}
-
-/** 
- DESCRIPTION:
- * Appends a token to the end of a linked list of tokens.
- * If the list is empty, the new token becomes the head.
- * Otherwise, the function walks to the end of the list and inserts the 
- 	new token.
-
- PARAMETERS:
- * head: Pointer to the head pointer of the token list.
- * new: The token to append.
-
- RETURN VALUE:
- * None.
- **/
-void	add_token(t_token **head, t_token *new)
-{
-	t_token	*tmp;
-
-	if (!(*head))
-		*head = new;
-	else
-	{
-		tmp = *head;
-		while (tmp->next)
-			tmp = tmp->next;
-		tmp->next = new;
-	}
-}
-
-/** 
- DESCRIPTION:
- * Creates and initializes a new token.
- * This allocates memory for a token structure, sets its type, duplicates its 
- 	string value, and initializes its next pointer to NULL.
- 
- PARAMETERS:
- * type: The token type (e.g., WORD, PIPE, REDIR_IN, etc.).
- * value: The string value associated with the token. 
- 	This is duplicated internally.
-
-RETURN VALUE:
- * A pointer to the newly created token.
- * NULL if memory allocation fails.
-**/
-t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
-{
-	t_token	*token;
-
-	token = msh_calloc(shell, 1, sizeof(*token));
-	token->type = type;
-	token->value = ft_strdup(value);
-	token->next = NULL;
-	return (token);
+	g_word_quoted = 0;
+	g_heredoc_mode = 0;
 }

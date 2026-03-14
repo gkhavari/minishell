@@ -12,36 +12,31 @@
 
 #include "minishell.h"
 
-/*
-** get_cd_target - Get target directory for cd
-** @args: command arguments
-** @shell: shell state for HOME lookup
-** Return: target path or NULL if HOME not set
-*/
-static char	*get_cd_target(char **args, t_shell *shell)
+static char	*get_cd_target(char **args, t_shell *shell, int *print)
 {
 	char	*target;
 
-	if (!args[1])
+	*print = 0;
+	if (!args[1] || ft_strcmp(args[1], "--") == 0)
 	{
 		target = get_env_value(shell->envp, "HOME");
-		if (!target)	
-		{
-			ft_putendl_fd("minishell: cd: HOME not set", 2);
-			return (NULL);
-		}
+		if (!target)
+			return (ft_putendl_fd("minishell: cd: HOME not set",
+					2), NULL);
+		return (target);
+	}
+	if (ft_strcmp(args[1], "-") == 0)
+	{
+		target = get_env_value(shell->envp, "OLDPWD");
+		if (!target)
+			return (ft_putendl_fd("minishell: cd: OLDPWD not set",
+					2), NULL);
+		*print = 1;
 		return (target);
 	}
 	return (args[1]);
 }
 
-/*
-** set_env_entry - Set or update an environment variable
-** @shell: shell state
-** @key: variable name
-** @value: variable value
-** Return: 0 on success, 1 on failure
-*/
 static int	set_env_entry(t_shell *shell, char *key, char *value)
 {
 	char	*entry;
@@ -70,12 +65,6 @@ static int	set_env_entry(t_shell *shell, char *key, char *value)
 	return (0);
 }
 
-/*
-** update_shell_cwd - Update shell's cwd and PWD/OLDPWD env vars
-** @shell: shell state to update
-** @old_pwd: previous working directory
-** Return: 0 on success, 1 on failure
-*/
 static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 {
 	char	*cwd;
@@ -92,21 +81,8 @@ static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 	return (0);
 }
 
-/*
-** builtin_cd - Change current directory
-** @args: command arguments (args[1] = path or empty for HOME)
-** @shell: shell state
-** Return: 0 on success, 1 on failure
-*/
-int	builtin_cd(char **args, t_shell *shell)
+static int	do_chdir(char *target, char *old_pwd)
 {
-	char	*target;
-	char	*old_pwd;
-
-	target = get_cd_target(args, shell);
-	if (!target)
-		return (1);
-	old_pwd = getcwd(NULL, 0);
 	if (chdir(target) == -1)
 	{
 		ft_putstr_fd("minishell: cd: ", 2);
@@ -115,7 +91,29 @@ int	builtin_cd(char **args, t_shell *shell)
 		free(old_pwd);
 		return (1);
 	}
+	return (0);
+}
+
+int	builtin_cd(char **args, t_shell *shell)
+{
+	char	*target;
+	char	*old_pwd;
+	int		print;
+
+	if (args[1] && args[2])
+	{
+		ft_putendl_fd("minishell: cd: too many arguments", 2);
+		return (1);
+	}
+	target = get_cd_target(args, shell, &print);
+	if (!target)
+		return (1);
+	old_pwd = getcwd(NULL, 0);
+	if (do_chdir(target, old_pwd))
+		return (1);
 	update_shell_cwd(shell, old_pwd);
+	if (print)
+		ft_putendl_fd(shell->cwd, 1);
 	free(old_pwd);
 	return (0);
 }

@@ -33,11 +33,10 @@ static char	**duplicate_envp(char **envp, size_t count)
 	copy = malloc(sizeof(char *) * (count + 1));
 	if (!copy)
 		return (NULL);
-
 	i = 0;
 	while (i < count)
 	{
-		copy[i] = strdup(envp[i]); // assuming ft_strdup is similar to strdup
+		copy[i] = ft_strdup(envp[i]);
 		if (!copy[i])
 		{
 			free_partial(copy, i);

@@ -1,19 +1,39 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   init.c                                             :+:      :+:    :+:   */
+/*   init.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:55:26 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/11/25 21:55:28 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-/**
- * Creating the prompt: "USER_NAME@minishell:CWD$ "
-**/
+
+/*
+** build_prompt - Create the shell prompt string
+** Format: "USER@minishell:CWD$ "
+** Falls back to defaults if user or cwd are not set.
+** Returns: newly allocated prompt string, or NULL on malloc failure.
+*/
+char	*get_env_value(char **envp, const char *key)
+{
+	int		i;
+	size_t	len;
+
+	i = 0;
+	len = ft_strlen(key);
+	while (envp[i])
+	{
+		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
+			return (envp[i] + len + 1);
+		i++;
+	}
+	return (NULL);
+}
+
 char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;
@@ -39,14 +59,23 @@ char	*build_prompt(t_shell *shell)
 	return (prompt);
 }
 
-/*Initialize shell struct*/
+/*
+** init_shell - Initialize the shell structure
+** Duplicates envp so we own the memory and can modify it.
+** Sets user from USER env var, cwd from getcwd.
+*/
 void	init_shell(t_shell *shell, char **envp)
 {
-	shell->envp = envp;
-	shell->user = ft_strdup(get_env_value(envp, "USER"));
+	shell->envp = ft_arrdup(envp);
+	if (!shell->envp)
+	{
+		perror("minishell: failed to duplicate environment");
+		exit(1);
+	}
+	shell->user = ft_strdup(get_env_value(shell->envp, "USER"));
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
-		return (perror(strerror(errno)));
+		shell->cwd = ft_strdup("/");
 	shell->last_exit = 0;
 	shell->tokens = NULL;
 	shell->commands = NULL;

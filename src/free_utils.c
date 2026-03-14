@@ -1,37 +1,41 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   env.c                                              :+:      :+:    :+:   */
+/*   free_utils.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/30 20:29:26 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:27 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/08 14:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/*
-** builtin_env - Print all environment variables
-** @args: unused
-** @shell: shell state containing envp
-** Return: 0 on success, 1 if envp is NULL
-*/
-int	builtin_env(char **args, t_shell *shell)
+void	free_tokens(t_token *token)
 {
-	int	i;
+	t_token	*tmp;
 
-	if (args[1])
-		return (1);
-	if (!shell->envp)
-		return (1);
-	i = 0;
-	while (shell->envp[i])
+	while (token)
 	{
-		if (ft_strchr(shell->envp[i], '='))
-			ft_putendl_fd(shell->envp[i], 1);
-		i++;
+		tmp = token->next;
+		if (token->value)
+			free(token->value);
+		free(token);
+		token = tmp;
 	}
-	return (0);
+}
+
+void	free_args(t_arg *arg)
+{
+	t_arg	*tmp;
+
+	while (arg)
+	{
+		tmp = arg->next;
+		if (arg->value)
+			free(arg->value);
+		free(arg);
+		arg = tmp;
+	}
 }

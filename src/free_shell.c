@@ -28,6 +28,21 @@ static void	free_envp(char **envp)
 	free(envp);
 }
 
+void	reset_shell(t_shell *shell)
+{
+	if (!shell)
+		return ;
+	if (shell->tokens)
+		free_tokens(shell->tokens);
+	shell->tokens = NULL;
+	if (shell->commands)
+		free_commands(shell->commands);
+	shell->commands = NULL;
+	if (shell->input)
+		free(shell->input);
+	shell->input = NULL;
+}
+
 void	free_all(t_shell *shell)
 {
 	if (!shell)

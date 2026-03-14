@@ -1,0 +1,142 @@
+name: CI - Valgrind Leak & Crash Check
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  # zstenger93 tester expects MINISHELL_PATH = directory containing minishell binary
+  MINISHELL_PATH: ${{ github.workspace }}
+
+jobs:
+  valgrind:
+    name: Valgrind on Ubuntu (mandatory tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            build-essential \
+            libreadline-dev \
+            libncurses-dev \
+            valgrind \
+            python3
+
+      - name: Build (debug symbols for valgrind)
+        run: |
+          # Makefile auto-detects Linux and uses /usr for readline
+          make fclean
+          make debug
+          ls -la minishell
+          file minishell
+
+      - name: Clone 42 minishell tester
+        run: |
+          git clone --depth=1 \
+            https://github.com/zstenger93/42_minishell_tester.git \
+            "$HOME/42_minishell_tester"
+          # Tester script sets MINISHELL_PATH=./ which overwrites our env; patch so it keeps CI path
+          sed -i 's|^export MINISHELL_PATH=\./|export MINISHELL_PATH="${MINISHELL_PATH:-./}"|' \
+            "$HOME/42_minishell_tester/tester.sh"
+          grep -n "MINISHELL_PATH" "$HOME/42_minishell_tester/tester.sh" | head -3
+          echo "Tester cloned. MINISHELL_PATH=$MINISHELL_PATH (dir containing minishell binary)"
+
+      - name: Run local hardening tests
+        run: |
+          chmod +x tests/test_hardening.sh tests/test_phase1.sh
+          bash tests/test_phase1.sh 2>&1 | tee /tmp/phase1.log || true
+          bash tests/test_hardening.sh 2>&1 | tee /tmp/hardening.log || true
+
+      - name: Run 42 mandatory tests (no valgrind)
+        id: mandatory
+        run: |
+          cd "$HOME/42_minishell_tester"
+          # Tester runs $MINISHELL_PATH/minishell — MINISHELL_PATH must be repo root
+          export MINISHELL_PATH="${{ github.workspace }}"
+          timeout 10m bash tester.sh m 2>&1 | tee /tmp/mandatory.log || true
+
+      - name: Run 42 mandatory tests with Valgrind
+        id: valgrind_run
+        run: |
+          cd "$HOME/42_minishell_tester"
+          export MINISHELL_PATH="${{ github.workspace }}"
+          timeout 30m bash tester.sh vm 2>&1 | tee /tmp/valgrind.log || true
+
+      - name: Build valgrind summary report
+        if: always()
+        run: |
+          {
+            echo "## Minishell Valgrind Report"
+            echo ""
+            echo "**Branch:** ${{ github.ref_name }}"
+            echo "**Commit:** ${{ github.sha }}"
+            echo "**Date:** $(date -u)"
+            echo ""
+            echo "### Local Phase1 Tests"
+            echo '```'
+            tail -30 /tmp/phase1.log 2>/dev/null || echo "(no output)"
+            echo '```'
+            echo ""
+            echo "### Local Hardening Tests"
+            echo '```'
+            tail -30 /tmp/hardening.log 2>/dev/null || echo "(no output)"
+            echo '```'
+            echo ""
+            echo "### 42 Mandatory Tests (no valgrind)"
+            echo '```'
+            grep -E '(OK|KO|PASS|FAIL|passed|failed|Total|✅|❌)' /tmp/mandatory.log \
+              2>/dev/null | tail -50 || echo "(no output)"
+            echo '```'
+            echo ""
+            echo "### Valgrind Results"
+            echo '```'
+            grep -E '(ERROR SUMMARY|definitely lost|possibly lost|still reachable|KO|OK)' \
+              /tmp/valgrind.log 2>/dev/null | tail -80 || echo "(no output)"
+            echo '```'
+          } > valgrind_report.md
+
+      - name: Upload valgrind report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: valgrind-report-${{ github.sha }}
+          path: valgrind_report.md
+
+      - name: Upload raw logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ github.sha }}
+          path: |
+            /tmp/phase1.log
+            /tmp/hardening.log
+            /tmp/mandatory.log
+            /tmp/valgrind.log
+
+      - name: Show summary
+        if: always()
+        run: |
+          echo "====== VALGRIND REPORT ======"
+          cat valgrind_report.md
+
+      - name: Check for definite leaks
+        run: |
+          if grep -q "definitely lost: [^0]" /tmp/valgrind.log 2>/dev/null; then
+            echo "❌ DEFINITE MEMORY LEAKS FOUND!"
+            grep "definitely lost" /tmp/valgrind.log
+            exit 1
+          fi
+          echo "✅ No definite memory leaks detected."
