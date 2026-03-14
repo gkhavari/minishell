@@ -1,6 +1,8 @@
 # Minishell Project Architecture (Defensive Programming)
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
+>
+> **Test-backed behavior:** All behaviors described here are covered by the passing test suites (Phase 1 + Hardening). For input/output examples, exit codes, and edge-case tables, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 
 ---
 
@@ -17,7 +19,25 @@ This section reflects the **actual codebase** as built: source layout, data flow
 
 Run from repo root: `make -C tests test` (or `make test` from `tests/`).
 
-### 0.2 Source Layout (real files)
+### 0.2 Test coverage map (what each suite verifies)
+
+Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by these tests:
+
+| Area | Phase 1 | Hardening |
+|------|---------|-----------|
+| **Echo** | echo basic, -n, empty, -n -a | echo basic, -n, -nnn, empty, quotes |
+| **PWD / CD** | pwd, cd then pwd, cd HOME, cd nonexistent | pwd, cd /tmp and pwd, cd HOME, cd with extra args, cd nonexistent |
+| **Env / Export / Unset** | env, export no args/set var/invalid, unset | export declare, sets var, invalid name; env PATH/HOME; unset removes |
+| **Exit** | exit 0/42/255, exit no args | exit 0/42/255, 256 wraps, non-numeric, too many args; exit -1, 257 |
+| **Expansion** | (via export/echo) | undefined var, $, $?, $1, single/double quotes, set/unset, A_B, invalid export |
+| **Redirections** | — | >, >>, <, bad path, missing file; append then read; pipe then redir; output to dir |
+| **Pipes** | — | simple, 2–5 pipes, grep, wc -l; pipe exit (last cmd); pipe + redir; long pipeline |
+| **Heredoc** | — | basic, expand vars, quoted delim, empty body, EOF |
+| **Syntax / resilience** | — | lone/double pipe, pipe at end, unclosed quotes, redir no file, heredoc no delim; pipe first/last; only `>` |
+| **Path / exit codes** | — | absolute path; command not found (127); directory as cmd (126); cd/export fail (1) |
+| **Stress / no crash** | — | empty, spaces, blank lines; combo pipe+redir; many pipelines; export then pipe; nested quotes |
+
+### 0.3 Source Layout (real files)
 
 ```mermaid
 graph TB
@@ -95,7 +115,7 @@ graph TB
     dispatcher --> exit
 ```
 
-### 0.3 Pipeline: Input → Execution (real flow)
+### 0.4 Pipeline: Input → Execution (real flow)
 
 ```mermaid
 flowchart LR
@@ -337,6 +357,25 @@ int	syntax_check(t_token *tokens)
 }
 ```
 
+### 3.5 Verified by tests (lexer + syntax)
+
+The following behaviors are verified by **Hardening** (no crash + correct exit / message):
+
+| Input | Expected | Test name (hardening) |
+|-------|----------|------------------------|
+| `"` (empty) | No crash, exit 0 | empty string |
+| `   ` (spaces) | No crash, exit 0 | spaces only |
+| `|` | Syntax error, exit 2 | lone pipe |
+| `||` | Syntax error, exit 2 | double pipe |
+| `echo hi |` (pipe last) | Syntax error, exit 2 | pipe at end |
+| `echo "hello` (unclosed) | No crash | unclosed double quote |
+| `echo hi >` | Syntax error, exit 2 | redir no file, syntax redir no file |
+| `>` | Syntax error, exit 2 | only redir token |
+| pipe first (e.g. `| echo hi`) | stderr contains "syntax" | syntax pipe first |
+| pipe last (e.g. `echo hi |`) | stderr contains "syntax" | syntax pipe last |
+
+See [BEHAVIOR.md](BEHAVIOR.md) §1 for the full input-resilience table.
+
 ---
 
 ## 4. Expansion (Variable Substitution)
@@ -416,6 +455,26 @@ echo "hello$"           # hello$
 echo $123               # $123 (invalid var name)
 echo $USER_NAME         # (value of USER_NAME, not USER + _NAME)
 ```
+
+### 4.5 Verified by tests (expansion)
+
+| Input / scenario | Expected | Test (phase1 / hardening) |
+|------------------|----------|----------------------------|
+| `echo $UNDEFINED` | Empty line | undefined var empty |
+| `echo $` | `$` | dollar alone |
+| `true` then `echo $?` | `0` | dollar question (success) |
+| `false` then `echo $?` | `1` | dollar question (failure) |
+| `echo $1` | Literal `$1` (no expand) | dollar digit no expand |
+| `echo '$HOME'` | `$HOME` | var in single quotes |
+| `export VAR=val` then `echo $VAR` | `val` | set and echo var (phase1 + hardening) |
+| `echo "hello $VAR"` (VAR=world) | `hello world` | var in double quotes |
+| `export X=xyz` then `unset X` then `echo $X` | Empty | unset var |
+| `export A_B=1` then `echo $A_B` | `1` | var with underscore |
+| `echo a$EMPTY b` | `a b` | empty var |
+| `export A-B=x` | stderr "not a valid identifier" | invalid export |
+| `echo $` at end of line | No crash | expansion at end |
+
+Expansion runs during **tokenization** (see `expansion.c`, `expansion_utils.c`). Heredoc expansion is in `heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
 
 ---
 
@@ -724,6 +783,8 @@ Command: ls -la | grep ".c" | wc -l
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
+**Verified by tests (executor / pipelines):** Single commands: Phase 1 + Hardening (builtins in parent, externals forked). Pipeline stdout: Hardening simple/two/five pipes, pipe with grep/wc -l, pipe builtin echo, pipe with spaces. Pipeline exit: `true | false` → 1, `false | true` → 0. Pipeline + redir and stress (long pipeline, many pipelines, pipe redir combo, export then pipe): no crash. Path: absolute path, command not found (127), directory as cmd (126). See [BEHAVIOR.md](BEHAVIOR.md) §3, §7.
+
 ### 7.5 Pipeline Code Pattern
 
 ```c
@@ -852,7 +913,7 @@ char *find_command_path(char *cmd, t_shell *shell)
 
 ## 8. Exit Status Reference (Bash-Aligned)
 
-All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and common shell conventions so that `$?` and scripted behavior match bash.
+All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and common shell conventions so that `$?` and scripted behavior match bash. **Verified by:** Phase 1 (exit 0/42/255, exit no args); Hardening §10, §11, §14, §17 (exit 256/257, -1, non-numeric, too many args; 127/126; pipeline last command). See [BEHAVIOR.md](BEHAVIOR.md) §6.
 
 ### 8.1 Summary Table
 
@@ -974,6 +1035,22 @@ exit -1                 # Exit with 255 (two's complement)
 exit abc                # Error to stderr: "numeric argument required", then exit 255
 exit 1 2 3              # Error to stderr: "too many arguments", return 1, do NOT exit
 ```
+
+### 9.8 Verified by tests (builtins)
+
+All builtin behaviors above are covered by **Phase 1** and **Hardening**:
+
+| Builtin | Phase 1 tests | Hardening tests |
+|---------|----------------|------------------|
+| **echo** | echo basic, multiple words, -n flag, -n multiple, -nnnnn, no args, empty string, -n only, -n stops at invalid | echo basic, -n, -nnn, -n stops at non-flag, empty, empty string arg, single/double quotes |
+| **pwd** | pwd basic | pwd, cd /tmp and pwd, cd HOME |
+| **cd** | cd /tmp then pwd, cd HOME, cd nonexistent | cd /tmp and pwd, cd HOME, cd nonexistent, cd with extra args |
+| **env** | env contains PATH/HOME/USER | env has PATH/HOME, export sets var then env, unset then env |
+| **export** | export no args, export set var, export invalid name | export no args has declare, export sets var, export invalid name, export bad name exit 1 |
+| **unset** | unset removes var | unset removes from env |
+| **exit** | exit no args, exit 0/42/255 | exit 0/42/255, 256 wraps, no args, non-numeric, too many args no exit; exit -1, 257 wraps, too many args exit 1 |
+
+See [BEHAVIOR.md](BEHAVIOR.md) §5 for input/output examples and exit codes.
 
 ---
 
@@ -1146,3 +1223,13 @@ Phase 6: Polish
 ├── [x] Edge case handling (hardening tests pass)
 └── [ ] Norminette / 42 compliance (project-specific)
 ```
+
+---
+
+## 14. Related documentation
+
+| Document | Purpose |
+|----------|---------|
+| **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
+| **[MANDATORY_TEST_FAILURES.md](MANDATORY_TEST_FAILURES.md)** | Why 42 mandatory tester / Valgrind cases fail (e.g. `&&`/`||` out of scope vs real bugs). |
+| **README.md** | Project overview, build, usage, how to run tests. |

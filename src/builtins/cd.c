@@ -17,7 +17,7 @@ static char	*get_cd_target(char **args, t_shell *shell, int *print)
 	char	*target;
 
 	*print = 0;
-	if (!args[1])
+	if (!args[1] || ft_strcmp(args[1], "--") == 0)
 	{
 		target = get_env_value(shell->envp, "HOME");
 		if (!target)
