@@ -311,6 +311,79 @@ no_crash "export then pipe"            "export TEST_MS=pipe
 echo \$TEST_MS | cat"
 no_crash "deeply nested quotes"        'echo "hello '"'"'world'"'"'"'
 
+# =========================================================================== #
+echo ""
+echo -e "${YELLOW}--- 13. Parsing & Syntax (mandatory-style) ---${NC}"
+# =========================================================================== #
+no_crash "redir in then out"           "echo x > /tmp/ms_p1.txt
+cat < /tmp/ms_p1.txt
+rm -f /tmp/ms_p1.txt"
+no_crash "multiple output redirs"      "echo hi > /tmp/ms_a.txt > /tmp/ms_b.txt
+cat /tmp/ms_b.txt
+rm -f /tmp/ms_a.txt /tmp/ms_b.txt"
+run_cmp  "pipe then redir out"        "echo hello | cat > /tmp/ms_po.txt
+cat /tmp/ms_po.txt
+rm -f /tmp/ms_po.txt"
+no_crash "empty command (only spaces)" "    "
+no_crash "only redir token"            ">"
+no_crash "redir then pipe"             "echo a > /tmp/ms_rp.txt | cat
+rm -f /tmp/ms_rp.txt"
+run_grep "syntax pipe first"           "| echo hi"  "syntax"
+run_grep "syntax pipe last"            "echo hi |"  "syntax"
+run_grep "syntax redir no file"        "echo hi >"  "syntax"
+
+# =========================================================================== #
+echo ""
+echo -e "${YELLOW}--- 14. Builtin Exit Codes (bash-aligned) ---${NC}"
+# =========================================================================== #
+run_exit "exit negative"               "exit -1"    255
+run_exit "exit 257 wraps to 1"        "exit 257"   1
+run_grep "exit non-numeric stderr"     "exit abc"   "numeric argument required"
+run_exit "exit too many args exit 1"  "exit 1 2 3" 1
+run_exit "cd bad dir exit 1"          "cd /nonexistent_xyz_12345" 1
+run_exit "export bad name exit 1"     "export 1BAD=x" 1
+
+# =========================================================================== #
+echo ""
+echo -e "${YELLOW}--- 15. Variables & Expansion (mandatory) ---${NC}"
+# =========================================================================== #
+run_cmp  "empty var"                   "echo a\$EMPTY_VAR b"
+run_cmp  "var with underscore"        "export A_B=1
+echo \$A_B"
+run_cmp  "question mark exit"         "false
+echo \$?"
+run_cmp  "dollar in single quote"      "echo '\$USER'"
+run_grep "invalid export"              "export A-B=x" "not a valid identifier"
+no_crash "expansion at end"            "echo \$"
+
+# =========================================================================== #
+echo ""
+echo -e "${YELLOW}--- 16. Redirections (mandatory edge cases) ---${NC}"
+# =========================================================================== #
+run_cmp  "append then read"            "echo one > /tmp/ms_ap.txt
+echo two >> /tmp/ms_ap.txt
+cat < /tmp/ms_ap.txt
+rm -f /tmp/ms_ap.txt"
+no_crash "input redir missing file"    "cat < /tmp/does_not_exist_xyz_123"
+run_grep "input missing err"           "cat < /tmp/does_not_exist_xyz_123" "No such file"
+no_crash "output to dir (fail)"        "echo x > /tmp 2>/dev/null"
+no_crash "heredoc then command"        "cat << END
+hi
+END
+echo done"
+
+# =========================================================================== #
+echo ""
+echo -e "${YELLOW}--- 17. Pipelines (mandatory) ---${NC}"
+# =========================================================================== #
+run_cmp  "pipe builtin echo"           "echo foo | cat"
+run_cmp  "pipe with spaces"            "echo  a  b  c  | cat"
+run_exit "pipe last cmd fails"          "true | false" 1
+run_exit "pipe last cmd success"       "false | true" 0
+no_crash "pipe with redir"             "echo x | cat > /tmp/ms_pwr.txt
+cat /tmp/ms_pwr.txt
+rm -f /tmp/ms_pwr.txt"
+
 # --------------------------------------------------------------------------- #
 echo ""
 echo -e "${BLUE}========================================================${NC}"

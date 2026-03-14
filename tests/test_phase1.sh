@@ -31,7 +31,7 @@ run_test() {
     bash_exit=$?
     
     # Run in minishell
-    mini_output=$(echo "$cmd" | ./minishell 2>&1 | grep -v "^.*@.*:.*\$" | head -n -1)
+    mini_output=$(echo "$cmd" | ./minishell 2>&1 | grep -v "^.*@.*:.*\$")
     mini_exit=$?
     
     if [ "$bash_output" = "$mini_output" ]; then
@@ -46,6 +46,24 @@ run_test() {
     fi
 }
 
+# Same as run_test but normalize /private (macOS) so /tmp matches
+run_test_path() {
+    local name="$1"
+    local cmd="$2"
+    TOTAL=$((TOTAL + 1))
+    bash_output=$(echo "$cmd" | bash 2>&1 | sed 's|^/private||')
+    mini_output=$(echo "$cmd" | ./minishell 2>&1 | grep -v "^.*@.*:.*\$" | sed 's|^/private||')
+    if [ "$bash_output" = "$mini_output" ]; then
+        echo -e "${GREEN}[PASS]${NC} $name"
+        PASS=$((PASS + 1))
+    else
+        echo -e "${RED}[FAIL]${NC} $name"
+        echo -e "  Expected (bash): '$bash_output'"
+        echo -e "  Got (minishell): '$mini_output'"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
 # Direct test (no bash comparison)
 run_direct_test() {
     local name="$1"
@@ -54,7 +72,7 @@ run_direct_test() {
     
     TOTAL=$((TOTAL + 1))
     
-    mini_output=$(echo "$cmd" | ./minishell 2>&1 | grep -v "^.*@.*:.*\$" | head -n -1)
+    mini_output=$(echo "$cmd" | ./minishell 2>&1 | grep -v "^.*@.*:.*\$")
     
     if echo "$mini_output" | grep -q "$expected"; then
         echo -e "${GREEN}[PASS]${NC} $name"
@@ -116,11 +134,15 @@ run_test "pwd basic" "pwd" "$(pwd)"
 # ============================================================================ #
 #                              4. CD BUILTIN                                    #
 # ============================================================================ #
+# Note: 42 subject does not require && or ||; tests using them are skipped.
 echo ""
 echo -e "${YELLOW}--- 4. CD Builtin Tests ---${NC}"
 
-run_test "cd /tmp then pwd" "cd /tmp && pwd" "/tmp"
-run_test "cd HOME" "cd && pwd" "$HOME"
+# Equivalent without &&: two separate lines (minishell runs them in sequence)
+run_test_path "cd /tmp then pwd" "cd /tmp
+pwd"
+run_test_path "cd HOME" "cd
+pwd"
 run_direct_test "cd nonexistent" "cd /nonexistent_dir_12345" "No such file"
 
 # ============================================================================ #
@@ -140,7 +162,9 @@ echo ""
 echo -e "${YELLOW}--- 6. Export Builtin Tests ---${NC}"
 
 run_direct_test "export no args shows vars" "export" "declare -x"
-run_direct_test "export set var" "export TEST_VAR=hello && env" "TEST_VAR=hello"
+# Two lines instead of && (subject does not require &&)
+run_direct_test "export set var" "export TEST_VAR=hello
+env" "TEST_VAR=hello"
 run_direct_test "export invalid name" "export 1INVALID=x" "not a valid identifier"
 
 # ============================================================================ #
@@ -216,4 +240,3 @@ fi
 
 echo ""
 echo -e "${YELLOW}Note: Some tests require manual verification (signals, prompt).${NC}"
-echo -e "${YELLOW}Note: Builtins are not yet wired to executor - some tests may fail.${NC}"
