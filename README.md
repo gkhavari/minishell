@@ -156,9 +156,10 @@ minishell/
 │   ├── test_phase1.sh
 │   └── test_hardening.sh
 ├── docs/
-│   ├── minishell_architecture.md   # Design, data structures, Mermaid diagrams
-│   ├── BEHAVIOR.md                 # Edge cases and bash-aligned behavior
-│   └── MANDATORY_TEST_FAILURES.md  # 42 tester / Valgrind failure analysis
+│   ├── minishell_architecture.md   # Design, flow, Mermaid diagrams
+│   ├── DATA_MODEL_AND_FUNCTIONS.md # Struct/enum rationale + function reference
+│   ├── TECHNICAL_DECISIONS.md      # What we changed and why (data, functions, defensive, 42)
+│   └── BEHAVIOR.md                 # Edge cases and bash-aligned behavior
 ├── Makefile
 └── README.md
 ```
@@ -170,8 +171,9 @@ minishell/
 | Doc | Description |
 |-----|-------------|
 | [docs/minishell_architecture.md](docs/minishell_architecture.md) | Architecture, source layout, main loop, parser, executor; Mermaid diagrams; implementation status. |
+| [docs/DATA_MODEL_AND_FUNCTIONS.md](docs/DATA_MODEL_AND_FUNCTIONS.md) | Data model (why each struct/enum); function reference (every function by file). |
+| [docs/TECHNICAL_DECISIONS.md](docs/TECHNICAL_DECISIONS.md) | What we changed and why: data, functions, defensive/bug prevention, 42 constraints. |
 | [docs/BEHAVIOR.md](docs/BEHAVIOR.md) | Redirections, pipes, expansion, builtins, exit codes, signals. |
-| [docs/MANDATORY_TEST_FAILURES.md](docs/MANDATORY_TEST_FAILURES.md) | Why 42 mandatory/Valgrind tests fail (e.g. `&&`/`||` out of scope vs real bugs). |
 
 ---
 

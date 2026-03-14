@@ -182,34 +182,22 @@ if (g_signum == SIGINT)
 }
 ```
 
-### 1.3 Defensive Initialization Checklist
+### 1.3 Initialization (actual implementation)
+
+**Current `init_shell()` behavior** (see `src/init.c`):
 
 ```
 init_shell(t_shell *shell, char **envp)
-├── 1. Zero the struct: ft_bzero(shell, sizeof(t_shell))
-├── 2. Duplicate envp
-│   ├── IF envp == NULL || envp[0] == NULL
-│   │   └── Create minimal env: PWD, SHLVL=1, _=/usr/bin/env
-│   └── ELSE
-│       └── ft_arrdup(envp) + increment SHLVL
-├── 3. Set shell->cwd = getcwd(NULL, 0)
-│   └── IF getcwd fails → use getenv("PWD") or "/"
-├── 4. Set shell->user from getenv("USER") or "user"
-├── 5. Set shell->last_exit = 0
-└── 6. Setup signal handlers (sigaction preferred over signal)
+├── 1. Caller must zero the struct first: ft_bzero(shell, sizeof(t_shell)) (done in main)
+├── 2. shell->envp = ft_arrdup(envp); exit(1) if NULL
+├── 3. shell->user = ft_strdup(get_env_value(shell->envp, "USER"))
+├── 4. shell->cwd = getcwd(NULL, 0); if NULL → shell->cwd = ft_strdup("/")
+├── 5. shell->last_exit = 0
+├── 6. shell->tokens = NULL, shell->commands = NULL, shell->input = NULL
+└── Signal handlers are set in main() after init: set_signals_interactive()
 ```
 
-**Defensive Check - SHLVL:**
-
-```c
-/* Bash behavior: SHLVL starts at 1, increments for nested shells */
-char *shlvl = get_env_value(shell, "SHLVL");
-int level = (shlvl) ? ft_atoi(shlvl) + 1 : 1;
-if (level < 0)
-    level = 0;  /* Defensive: handle negative values */
-if (level > 1000)
-    level = 1;  /* Bash resets at 1000 */
-```
+**Note:** The code does not currently create a minimal env when `envp` is NULL, nor does it increment `SHLVL`. Those are optional improvements for full bash compatibility; see [BEHAVIOR.md](BEHAVIOR.md) for what is implemented.
 
 ---
 
@@ -935,7 +923,7 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 
 - **0** – Successful builtin or external command.
 - **1** – Builtin failure (e.g. `exit 1 2`), redirection failure, or generic error.
-- **2** – Syntax error (`syntax_check`), or `exit` misuse when we do **not** exit (e.g. too many args); also used by some test flows for "numeric argument required" **return** (shell keeps running).
+- **2** – Syntax error (`syntax_check`). Also: `exit` with too many args **returns** 1 (shell keeps running; we do not exit).
 - **126** – `execve` not attempted or failed: path is directory or not executable (`executor_child.c`).
 - **127** – Command not found (`executor_child.c`).
 - **128 + signal** – Child terminated by signal; e.g. **130** = SIGINT, **131** = SIGQUIT (`handle_child_exit`, `executor.c`, `executor_external.c`).
@@ -1231,5 +1219,6 @@ Phase 6: Polish
 | Document | Purpose |
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
-| **[MANDATORY_TEST_FAILURES.md](MANDATORY_TEST_FAILURES.md)** | Why 42 mandatory tester / Valgrind cases fail (e.g. `&&`/`||` out of scope vs real bugs). |
+| **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
+| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints. For team and code review. |
 | **README.md** | Project overview, build, usage, how to run tests. |
