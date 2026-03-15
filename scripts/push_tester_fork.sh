@@ -8,6 +8,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/ensure_deps.sh"
 TESTER_DIR="$REPO_ROOT/minishell_tester"
 REMOTE_NAME="cozygarage"
 
@@ -20,7 +21,7 @@ if [[ -z "$FORK_URL" ]]; then
 fi
 
 if [[ ! -d "$TESTER_DIR" ]]; then
-  echo "minishell_tester/ not found. Run ./run_minishell_tester.sh m once to clone it."
+  echo "minishell_tester/ not found. Run ./scripts/run_minishell_tester.sh m once to clone it."
   exit 1
 fi
 
@@ -44,4 +45,4 @@ fi
 echo "Pushing to $FORK_URL (remote: $REMOTE_NAME)..."
 BRANCH="$(git branch --show-current)"
 git push -u "$REMOTE_NAME" "$BRANCH"
-echo "Done. Clone from your fork with: COZYGARAGE_TESTER_REPO=$FORK_URL ./run_minishell_tester.sh m"
+echo "Done. Clone from your fork with: COZYGARAGE_TESTER_REPO=$FORK_URL ./scripts/run_minishell_tester.sh m"

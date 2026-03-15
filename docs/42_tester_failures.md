@@ -1,6 +1,6 @@
 # 42_minishell_tester — Why Some Tests Fail
 
-This document summarizes **representative** failed test cases from `./run_minishell_tester.sh m` and the likely reasons they differ from bash.
+This document summarizes **representative** failed test cases from `./scripts/run_minishell_tester.sh m` and the likely reasons they differ from bash.
 
 **Overall:** 888 passed, 90 failed (941 total). No leaks. Failures fall into a few categories.
 
@@ -11,6 +11,8 @@ This document summarizes **representative** failed test cases from `./run_minish
 **Short answer:** Yes, for the mandatory part it’s a solid way to check that your shell behaves like bash on the same inputs. It’s not the subject PDF, and it has some limits, but it’s a useful reference.
 
 ### How the mandatory tests work
+
+**CI and fork:** The repo uses the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester) of 42_minishell_tester in CI (valgrind workflow runs mandatory tests with and without Valgrind). The fork can be updated with extra or subject-aligned tests when needed.
 
 - The tester reads each test block from the scripts under `cmds/mand/`.
 - For each block it:

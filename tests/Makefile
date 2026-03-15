@@ -1,60 +1,35 @@
 # **************************************************************************** #
-#  Tests Makefile — reflects current project status                            #
-#  Finished: phase1 (foundation & builtins), hardening (mandatory-style).     #
-#  Run: make test   (runs both suites; both pass as of last run).             #
+#  Tests Makefile — LucasKuhn/minishell_tester + project local_tests           #
+#  make test  = run full suite (Lucas builtins, pipes, redirects, extras + local)
 # **************************************************************************** #
 
-CC       = cc
-CFLAGS   = -Wall -Wextra -Werror
-INCLUDES = -I../includes -I../libft
-LIBFT    = ../libft/libft.a
-
-# -----------------------------------------------------------------------------
-#  Primary tests (finished, passing)
-# -----------------------------------------------------------------------------
-.PHONY: all test test_phase1 test_hardening clean help
+.PHONY: all test test_lucas test_local clean help
 
 all: test
 
-# Run all integration tests (phase1 + hardening)
-test: test_phase1 test_hardening
+# Run LucasKuhn tester (includes our tests/local_tests as "local"); clones into tests/lucas_minishell_tester if needed
+test: test_lucas
 	@echo ""
-	@echo "✅ All tests finished (phase1 + hardening)."
+	@echo "✅ Test suite finished (LucasKuhn + local_tests)."
 
-# Phase 1: foundation & builtins (24 tests) — run from repo root so ./minishell exists
-test_phase1:
-	@cd .. && chmod +x tests/test_phase1.sh 2>/dev/null || true
-	@cd .. && bash tests/test_phase1.sh
+# LucasKuhn/minishell_tester — clones into tests/lucas_minishell_tester if missing; injects tests/local_tests as "local"
+test_lucas:
+	@chmod +x run_lucas_tester.sh 2>/dev/null || true
+	@bash run_lucas_tester.sh
 
-# Hardening: mandatory-style edge cases (106 tests)
-test_hardening:
-	@cd .. && chmod +x tests/test_hardening.sh 2>/dev/null || true
-	@cd .. && bash tests/test_hardening.sh
+# Run only our consolidated local tests (requires Lucas clone and patched tester)
+test_local:
+	@chmod +x run_lucas_tester.sh 2>/dev/null || true
+	@bash run_lucas_tester.sh local
 
-# -----------------------------------------------------------------------------
-#  Optional: C unit test for builtins (needs get_env_value in test_builtins.c)
-#  Uncomment and fix test_builtins.c (get_env -> get_env_value) to build.
-# -----------------------------------------------------------------------------
-# BUILTIN_DIR = ../src/builtins
-# BUILTIN_SRCS = $(BUILTIN_DIR)/echo.c $(BUILTIN_DIR)/cd.c $(BUILTIN_DIR)/pwd.c \
-#                $(BUILTIN_DIR)/env.c $(BUILTIN_DIR)/export.c $(BUILTIN_DIR)/export_utils.c \
-#                $(BUILTIN_DIR)/unset.c $(BUILTIN_DIR)/exit.c
-# UTILS_SRCS = ../src/utils.c ../src/init.c
-# TEST_BUILTINS = test_builtins
-# $(TEST_BUILTINS): test_builtins.c $(BUILTIN_SRCS) $(UTILS_SRCS) $(LIBFT)
-# 	$(CC) $(CFLAGS) $(INCLUDES) $^ -lreadline -o $@
-# run_builtins: $(TEST_BUILTINS)
-# 	@./$(TEST_BUILTINS)
-
-# -----------------------------------------------------------------------------
 clean:
 	@rm -f test_builtins 2>/dev/null || true
-	@echo "Tests clean (scripts unchanged)."
+	@echo "Tests clean."
 
 help:
 	@echo "Targets:"
-	@echo "  make test          - Run phase1 + hardening (default)"
-	@echo "  make test_phase1   - Run phase1 only (24 tests)"
-	@echo "  make test_hardening - Run hardening only (106 tests)"
-	@echo "  make clean         - Remove test_builtins binary if present"
-	@echo "  make help          - This help"
+	@echo "  make test        - Run full suite (LucasKuhn + tests/local_tests)"
+	@echo "  make test_lucas  - Same as test (Lucas runner with local injected)"
+	@echo "  make test_local  - Run only tests/local_tests (Lucas 'local' file)"
+	@echo "  make clean      - Remove test binaries if present"
+	@echo "  make help       - This help"

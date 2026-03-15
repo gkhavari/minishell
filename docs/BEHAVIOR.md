@@ -1,6 +1,6 @@
 # Minishell Behavior & Edge Cases
 
-This document describes the **intended and tested** behavior of minishell. All behaviors listed here are covered by the test suites that currently pass: **Phase 1** (`tests/test_phase1.sh`, 24 tests) and **Hardening** (`tests/test_hardening.sh`, 106 tests). Run them with `make -C tests test` from the repository root.
+This document describes the **intended and tested** behavior of minishell. All behaviors listed here are covered by the test suite: **LucasKuhn/minishell_tester** plus the project’s **tests/local_tests** (consolidated from former phase1, hardening, and behavior). Run with `make -C tests test` from the repository root.
 
 For architecture and data structures, see [minishell_architecture.md](minishell_architecture.md).
 

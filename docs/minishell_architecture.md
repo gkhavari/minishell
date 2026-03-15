@@ -2,7 +2,7 @@
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
 >
-> **Test-backed behavior:** All behaviors described here are covered by the passing test suites (Phase 1 + Hardening). For input/output examples, exit codes, and edge-case tables, see **[BEHAVIOR.md](BEHAVIOR.md)**.
+> **Test-backed behavior:** All behaviors described here are covered by the passing test suite (LucasKuhn/minishell_tester + tests/local_tests). For input/output examples, exit codes, and edge-case tables, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 
 ---
 
@@ -12,30 +12,29 @@ This section reflects the **actual codebase** as built: source layout, data flow
 
 ### 0.1 Test Status (as of last run)
 
-| Suite | Script | Count | Status |
-|-------|--------|-------|--------|
-| Phase 1 | `tests/test_phase1.sh` | 24 | ✅ All pass |
-| Hardening | `tests/test_hardening.sh` | 106 | ✅ All pass |
+| Suite | Description | Status |
+|-------|-------------|--------|
+| LucasKuhn + local_tests | `make -C tests test` runs [LucasKuhn/minishell_tester](https://github.com/LucasKuhn/minishell_tester) (builtins, pipes, redirects, extras) plus `tests/local_tests` (injected as `local`) | ✅ Run from repo root |
 
-Run from repo root: `make -C tests test` (or `make test` from `tests/`).
+Run from repo root: `make -C tests test`.
 
-### 0.2 Test coverage map (what each suite verifies)
+### 0.2 Test coverage map (what the suite verifies)
 
-Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by these tests:
+Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by LucasKuhn’s files and **tests/local_tests** (consolidated from former phase1, hardening, behavior):
 
-| Area | Phase 1 | Hardening |
-|------|---------|-----------|
-| **Echo** | echo basic, -n, empty, -n -a | echo basic, -n, -nnn, empty, quotes |
-| **PWD / CD** | pwd, cd then pwd, cd HOME, cd nonexistent | pwd, cd /tmp and pwd, cd HOME, cd with extra args, cd nonexistent |
-| **Env / Export / Unset** | env, export no args/set var/invalid, unset | export declare, sets var, invalid name; env PATH/HOME; unset removes |
-| **Exit** | exit 0/42/255, exit no args | exit 0/42/255, 256 wraps, non-numeric, too many args; exit -1, 257 |
-| **Expansion** | (via export/echo) | undefined var, $, $?, $1, single/double quotes, set/unset, A_B, invalid export |
-| **Redirections** | — | >, >>, <, bad path, missing file; append then read; pipe then redir; output to dir |
-| **Pipes** | — | simple, 2–5 pipes, grep, wc -l; pipe exit (last cmd); pipe + redir; long pipeline |
-| **Heredoc** | — | basic, expand vars, quoted delim, empty body, EOF |
-| **Syntax / resilience** | — | lone/double pipe, pipe at end, unclosed quotes, redir no file, heredoc no delim; pipe first/last; only `>` |
-| **Path / exit codes** | — | absolute path; command not found (127); directory as cmd (126); cd/export fail (1) |
-| **Stress / no crash** | — | empty, spaces, blank lines; combo pipe+redir; many pipelines; export then pipe; nested quotes |
+| Area | Coverage |
+|------|----------|
+| **Echo** | echo basic, -n, -nnn, empty, quotes, -n -a (Lucas builtins + local_tests) |
+| **PWD / CD** | pwd; cd /tmp then pwd; cd HOME; cd nonexistent; cd with extra args (local_tests) |
+| **Env / Export / Unset** | export, env, set/unset var, invalid name (Lucas builtins + local_tests) |
+| **Exit** | exit 0/42/255, 256, -1, 257, non-numeric, too many args (Lucas + local_tests) |
+| **Expansion** | undefined var, $, $?, $1, quotes, set/unset, invalid export (local_tests) |
+| **Redirections** | >, >>, <, bad path, missing file; pipe then redir (Lucas redirects + local_tests) |
+| **Pipes** | simple pipe, multiple pipes, grep, wc -l, exit code (Lucas pipes + local_tests) |
+| **Heredoc** | basic, expand vars, quoted delim (local_tests) |
+| **Syntax / resilience** | lone pipe, unclosed quotes, redir no file (local_tests) |
+| **Path / exit codes** | absolute path; 127; directory as cmd 126 (local_tests) |
+| **Stress / no crash** | empty input, combo pipe+redir, export then pipe (local_tests) |
 
 ### 0.3 Source Layout (real files)
 
@@ -1111,7 +1110,7 @@ void safe_free(void **ptr)
 
 ## 12. Testing Checklist
 
-Covered by **tests/test_phase1.sh** (24) and **tests/test_hardening.sh** (106). Run: `make -C tests test`.
+Covered by **LucasKuhn/minishell_tester** plus **tests/local_tests**. Run: `make -C tests test`.
 
 ### 12.1 Basic Commands
 

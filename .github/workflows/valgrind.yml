@@ -12,8 +12,10 @@ permissions:
   contents: read
 
 env:
-  # zstenger93 tester expects MINISHELL_PATH = directory containing minishell binary
+  # 42_minishell_tester expects MINISHELL_PATH = directory containing minishell binary.
+  # We use the cozyGarage fork (can be updated with subject-aligned tests).
   MINISHELL_PATH: ${{ github.workspace }}
+  MINISHELL_TESTER_REPO: https://github.com/cozyGarage/42_minishell_tester.git
 
 jobs:
   valgrind:
@@ -43,35 +45,30 @@ jobs:
           ls -la minishell
           file minishell
 
-      - name: Clone 42 minishell tester
+      - name: Clone 42_minishell_tester (cozyGarage fork)
         run: |
-          git clone --depth=1 \
-            https://github.com/zstenger93/42_minishell_tester.git \
-            "$HOME/42_minishell_tester"
-          # Tester script sets MINISHELL_PATH=./ which overwrites our env; patch so it keeps CI path
-          sed -i 's|^export MINISHELL_PATH=\./|export MINISHELL_PATH="${MINISHELL_PATH:-./}"|' \
-            "$HOME/42_minishell_tester/tester.sh"
-          grep -n "MINISHELL_PATH" "$HOME/42_minishell_tester/tester.sh" | head -3
-          echo "Tester cloned. MINISHELL_PATH=$MINISHELL_PATH (dir containing minishell binary)"
+          git clone --depth=1 "$MINISHELL_TESTER_REPO" minishell_tester
+          # Tester script may set MINISHELL_PATH=./ ; patch so CI keeps workspace path
+          sed -i 's|^export MINISHELL_PATH=\./|export MINISHELL_PATH="${MINISHELL_PATH:-./}"|' minishell_tester/tester.sh || true
+          # Ensure RUNDIR points to clone dir (fork may already have this)
+          (cd minishell_tester && grep -n "MINISHELL_PATH\|RUNDIR" tester.sh | head -5)
+          echo "Tester cloned. MINISHELL_PATH=$MINISHELL_PATH"
 
-      - name: Run local hardening tests
+      - name: Run local test suite (LucasKuhn + project local_tests)
         run: |
-          chmod +x tests/test_hardening.sh tests/test_phase1.sh
-          bash tests/test_phase1.sh 2>&1 | tee /tmp/phase1.log || true
-          bash tests/test_hardening.sh 2>&1 | tee /tmp/hardening.log || true
+          make -C tests test 2>&1 | tee /tmp/local_suite.log || true
 
       - name: Run 42 mandatory tests (no valgrind)
         id: mandatory
         run: |
-          cd "$HOME/42_minishell_tester"
-          # Tester runs $MINISHELL_PATH/minishell — MINISHELL_PATH must be repo root
+          cd minishell_tester
           export MINISHELL_PATH="${{ github.workspace }}"
           timeout 10m bash tester.sh m 2>&1 | tee /tmp/mandatory.log || true
 
       - name: Run 42 mandatory tests with Valgrind
         id: valgrind_run
         run: |
-          cd "$HOME/42_minishell_tester"
+          cd minishell_tester
           export MINISHELL_PATH="${{ github.workspace }}"
           timeout 30m bash tester.sh vm 2>&1 | tee /tmp/valgrind.log || true
 
@@ -80,15 +77,15 @@ jobs:
         run: |
           # --- Counts (strip ANSI for parsing) ---
           strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
-          phase1_log=$(cat /tmp/phase1.log 2>/dev/null | strip_ansi)
-          hard_log=$(cat /tmp/hardening.log 2>/dev/null | strip_ansi)
+          local_log=$(cat /tmp/local_suite.log 2>/dev/null | strip_ansi)
           mand_log=$(cat /tmp/mandatory.log 2>/dev/null | strip_ansi)
           valg_log=$(cat /tmp/valgrind.log 2>/dev/null | strip_ansi)
 
-          phase1_pass=$(echo "$phase1_log" | grep -oP 'Passed:\s*\K[0-9]+' | tail -1 || echo "0")
-          phase1_fail=$(echo "$phase1_log" | grep -oP 'Failed:\s*\K[0-9]+' | tail -1 || echo "0")
-          hard_pass=$(echo "$hard_log"   | grep -oP 'Passed:\s*\K[0-9]+' | tail -1 || echo "0")
-          hard_fail=$(echo "$hard_log"   | grep -oP 'Failed:\s*\K[0-9]+' | tail -1 || echo "0")
+          # LucasKuhn tester uses ✅ / ❌ per test
+          phase1_pass=$(echo "$local_log" | grep -c '✅' 2>/dev/null || echo "0")
+          phase1_fail=$(echo "$local_log" | grep -c '❌' 2>/dev/null || echo "0")
+          hard_pass=$phase1_pass
+          hard_fail=$phase1_fail
           # 42_minishell_tester uses ✅ (pass) and ❌ (fail); final block has "TESTS PASSED: N" and "❌ N"
           mand_total=$(echo "$mand_log" | grep -oP 'TOTAL TEST COUNT:\s*\K[0-9]+' | tail -1 || echo "0")
           mand_pass=$(echo "$mand_log"  | grep -oP 'TESTS PASSED:\s*\K[0-9]+'   | tail -1 || echo "0")
@@ -133,8 +130,7 @@ jobs:
             echo "### Summary"
             echo "| Suite | Passed | Failed |"
             echo "|-------|--------|--------|"
-            echo "| Phase 1 (local) | $phase1_pass | $phase1_fail |"
-            echo "| Hardening (local) | $hard_pass | $hard_fail |"
+            echo "| Local (Lucas + project) | $phase1_pass | $phase1_fail |"
             echo "| Mandatory (no valgrind) | $mand_ok | $mand_ko |"
             echo "| Mandatory + Valgrind | $valg_ok | $valg_ko |"
             echo ""
@@ -144,14 +140,9 @@ jobs:
             echo ""
             echo "### Failures (grep)"
             echo ""
-            echo "#### Phase 1 failures"
+            echo "#### Local suite failures (Lucas + project)"
             echo '```'
-            echo "$phase1_log" | grep -E '\[FAIL\]|FAIL' 2>/dev/null | head -30 || echo "(none or no log)"
-            echo '```'
-            echo ""
-            echo "#### Hardening failures"
-            echo '```'
-            echo "$hard_log" | grep -E '\[FAIL\]|FAIL' 2>/dev/null | head -30 || echo "(none or no log)"
+            echo "$local_log" | grep '❌' 2>/dev/null | head -40 || echo "(none or no log)"
             echo '```'
             echo ""
             echo "#### Mandatory test failures (no valgrind) — lines with ❌"
@@ -171,14 +162,9 @@ jobs:
             echo ""
             echo "---"
             echo ""
-            echo "### Local Phase1 Tests (last 30 lines)"
+            echo "### Local suite (last 50 lines)"
             echo '```'
-            tail -30 /tmp/phase1.log 2>/dev/null || echo "(no output)"
-            echo '```'
-            echo ""
-            echo "### Local Hardening (last 30 lines)"
-            echo '```'
-            tail -30 /tmp/hardening.log 2>/dev/null || echo "(no output)"
+            tail -50 /tmp/local_suite.log 2>/dev/null || echo "(no output)"
             echo '```'
             echo ""
             echo "### Mandatory Tests (no valgrind) — RESULT block + ✅/❌ lines"

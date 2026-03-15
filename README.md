@@ -85,45 +85,49 @@ Automated tests live under `tests/`. Run them from the **repository root** (so `
 make -C tests test
 ```
 
-This runs:
-
-1. **Phase 1** (`tests/test_phase1.sh`) — 24 tests: foundation and builtins (echo, pwd, cd, env, export, unset, exit).
-2. **Hardening** (`tests/test_hardening.sh`) — 106 tests: empty input, syntax errors, expansion, redirections, pipes, heredocs, exit codes, path resolution, edge cases.
-
-Both suites must pass (no failures).
-
-### Run suites separately
-
-```bash
-make -C tests test_phase1    # Phase 1 only
-make -C tests test_hardening # Hardening only
-```
+This runs the **LucasKuhn/minishell_tester** suite (builtins, pipes, redirects, extras) plus the project’s consolidated **local_tests** (from former phase1, hardening, behavior). The runner clones the tester into `tests/lucas_minishell_tester` if needed and injects `tests/local_tests` as the `local` file. All tests compare minishell output and exit code to bash.
 
 ### Other targets
 
 ```bash
-make -C tests help   # List test targets
-make -C tests clean  # Remove test binaries (e.g. test_builtins if present)
+make -C tests test_lucas   # Full suite (Lucas + local_tests)
+make -C tests test_local   # Only tests/local_tests
+make -C tests help         # List targets
+make -C tests clean        # Remove test binaries if present
 ```
+
+### LucasKuhn/minishell_tester (primary suite)
+
+[LucasKuhn/minishell_tester](https://github.com/LucasKuhn/minishell_tester) is the project’s main test suite. It lives under `tests/`: the runner clones it into `tests/lucas_minishell_tester` (gitignored) and adds `tests/local_tests` so one run covers both Lucas’s tests and the project’s own cases. Run from repo root:
+
+```bash
+make -C tests test
+# or
+./tests/run_lucas_tester.sh
+```
+
+To run only Lucas’s builtins/pipes/redirects/extras (no local file), use a fresh clone or run `./tester builtins` etc. from inside `tests/lucas_minishell_tester`. Override clone URL with `LUCAS_MINISHELL_TESTER_REPO=<url>` if you use a fork.
 
 ### 42_minishell_tester (optional)
 
-The [42_minishell_tester](https://github.com/zstenger93/42_minishell_tester) can be run from the project root. If `minishell_tester/` is missing, the script clones it for you.
+CI and local runs use the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester) of [42_minishell_tester](https://github.com/zstenger93/42_minishell_tester) (RUNDIR + MINISHELL_PATH fixed for in-repo use). The fork can be updated with subject-aligned tests. From the project root, if `minishell_tester/` is missing, the script clones it for you.
 
 ```bash
-./run_minishell_tester.sh m       # mandatory tests
-./run_minishell_tester.sh vm      # mandatory + valgrind
-./run_minishell_tester.sh m b     # mandatory, builtins only
+./scripts/run_minishell_tester.sh m       # mandatory tests
+./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
+./scripts/run_minishell_tester.sh m b     # mandatory, builtins only
 ```
 
 To use the modified fork (RUNDIR + MINISHELL_PATH fixed for in-repo use):
 
 ```bash
 export COZYGARAGE_TESTER_REPO="https://github.com/cozyGarage/42_minishell_tester.git"
-./run_minishell_tester.sh m
+./scripts/run_minishell_tester.sh m
 ```
 
 To push further changes to the fork: `./scripts/push_tester_fork.sh`
+
+Scripts under `scripts/` (and `tests/run_lucas_tester.sh`) require **git**. They work on both **macOS and Linux**. If git is missing, set `AUTO_INSTALL_DEPS=1` to try installing it (Homebrew on macOS, apt-get on Linux). For the Lucas tester timeout on macOS, install coreutils: `brew install coreutils` (provides `gtimeout`).
 
 **Input mode:** When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it uses **get_next_line** (in `libft/`, included via `minishell.h`) so line-by-line input matches the tester. Continuation and heredoc use non-readline reads when `!isatty(stdin)` (e.g. `fgets` in continuation, `read()` loop in heredoc).
 
@@ -173,9 +177,13 @@ minishell/
 │   └── prototypes.h
 ├── libft/                   # Static library (submodule or vendored)
 ├── tests/
-│   ├── Makefile             # make test, test_phase1, test_hardening
-│   ├── test_phase1.sh
-│   └── test_hardening.sh
+│   ├── Makefile             # make test (= Lucas + local_tests), test_lucas, test_local
+│   ├── local_tests           # Consolidated project tests (Lucas format; injected as "local")
+│   └── run_lucas_tester.sh   # LucasKuhn/minishell_tester runner (injects local_tests)
+├── scripts/
+│   ├── run_minishell_tester.sh  # 42_minishell_tester runner (mandatory, valgrind)
+│   ├── push_tester_fork.sh      # Push tester changes to fork
+│   └── ensure_deps.sh           # Git check; optional install (AUTO_INSTALL_DEPS=1)
 ├── docs/
 │   ├── minishell_architecture.md   # Design, flow, Mermaid diagrams
 │   ├── DATA_MODEL_AND_FUNCTIONS.md # Struct/enum rationale + function reference
