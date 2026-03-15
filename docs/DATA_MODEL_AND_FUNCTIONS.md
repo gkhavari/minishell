@@ -131,7 +131,7 @@ typedef struct s_shell {
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **commands** | Output of parser; input to heredoc + executor; freed after execution or on error. |
-| **input** | Current line from readline; freed in tokenizer or in `reset_shell()`. |
+| **input** | Current line from readline (TTY) or get_next_line (non-TTY); freed in tokenizer or in `reset_shell()`. |
 
 **Why one shell struct:** Single place for “current line’s” state (tokens, commands, input) and persistent state (env, cwd, last_exit). No global state except `g_signum` for signals.
 
@@ -176,11 +176,10 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **main.c** | `main(argc, argv, envp)` | Entry point: zero shell, `init_shell()`, set signals, `shell_loop()`, then `free_all()` and return `last_exit`. |
-| **main.c** | `process_input(shell)` | Runs tokenize → parse → process_heredocs → execute_commands; sets `shell->last_exit`. (static) |
-| **main.c** | `read_input(shell)` | Reads one line: TTY → `build_prompt()` + `readline()`; non-TTY → `silent_readline()`. Returns 1=ok, 0=EOF, -1=signal. (static) |
-| **main.c** | `silent_readline()` | Calls `readline("")` with stdout redirected to `/dev/null` (non-interactive). (static) |
-| **main.c** | `shell_loop(shell)` | REPL: while(1) { check_signal, read_input, process_input if non-empty, reset_shell }. (static) |
+| **main.c** (src/) | `main(argc, argv, envp)` | Entry point: zero shell, `init_shell()`, set signals, `shell_loop()`, then `free_all()` and return `last_exit`. |
+| **main.c** (src/) | `process_input(shell)` | Runs tokenize → parse → process_heredocs → execute_commands; sets `shell->last_exit`. (static) |
+| **main.c** (src/) | `read_input(shell)` | Reads one line: TTY → `build_prompt()` + `readline()`; non-TTY → `get_next_line(STDIN_FILENO)` (from libft). Returns 1=ok, 0=EOF, -1=signal. (static) |
+| **main.c** (src/) | `shell_loop(shell)` | REPL: while(1) { check_signal, read_input, process_input if non-empty, reset_shell }. (static) |
 | **core/init.c** | `get_env_value(envp, key)` | Returns pointer to value part of `KEY=value` in `envp`, or NULL. |
 | **core/init.c** | `build_prompt(shell)` | Builds `"USER@minishell:CWD$ "` from shell->user/cwd; uses defaults if NULL. |
 | **core/init.c** | `init_shell(shell, envp)` | Sets envp (dup), user, cwd, last_exit=0, tokens/commands/input=NULL. |
@@ -198,98 +197,98 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 ---
 
-### 2.3 Tokenizer
+### 2.3 Tokenizer (src/tokenizer/)
 
 | File | Function | Description |
 |------|----------|-------------|
-| **tokenizer.c** | `tokenize_input(shell)` | Main entry: tokenizer_loop over shell->input, then flush_word; frees input. |
-| **tokenizer_utils.c** | `flush_word(shell, word, token)` | If *word non-empty, creates a WORD token and appends to *token list; frees *word. |
-| **tokenizer_utils.c** | `mark_word_quoted()` | Sets internal “current word is quoted” flag (for tokenizer). |
-| **tokenizer_utils.c** | `set_heredoc_mode(mode)` | Sets heredoc mode so `$` is not expanded in delimiter. |
-| **tokenizer_utils.c** | `is_heredoc_mode()` | Returns whether we are inside heredoc delimiter parsing. |
-| **tokenizer_utils.c** | `append_char(shell, dst, c)` | Appends one char to *dst, reallocating via msh_calloc. |
-| **tokenizer_utils2.c** | `add_token(head, new)` | Appends token `new` to list `*head`. |
-| **tokenizer_utils2.c** | `new_token(shell, type, value)` | Allocates a token with type and value (value is strduped). |
-| **tokenizer_handlers.c** | `handle_end_of_string(shell, state)` | At end of input: flush word, handle unclosed quotes / continuation. |
-| **tokenizer_handlers.c** | `process_quote(c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
-| **tokenizer_handlers.c** | `handle_operator(shell, i, word)` | If input at *i is operator (| < > << >>), flushes word and calls read_operator. |
-| **tokenizer_handlers.c** | `handle_whitespace(shell, i, word)` | Skips spaces/tabs; flushes word if non-empty. |
-| **tokenizer_handlers.c** | `process_normal_char(shell, c, i, word)` | Appends c to word and advances *i. |
-| **tokenizer_quotes.c** | `handle_single_quote(shell, i, word, state)` | Reads single-quoted span (no expansion); appends to word. |
-| **tokenizer_quotes.c** | `handle_double_quote(shell, i, word, state)` | Reads double-quoted span; expands `$VAR` and `$?`. |
-| **tokenizer_ops.c** | `is_op_char(c)` | Returns 1 if c is `|`, `<`, or `>`. |
-| **tokenizer_ops.c** | `read_operator(shell, s, list)` | Parses one operator at s, creates token, appends to list; returns 1 or 2 (chars consumed). |
-| **expansion.c** | `expand_var(shell, i)` | Expands one variable at *i ($VAR or $?); advances *i; returns new string (caller frees). |
-| **expansion.c** | `handle_variable_expansion(shell, i, word)` | If input at *i is `$` and expandable, expands and appends to word. |
-| **expansion.c** | `handle_tilde_expansion(shell, i, word)` | Expands `~` to HOME and appends to word. |
-| **expansion_utils.c** | `append_expansion_quoted(word, exp)` | Appends string `exp` to *word (quoted context). |
-| **expansion_utils.c** | `append_expansion_unquoted(shell, word, exp, tokens)` | Appends expansion result; may split into multiple WORDs (IFS). |
-| **continuation.c** | `append_continuation(shell, s, state)` | Reads more lines (e.g. after backslash or unclosed quote) and appends to *s. |
+| **tokenizer/tokenizer.c** | `tokenize_input(shell)` | Main entry: tokenizer_loop over shell->input, then flush_word; frees input. |
+| **tokenizer/tokenizer_utils.c** | `flush_word(shell, word, token)` | If *word non-empty, creates a WORD token and appends to *token list; frees *word. |
+| **tokenizer/tokenizer_utils.c** | `mark_word_quoted()` | Sets internal “current word is quoted” flag (for tokenizer). |
+| **tokenizer/tokenizer_utils.c** | `set_heredoc_mode(mode)` | Sets heredoc mode so `$` is not expanded in delimiter. |
+| **tokenizer/tokenizer_utils.c** | `is_heredoc_mode()` | Returns whether we are inside heredoc delimiter parsing. |
+| **tokenizer/tokenizer_utils.c** | `append_char(shell, dst, c)` | Appends one char to *dst, reallocating via msh_calloc. |
+| **tokenizer/tokenizer_utils2.c** | `add_token(head, new)` | Appends token `new` to list `*head`. |
+| **tokenizer/tokenizer_utils2.c** | `new_token(shell, type, value)` | Allocates a token with type and value (value is strduped). |
+| **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state)` | At end of input: flush word, handle unclosed quotes / continuation. |
+| **tokenizer/tokenizer_handlers.c** | `process_quote(c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
+| **tokenizer/tokenizer_handlers.c** | `handle_operator(shell, i, word)` | If input at *i is operator (| < > << >>), flushes word and calls read_operator. |
+| **tokenizer/tokenizer_handlers.c** | `handle_whitespace(shell, i, word)` | Skips spaces/tabs; flushes word if non-empty. |
+| **tokenizer/tokenizer_handlers.c** | `process_normal_char(shell, c, i, word)` | Appends c to word and advances *i. |
+| **tokenizer/tokenizer_quotes.c** | `handle_single_quote(shell, i, word, state)` | Reads single-quoted span (no expansion); appends to word. |
+| **tokenizer/tokenizer_quotes.c** | `handle_double_quote(shell, i, word, state)` | Reads double-quoted span; expands `$VAR` and `$?`. |
+| **tokenizer/tokenizer_ops.c** | `is_op_char(c)` | Returns 1 if c is `|`, `<`, or `>`. |
+| **tokenizer/tokenizer_ops.c** | `read_operator(shell, s, list)` | Parses one operator at s, creates token, appends to list; returns 1 or 2 (chars consumed). |
+| **tokenizer/expansion.c** | `expand_var(shell, i)` | Expands one variable at *i ($VAR or $?); advances *i; returns new string (caller frees). |
+| **tokenizer/expansion.c** | `handle_variable_expansion(shell, i, word)` | If input at *i is `$` and expandable, expands and appends to word. |
+| **tokenizer/expansion.c** | `handle_tilde_expansion(shell, i, word)` | Expands `~` to HOME and appends to word. |
+| **tokenizer/expansion_utils.c** | `append_expansion_quoted(word, exp)` | Appends string `exp` to *word (quoted context). |
+| **tokenizer/expansion_utils.c** | `append_expansion_unquoted(shell, word, exp, tokens)` | Appends expansion result; may split into multiple WORDs (IFS). |
+| **tokenizer/continuation.c** | `append_continuation(shell, s, state)` | Reads more lines (e.g. after backslash or unclosed quote) and appends to *s. |
 
 ---
 
-### 2.4 Parser
+### 2.4 Parser (src/parser/)
 
 | File | Function | Description |
 |------|----------|-------------|
-| **parser.c** | `parse_input(shell)` | Syntax check; on success parse_tokens + finalize_all_commands; on error sets last_exit=2 and frees tokens. |
-| **parser.c** | `is_redirection(type)` | Returns 1 if type is REDIR_IN, REDIR_OUT, APPEND, or HEREDOC. (used in parser) |
-| **add_token_to_cmd.c** | `add_token_to_command(shell, cmd, token)` | Dispatches token: WORD → add_word_to_cmd; HEREDOC/redirs → set delim or append_redir. Returns 1 (WORD) or 2 (redir/heredoc). |
-| **argv_build.c** | `finalize_all_commands(shell, cmd)` | For each command: finalize_argv then set cmd->is_builtin = is_builtin(argv[0]). |
-| **argv_build.c** | `finalize_argv(shell, cmd)` | Builds cmd->argv from cmd->args (NULL-terminated array). |
-| **parser_syntax_check.c** | `syntax_check(token)` | Validates: no leading/trailing/double pipe; every redir followed by WORD. Returns SYNTAX_OK or SYNTAX_ERR. |
-| **parser_syntax_check.c** | `syntax_error(msg)` | Prints "minishell: syntax error near unexpected token 'msg'" to stderr; returns SYNTAX_ERR. |
+| **parser/parser.c** | `parse_input(shell)` | Syntax check; on success parse_tokens + finalize_all_commands; on error sets last_exit=2 and frees tokens. |
+| **parser/parser.c** | `is_redirection(type)` | Returns 1 if type is REDIR_IN, REDIR_OUT, APPEND, or HEREDOC. (used in parser) |
+| **parser/add_token_to_cmd.c** | `add_token_to_command(shell, cmd, token)` | Dispatches token: WORD → add_word_to_cmd; HEREDOC/redirs → set delim or append_redir. Returns 1 (WORD) or 2 (redir/heredoc). |
+| **parser/argv_build.c** | `finalize_all_commands(shell, cmd)` | For each command: finalize_argv then set cmd->is_builtin = is_builtin(argv[0]). |
+| **parser/argv_build.c** | `finalize_argv(shell, cmd)` | Builds cmd->argv from cmd->args (NULL-terminated array). |
+| **parser/parser_syntax_check.c** | `syntax_check(token)` | Validates: no leading/trailing/double pipe; every redir followed by WORD. Returns SYNTAX_OK or SYNTAX_ERR. |
+| **parser/parser_syntax_check.c** | `syntax_error(msg)` | Prints "minishell: syntax error near unexpected token 'msg'" to stderr; returns SYNTAX_ERR. |
 
 ---
 
-### 2.5 Heredoc
+### 2.5 Heredoc (src/parser/)
 
 | File | Function | Description |
 |------|----------|-------------|
-| **heredoc.c** | `process_heredocs(shell)` | For each command with heredoc_delim, calls read_heredoc; returns 1 on SIGINT. |
-| **heredoc.c** | `read_heredoc(cmd, shell)` | Creates pipe, reads lines until delimiter, writes to pipe (with optional expansion); sets cmd->heredoc_fd to read end. |
-| **heredoc_utils.c** | `is_quoted_delimiter(delim)` | Returns 1 if delimiter is quoted (e.g. `'EOF'` or `"EOF"`) so body is not expanded. |
-| **heredoc_utils.c** | `expand_heredoc_line(line, shell)` | Expands `$VAR` and `$?` in line; returns new string (caller frees). |
+| **parser/heredoc.c** | `process_heredocs(shell)` | For each command with heredoc_delim, calls read_heredoc; returns 1 on SIGINT. |
+| **parser/heredoc.c** | `read_heredoc(cmd, shell)` | Creates pipe, reads lines until delimiter, writes to pipe (with optional expansion); sets cmd->heredoc_fd to read end. |
+| **parser/heredoc_utils.c** | `is_quoted_delimiter(delim)` | Returns 1 if delimiter is quoted (e.g. `'EOF'` or `"EOF"`) so body is not expanded. |
+| **parser/heredoc_utils.c** | `expand_heredoc_line(line, shell)` | Expands `$VAR` and `$?` in line; returns new string (caller frees). |
 
 ---
 
-### 2.6 Executor
+### 2.6 Executor (src/executor/)
 
 | File | Function | Description |
 |------|----------|-------------|
-| **executor.c** | `execute_commands(shell)` | If single command → execute_single_command; else execute_pipeline. Returns exit status. |
-| **executor.c** | `execute_single_command(cmd, shell)` | Backs up stdin/stdout, apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
-| **executor.c** | `wait_pipeline(pids, n)` | Waitpids all; returns exit status of last process (bash convention). |
-| **executor.c** | `count_cmds(cmd)` | Returns number of commands in the pipeline (linked list length). |
-| **executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (open + dup2); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
-| **executor_utils.c** | `restore_fds(stdin_backup, stdout_backup)` | Restores stdin/stdout from backups and closes backups. |
-| **executor_utils.c** | `execute_builtin(cmd, shell)` | Calls run_builtin(cmd->argv, shell). |
-| **executor_external.c** | `execute_external(cmd, shell)` | Forks; child runs execute_in_child; parent waits and returns child exit status. |
-| **executor_external.c** | `find_command_path(cmd, shell)` | Absolute path → stat/executable check; else search PATH; returns path or NULL (127 for caller). |
-| **executor_child.c** | `execute_in_child(cmd, shell)` | In child: if builtin exit(run_builtin); else find path, check dir/exec, execve or exit 127/126. |
-| **executor_child.c** | `free_array(arr)` | Frees each element and the array (used for PATH split). |
-| **executor_pipeline.c** | `execute_pipeline(cmds, shell)` | Creates pipe(s), forks each command with pipes connected, wait_pipeline, returns last exit status. |
+| **executor/executor.c** | `execute_commands(shell)` | If single command → execute_single_command; else execute_pipeline. Returns exit status. |
+| **executor/executor.c** | `execute_single_command(cmd, shell)` | Backs up stdin/stdout, apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
+| **executor/executor.c** | `wait_pipeline(pids, n)` | Waitpids all; returns exit status of last process (bash convention). |
+| **executor/executor.c** | `count_cmds(cmd)` | Returns number of commands in the pipeline (linked list length). |
+| **executor/executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (open + dup2); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
+| **executor/executor_utils.c** | `restore_fds(stdin_backup, stdout_backup)` | Restores stdin/stdout from backups and closes backups. |
+| **executor/executor_utils.c** | `execute_builtin(cmd, shell)` | Calls run_builtin(cmd->argv, shell). |
+| **executor/executor_external.c** | `execute_external(cmd, shell)` | Forks; child runs execute_in_child; parent waits and returns child exit status. |
+| **executor/executor_external.c** | `find_command_path(cmd, shell)` | Absolute path → stat/executable check; else search PATH; returns path or NULL (127 for caller). |
+| **executor/executor_child.c** | `execute_in_child(cmd, shell)` | In child: if builtin exit(run_builtin); else find path, check dir/exec, execve or exit 127/126. |
+| **executor/executor_child.c** | `free_array(arr)` | Frees each element and the array (used for PATH split). |
+| **executor/executor_pipeline.c** | `execute_pipeline(cmds, shell)` | Creates pipe(s), forks each command with pipes connected, wait_pipeline, returns last exit status. |
 
 ---
 
-### 2.7 Builtins & dispatcher
+### 2.7 Builtins & dispatcher (src/builtins/)
 
 | File | Function | Description |
 |------|----------|-------------|
-| **builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (BUILTIN_ECHO, etc.) or NOT_BUILTIN. |
-| **builtin_dispatcher.c** | `is_builtin(cmd)` | Returns 1 if cmd is a builtin name, 0 otherwise. |
-| **builtin_dispatcher.c** | `run_builtin(argv, shell)` | Dispatches to the correct builtin by name; returns builtin return value. |
-| **echo.c** | `builtin_echo(args, shell)` | Prints args to stdout with spaces; handles -n (no newline). Returns 0. |
-| **cd.c** | `builtin_cd(args, shell)` | Changes directory (arg or HOME); updates PWD/OLDPWD in envp; returns 0/1. |
-| **pwd.c** | `builtin_pwd(args, shell)` | Prints current working directory. Returns 0. |
-| **env.c** | `builtin_env(args, shell)` | Prints envp (one KEY=value per line). Returns 0. |
-| **export.c** | `builtin_export(args, shell)` | No args: print declare -x list; with args: add/update env; invalid name → error, return 1. |
-| **export_utils.c** | `is_valid_export_name(name)` | Returns 1 if name is valid for export (letter/underscore start, alnum/_). |
-| **export_utils.c** | `find_export_key_index(shell, key, key_len)` | Finds index of KEY= in envp. |
-| **export_utils.c** | `append_export_env(shell, entry)` | Appends one "KEY=value" to shell->envp. |
-| **export_print.c** | `print_sorted_env(shell)` | Prints env in declare -x format (sorted). |
-| **unset.c** | `builtin_unset(args, shell)` | Removes listed vars from envp. Returns 0/1. |
-| **exit.c** | `builtin_exit(args, shell)` | Exits shell: optional numeric status; too many args → error; non-numeric → 255. Calls free_all. |
+| **builtins/builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (BUILTIN_ECHO, etc.) or NOT_BUILTIN. |
+| **builtins/builtin_dispatcher.c** | `is_builtin(cmd)` | Returns 1 if cmd is a builtin name, 0 otherwise. |
+| **builtins/builtin_dispatcher.c** | `run_builtin(argv, shell)` | Dispatches to the correct builtin by name; returns builtin return value. |
+| **builtins/echo.c** | `builtin_echo(args, shell)` | Prints args to stdout with spaces; handles -n (no newline). Returns 0. |
+| **builtins/cd.c** | `builtin_cd(args, shell)` | Changes directory (arg or HOME); updates PWD/OLDPWD in envp; returns 0/1. |
+| **builtins/pwd.c** | `builtin_pwd(args, shell)` | Prints current working directory. Returns 0. |
+| **builtins/env.c** | `builtin_env(args, shell)` | Prints envp (one KEY=value per line). Returns 0. |
+| **builtins/export.c** | `builtin_export(args, shell)` | No args: print declare -x list; with args: add/update env; invalid name → error, return 1. |
+| **builtins/export_utils.c** | `is_valid_export_name(name)` | Returns 1 if name is valid for export (letter/underscore start, alnum/_). |
+| **builtins/export_utils.c** | `find_export_key_index(shell, key, key_len)` | Finds index of KEY= in envp. |
+| **builtins/export_utils.c** | `append_export_env(shell, entry)` | Appends one "KEY=value" to shell->envp. |
+| **builtins/export_print.c** | `print_sorted_env(shell)` | Prints env in declare -x format (sorted). |
+| **builtins/unset.c** | `builtin_unset(args, shell)` | Removes listed vars from envp. Returns 0/1. |
+| **builtins/exit.c** | `builtin_exit(args, shell)` | Exits shell: optional numeric status; too many args → error; non-numeric → 255. Calls free_all. |
 
 ---
 
@@ -297,12 +296,12 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **signal_handler.c** | `set_signals_default()` | Sets SIGINT/SIGQUIT/SIGTERM/SIGPIPE to SIG_DFL (for child). |
-| **signal_handler.c** | `set_signals_ignore()` | Sets SIGINT/SIGQUIT to SIG_IGN (parent during pipeline). |
-| **signal_handler.c** | `set_signals_interactive()` | SIGQUIT/SIGTERM/SIGPIPE ignored; SIGINT → sets g_signum and prints newline. |
-| **signal_handler.c** | `handle_child_exit(last_exit_status, pid)` | Waitpid; sets *last_exit_status from WEXITSTATUS or 128+signal. |
-| **signal_utils.c** | `readline_event_hook()` | Readline hook: sets g_signum on SIGINT. |
-| **signal_utils.c** | `check_signal_received(shell)` | If g_signum==SIGINT, sets shell->last_exit=130 and clears g_signum; returns 1 if signal was seen. |
+| **signals/signal_handler.c** | `set_signals_default()` | Sets SIGINT/SIGQUIT/SIGTERM/SIGPIPE to SIG_DFL (for child). |
+| **signals/signal_handler.c** | `set_signals_ignore()` | Sets SIGINT/SIGQUIT to SIG_IGN (parent during pipeline). |
+| **signals/signal_handler.c** | `set_signals_interactive()` | SIGQUIT/SIGTERM/SIGPIPE ignored; SIGINT → sets g_signum and prints newline. |
+| **signals/signal_handler.c** | `handle_child_exit(last_exit_status, pid)` | Waitpid; sets *last_exit_status from WEXITSTATUS or 128+signal. |
+| **signals/signal_utils.c** | `readline_event_hook()` | Readline hook: sets g_signum on SIGINT. |
+| **signals/signal_utils.c** | `check_signal_received(shell)` | If g_signum==SIGINT, sets shell->last_exit=130 and clears g_signum; returns 1 if signal was seen. |
 | **free/free_utils.c** | `free_tokens(token)` | Frees entire token list and their values. |
 | **free/free_utils.c** | `free_args(arg)` | Frees entire t_arg list and their values. |
 | **free/free_runtime.c** | `free_commands(cmd)` | Frees command list: args, argv, redirs, heredoc_delim, and nodes. |

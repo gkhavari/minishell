@@ -20,7 +20,7 @@ Run from repo root: `make -C tests test`.
 
 ### 0.2 Test coverage map (what the suite verifies)
 
-Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by **42_minishell_tester**’s files and **tests/local_tests** :
+Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by **42_minishell_tester** (scripts in `cmds/mand/`):
 
 | Area | Coverage |
 |------|----------|
@@ -36,6 +36,20 @@ Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed 
 | **Parsing** | 0_compare_parsing.sh, 10_parsing_hell.sh |
 
 ### 0.3 Source Layout (real files)
+
+**Rule:** Only `main.c` lives in `src/` root. All other sources are in subfolders.
+
+| Directory | Purpose |
+|-----------|---------|
+| `src/` | `main.c` only — REPL loop, read_input, process_input |
+| `src/core/` | Shell initialization: `init.c` (init_shell, build_prompt, get_env_value) |
+| `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
+| `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
+| `src/signals/` | Signal handlers and readline hook |
+| `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
+| `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc |
+| `src/executor/` | Execution: executor.c, executor_utils, external, pipeline, child |
+| `src/builtins/` | Builtin commands and dispatcher |
 
 ```mermaid
 graph TB
@@ -120,7 +134,7 @@ graph TB
 
 ```mermaid
 flowchart LR
-    A[readline / silent_readline] --> B[tokenize_input]
+    A[readline (TTY) / get_next_line (non-TTY)] --> B[tokenize_input]
     B --> C[parse_input]
     C --> D[process_heredocs]
     D --> E[execute_commands]
@@ -131,10 +145,10 @@ flowchart LR
     I --> J[run_builtin OR execute_external / execute_in_child]
 ```
 
-- **main.c**: `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
-- **Tokenizer**: `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `tokenizer_ops.c`, `continuation.c`.
-- **Parser**: `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
-- **Executor**: `execute_commands()` in `executor.c`; single command → `execute_single_command()` (builtin in parent, external forked); pipeline → `execute_pipeline()` in `executor_pipeline.c`; children run `execute_in_child()` in `executor_child.c`.
+- **main.c** (src/): `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
+- **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `tokenizer_ops.c`, `continuation.c`.
+- **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
+- **Executor** (src/executor/): `execute_commands()` in `executor.c`; single command → `execute_single_command()` (builtin in parent, external forked); pipeline → `execute_pipeline()` in `executor_pipeline.c`; children run `execute_in_child()` in `executor_child.c`.
 
 ---
 
@@ -206,15 +220,17 @@ init_shell(t_shell *shell, char **envp)
 
 **Implementation:** `main.c` → `shell_loop()` → `read_input()` → `process_input()`.
 
+**Input source:** When stdin is a TTY, `read_input()` uses `readline(prompt)` (history, editing). When stdin is not a TTY (e.g. pipe from the 42_minishell_tester), it uses `get_next_line(STDIN_FILENO)` from libft so each call returns exactly one line—no prompt, no readline. This matches how testers feed input line-by-line.
+
 ```mermaid
 flowchart TD
     START([shell_loop]) --> CHECK_SIG[check g_signum]
     CHECK_SIG --> READ[read_input]
     READ --> PROMPT{isatty?}
     PROMPT -->|yes| BUILD[build_prompt, readline]
-    PROMPT -->|no| SILENT[silent_readline]
-    BUILD --> GOT
-    SILENT --> GOT{input}
+    PROMPT -->|no| GNL[get_next_line]
+    BUILD --> GOT{input}
+    GNL --> GOT{input}
     GOT -->|NULL| EXIT[print exit, break]
     GOT -->|empty| RESET[reset_shell, continue]
     GOT -->|string| CHECK_SIG2[check g_signum again]
@@ -230,7 +246,7 @@ flowchart TD
 | Step | Code / behavior |
 |------|------------------|
 | 1 | `check_signal_received(shell)` — if SIGINT, set `last_exit=130`, reset `g_signum`. |
-| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `silent_readline()` (stdout to `/dev/null` during read). |
+| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `get_next_line(STDIN_FILENO)` (one line per call, no prompt). |
 | 3 | NULL → print `"exit"`, break; empty → skip processing; else continue. |
 | 4 | Check `g_signum` again (e.g. Ctrl+C during readline). |
 | 5 | Non-empty input is added to history inside `tokenize_input()` (before `free(shell->input)`). |
@@ -463,7 +479,7 @@ echo $USER_NAME         # (value of USER_NAME, not USER + _NAME)
 | `export A-B=x` | stderr "not a valid identifier" | invalid export |
 | `echo $` at end of line | No crash | expansion at end |
 
-Expansion runs during **tokenization** (see `expansion.c`, `expansion_utils.c`). Heredoc expansion is in `heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
+Expansion runs during **tokenization** (see `tokenizer/expansion.c`, `tokenizer/expansion_utils.c`). Heredoc expansion is in `parser/heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
 
 ---
 
@@ -501,7 +517,7 @@ typedef struct s_command
 
 - **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_argv()` builds `argv`, then `finalize_all_commands()` sets `is_builtin`.
 
-### 5.2 Parsing Flow (actual: `parser.c`, `add_token_to_cmd.c`)
+### 5.2 Parsing Flow (actual: `parser/parser.c`, `parser/add_token_to_cmd.c`)
 
 ```mermaid
 flowchart LR
@@ -515,8 +531,8 @@ flowchart LR
     F --> A2[argv + redirs]
 ```
 
-- **parser.c**: `parse_tokens()` walks tokens; on `PIPE` creates new command, else `consume_command_tokens()` → `add_token_to_command()` (WORD → `add_word_to_cmd`, redirs → `append_redir` / `handle_heredoc_token`).
-- **argv_build.c**: `finalize_all_commands()` → `finalize_argv()` (args list → `argv[]`), then `is_builtin(cmd->argv[0])` → `cmd->is_builtin`.
+- **parser/parser.c**: `parse_tokens()` walks tokens; on `PIPE` creates new command, else `consume_command_tokens()` → `add_token_to_command()` (WORD → `add_word_to_cmd`, redirs → `append_redir` / `handle_heredoc_token`).
+- **parser/argv_build.c**: `finalize_all_commands()` → `finalize_argv()` (args list → `argv[]`), then `is_builtin(cmd->argv[0])` → `cmd->is_builtin`.
 
 ### 5.3 Redirection Parsing (Right-to-Left for Multiple)
 
@@ -655,7 +671,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor.c` (`execute_commands`), `executor_utils.c` (redirections, `execute_builtin`), `executor_external.c`, `executor_pipeline.c`, `executor_child.c`.
+**Implementation:** `executor/executor.c` (`execute_commands`), `executor/executor_utils.c` (redirections, `execute_builtin`), `executor/executor_external.c`, `executor/executor_pipeline.c`, `executor/executor_child.c`.
 
 ### 7.1 Decision Tree (real code path)
 
@@ -716,7 +732,7 @@ flowchart TD
 
 **Simplification for 42:** Run ALL builtins in parent for single commands. It's easier and matches bash behavior.
 
-### 7.3 Single Command with Redirections (actual: `executor.c`)
+### 7.3 Single Command with Redirections (actual: `executor/executor.c`)
 
 ```c
 /* executor.c: execute_single_command() */
@@ -726,7 +742,7 @@ int execute_single_command(t_command *cmd, t_shell *shell)
     int stdout_backup = dup(STDOUT_FILENO);
     int status;
 
-    if (apply_redirections(cmd))  /* executor_utils.c; returns 1 on failure */
+    if (apply_redirections(cmd))  /* executor/executor_utils.c; returns 1 on failure */
     {
         restore_fds(stdin_backup, stdout_backup);
         return (1);
@@ -1178,31 +1194,31 @@ Reflects the **built** codebase; phase1 + hardening tests pass.
 ```
 Phase 1: Foundation
 ├── [x] Shell struct and initialization (core/init.c, structs.h)
-├── [x] Main loop with readline (main.c, silent_readline for non-TTY)
+├── [x] Main loop with readline (TTY) / get_next_line (non-TTY) (src/main.c)
 ├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
 Phase 2: Lexer & Parser
-├── [x] Tokenizer (tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c)
-├── [x] Quote handling (continuation.c for unclosed quotes)
-├── [x] Syntax validation (parser_syntax_check.c)
-└── [x] Command table construction (parser.c, add_token_to_cmd.c, argv_build.c)
+├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c, continuation.c)
+├── [x] Quote handling (tokenizer/continuation.c for unclosed quotes)
+├── [x] Syntax validation (parser/parser_syntax_check.c)
+└── [x] Command table construction (parser/parser.c, add_token_to_cmd.c, argv_build.c)
 
 Phase 3: Expander
-├── [x] Variable expansion (expansion.c, expansion_utils.c — $VAR, $?)
+├── [x] Variable expansion (tokenizer/expansion.c, tokenizer/expansion_utils.c — $VAR, $?)
 ├── [x] Exit status expansion ($?)
 ├── [x] Quote removal (during tokenization)
 └── [x] Edge case handling (e.g. $ at end, invalid names)
 
 Phase 4: Executor (Simple)
-├── [x] Single external command execution (executor_external.c)
+├── [x] Single external command execution (executor/executor_external.c)
 ├── [x] Path resolution (find_command_path in executor_external.c)
 ├── [x] Single builtin with redirections (execute_single_command, apply_redirections)
-└── [x] File redirections (executor_utils.c, apply_one_redir, heredoc_fd)
+└── [x] File redirections (executor/executor_utils.c, apply_one_redir, heredoc_fd)
 
 Phase 5: Pipes & Heredoc
-├── [x] Pipeline execution (executor_pipeline.c)
-├── [x] Heredoc implementation (heredoc.c, heredoc_utils.c)
+├── [x] Pipeline execution (executor/executor_pipeline.c)
+├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
 └── [x] Signal handling in children (wait_pipeline, exit codes 128+N)
 

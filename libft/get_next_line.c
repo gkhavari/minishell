@@ -1,21 +1,30 @@
 #include "get_next_line.h"
 
+static char	*gnl_clear_and_return_null(t_buffer **stash_ptr, char *line)
+{
+	free_stash_list(*stash_ptr);
+	*stash_ptr = NULL;
+	if (line)
+		free(line);
+	return (NULL);
+}
+
 char	*get_next_line(int fd)
 {
 	static t_buffer	*stash;
 	char			*line;
 
 	if (fd < 0 || BUFFER_SIZE <= 0 || read(fd, NULL, 0) < 0)
-		return (free_stash_list(stash), NULL);
+		return (gnl_clear_and_return_null(&stash, NULL));
 	if (read_to_stash(fd, &stash) == ERROR)
-		return (free_stash_list(stash), NULL);
+		return (gnl_clear_and_return_null(&stash, NULL));
 	if (!stash)
 		return (NULL);
 	line = build_line_from_stash(stash);
 	if (cleanup_stash(&stash) == ERROR)
-		return (free_stash_list(stash), free(line), NULL);
-	if (!line || (line && line[0] == '\0'))
-		return (free_stash_list(stash), free(line), NULL);
+		return (gnl_clear_and_return_null(&stash, line));
+	if (!line || line[0] == '\0')
+		return (gnl_clear_and_return_null(&stash, line));
 	return (line);
 }
 
