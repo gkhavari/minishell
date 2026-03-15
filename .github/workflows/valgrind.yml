@@ -93,22 +93,28 @@ jobs:
           mand_total=$(echo "$mand_log" | grep -oP 'TOTAL TEST COUNT:\s*\K[0-9]+' | tail -1 || echo "0")
           mand_pass=$(echo "$mand_log"  | grep -oP 'TESTS PASSED:\s*\K[0-9]+'   | tail -1 || echo "0")
           mand_fail=$((mand_total - mand_pass))
-          [ "$mand_fail" -lt 0 ] 2>/dev/null && mand_fail=0
-          # Fallback: count ✅ / ❌ lines (test lines with any pass/fail) if RESULT block not found
+          # Fallback when RESULT block missing (both 0) or inconsistent (e.g. total missing but pass found → mand_fail < 0)
           if [ "${mand_total:-0}" -eq 0 ] && [ "${mand_pass:-0}" -eq 0 ]; then
             mand_pass=$(echo "$mand_log" | grep -c '✅' 2>/dev/null || echo "0")
             mand_fail=$(echo "$mand_log" | grep -c '❌' 2>/dev/null || echo "0")
+          elif [ "${mand_fail:-0}" -lt 0 ]; then
+            mand_pass=$(echo "$mand_log" | grep -c '✅' 2>/dev/null || echo "0")
+            mand_fail=$(echo "$mand_log" | grep -c '❌' 2>/dev/null || echo "0")
           fi
+          [ "${mand_fail:-0}" -lt 0 ] 2>/dev/null && mand_fail=0
 
           valg_total=$(echo "$valg_log" | grep -oP 'TOTAL TEST COUNT:\s*\K[0-9]+' | tail -1 || echo "0")
           valg_pass=$(echo "$valg_log"  | grep -oP 'TESTS PASSED:\s*\K[0-9]+'   | tail -1 || echo "0")
           valg_fail=$((valg_total - valg_pass))
-          [ "$valg_fail" -lt 0 ] 2>/dev/null && valg_fail=0
           valg_leaks=$(echo "$valg_log" | grep -oP 'LEAKING:\s*\K[0-9]+' | tail -1 || echo "0")
           if [ "${valg_total:-0}" -eq 0 ] && [ "${valg_pass:-0}" -eq 0 ]; then
             valg_pass=$(echo "$valg_log" | grep -c '✅' 2>/dev/null || echo "0")
             valg_fail=$(echo "$valg_log" | grep -c '❌' 2>/dev/null || echo "0")
+          elif [ "${valg_fail:-0}" -lt 0 ]; then
+            valg_pass=$(echo "$valg_log" | grep -c '✅' 2>/dev/null || echo "0")
+            valg_fail=$(echo "$valg_log" | grep -c '❌' 2>/dev/null || echo "0")
           fi
+          [ "${valg_fail:-0}" -lt 0 ] 2>/dev/null && valg_fail=0
 
           mand_ok=$mand_pass
           mand_ko=$mand_fail
