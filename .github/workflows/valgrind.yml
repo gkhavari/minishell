@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -67,6 +67,45 @@ jobs:
       - name: Build valgrind summary report
         if: always()
         run: |
+          # --- Counts (strip ANSI for parsing) ---
+          strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
+          phase1_log=$(cat /tmp/phase1.log 2>/dev/null | strip_ansi)
+          hard_log=$(cat /tmp/hardening.log 2>/dev/null | strip_ansi)
+          mand_log=$(cat /tmp/mandatory.log 2>/dev/null | strip_ansi)
+          valg_log=$(cat /tmp/valgrind.log 2>/dev/null | strip_ansi)
+
+          phase1_pass=$(echo "$phase1_log" | grep -oP 'Passed:\s*\K[0-9]+' | tail -1 || echo "0")
+          phase1_fail=$(echo "$phase1_log" | grep -oP 'Failed:\s*\K[0-9]+' | tail -1 || echo "0")
+          hard_pass=$(echo "$hard_log"   | grep -oP 'Passed:\s*\K[0-9]+' | tail -1 || echo "0")
+          hard_fail=$(echo "$hard_log"   | grep -oP 'Failed:\s*\K[0-9]+' | tail -1 || echo "0")
+          # 42_minishell_tester uses ✅ (pass) and ❌ (fail); final block has "TESTS PASSED: N" and "❌ N"
+          mand_total=$(echo "$mand_log" | grep -oP 'TOTAL TEST COUNT:\s*\K[0-9]+' | tail -1 || echo "0")
+          mand_pass=$(echo "$mand_log"  | grep -oP 'TESTS PASSED:\s*\K[0-9]+'   | tail -1 || echo "0")
+          mand_fail=$((mand_total - mand_pass))
+          [ "$mand_fail" -lt 0 ] 2>/dev/null && mand_fail=0
+          # Fallback: count ✅ / ❌ lines (test lines with any pass/fail) if RESULT block not found
+          if [ "${mand_total:-0}" -eq 0 ] && [ "${mand_pass:-0}" -eq 0 ]; then
+            mand_pass=$(echo "$mand_log" | grep -c '✅' 2>/dev/null || echo "0")
+            mand_fail=$(echo "$mand_log" | grep -c '❌' 2>/dev/null || echo "0")
+          fi
+
+          valg_total=$(echo "$valg_log" | grep -oP 'TOTAL TEST COUNT:\s*\K[0-9]+' | tail -1 || echo "0")
+          valg_pass=$(echo "$valg_log"  | grep -oP 'TESTS PASSED:\s*\K[0-9]+'   | tail -1 || echo "0")
+          valg_fail=$((valg_total - valg_pass))
+          [ "$valg_fail" -lt 0 ] 2>/dev/null && valg_fail=0
+          valg_leaks=$(echo "$valg_log" | grep -oP 'LEAKING:\s*\K[0-9]+' | tail -1 || echo "0")
+          if [ "${valg_total:-0}" -eq 0 ] && [ "${valg_pass:-0}" -eq 0 ]; then
+            valg_pass=$(echo "$valg_log" | grep -c '✅' 2>/dev/null || echo "0")
+            valg_fail=$(echo "$valg_log" | grep -c '❌' 2>/dev/null || echo "0")
+          fi
+
+          mand_ok=$mand_pass
+          mand_ko=$mand_fail
+          valg_ok=$valg_pass
+          valg_ko=$valg_fail
+          def_lost=$(echo "$valg_log" | grep -oP 'definitely lost: \K[0-9]+' | head -1 || echo "0")
+          err_summary=$(echo "$valg_log" | grep -oP 'ERROR SUMMARY: \K[0-9]+' | head -1 || echo "0")
+
           {
             echo "## Minishell Valgrind Report"
             echo ""
@@ -74,21 +113,60 @@ jobs:
             echo "**Commit:** ${{ github.sha }}"
             echo "**Date:** $(date -u)"
             echo ""
-            echo "### Local Hardening Tests"
+            echo "### Summary"
+            echo "| Suite | Passed | Failed |"
+            echo "|-------|--------|--------|"
+            echo "| Phase 1 (local) | $phase1_pass | $phase1_fail |"
+            echo "| Hardening (local) | $hard_pass | $hard_fail |"
+            echo "| Mandatory (no valgrind) | $mand_ok | $mand_ko |"
+            echo "| Mandatory + Valgrind | $valg_ok | $valg_ko |"
+            echo ""
+            echo "**Valgrind:** \`definitely lost: $def_lost\` · \`ERROR SUMMARY: $err_summary\` · \`LEAKING (tester): $valg_leaks\`"
+            echo ""
+            echo "---"
+            echo ""
+            echo "### Failures (grep)"
+            echo ""
+            echo "#### Phase 1 failures"
+            echo '```'
+            echo "$phase1_log" | grep -E '\[FAIL\]|FAIL' 2>/dev/null | head -30 || echo "(none or no log)"
+            echo '```'
+            echo ""
+            echo "#### Hardening failures"
+            echo '```'
+            echo "$hard_log" | grep -E '\[FAIL\]|FAIL' 2>/dev/null | head -30 || echo "(none or no log)"
+            echo '```'
+            echo ""
+            echo "#### Mandatory test failures (no valgrind) — lines with ❌"
+            echo '```'
+            echo "$mand_log" | grep '❌' 2>/dev/null | head -50 || echo "(none or no log)"
+            echo '```'
+            echo ""
+            echo "#### Mandatory + Valgrind failures — lines with ❌"
+            echo '```'
+            echo "$valg_log" | grep '❌' 2>/dev/null | head -50 || echo "(none or no log)"
+            echo '```'
+            echo ""
+            echo "#### Valgrind issues (leaks / errors)"
+            echo '```'
+            echo "$valg_log" | grep -E 'definitely lost|possibly lost|ERROR SUMMARY|Invalid read|Invalid write' 2>/dev/null | head -50 || echo "(none or no log)"
+            echo '```'
+            echo ""
+            echo "---"
+            echo ""
+            echo "### Local Hardening (last 20 lines)"
             echo '```'
             tail -20 /tmp/hardening.log 2>/dev/null || echo "(no output)"
             echo '```'
             echo ""
-            echo "### Mandatory Tests (no valgrind)"
+            echo "### Mandatory Tests (no valgrind) — RESULT block + ✅/❌ lines"
             echo '```'
-            grep -E '(OK|KO|PASS|FAIL|passed|failed|Total)' /tmp/mandatory.log \
-              2>/dev/null | tail -40 || echo "(no output)"
+            echo "$mand_log" | grep -E 'RESULT|TOTAL TEST COUNT|TESTS PASSED|LEAKING|❌|✅' 2>/dev/null | tail -50 || echo "(no output)"
             echo '```'
             echo ""
-            echo "### Valgrind Results"
+            echo "### Valgrind Results — RESULT block + leak/error lines"
             echo '```'
-            grep -E '(ERROR SUMMARY|definitely lost|possibly lost|KO|OK)' \
-              /tmp/valgrind.log 2>/dev/null | tail -60 || echo "(no output)"
+            echo "$valg_log" | grep -E 'RESULT|TOTAL TEST COUNT|TESTS PASSED|LEAKING|ERROR SUMMARY|definitely lost|possibly lost|❌|✅' 2>/dev/null | tail -80 || echo "(no output)"
             echo '```'
           } > valgrind_report.md
 
