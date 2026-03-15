@@ -29,21 +29,34 @@ static void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 static char	*read_heredoc_line(void)
 {
 	char	*line;
+	char	c;
+	int		ret;
 	size_t	len;
 
 	if (isatty(STDIN_FILENO))
 		return (readline("> "));
-	/* Non-interactive: use get_next_line to share GNL's internal buffer
-	** with the main loop's read_input, which also uses GNL. Using raw
-	** read() here would see EOF because GNL already consumed stdin. */
-	line = get_next_line(STDIN_FILENO);
+	line = ft_strdup("");
 	if (!line)
 		return (NULL);
-	/* Strip trailing newline that GNL appends */
-	len = ft_strlen(line);
-	if (len > 0 && line[len - 1] == '\n')
-		line[len - 1] = '\0';
-	return (line);
+	len = 0;
+	while (1)
+	{
+		ret = read(STDIN_FILENO, &c, 1);
+		if (ret <= 0)
+		{
+			if (len == 0)
+				return (free(line), NULL);
+			return (line);
+		}
+		if (c == '\n')
+			return (line);
+		line = ft_realloc(line, len + 2);
+		if (!line)
+			return (NULL);
+		line[len] = c;
+		line[len + 1] = '\0';
+		len++;
+	}
 }
 
 static int	heredoc_read_loop(t_command *cmd, t_shell *shell, int *pipe_fd,
