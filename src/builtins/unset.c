@@ -77,42 +77,43 @@ static void	remove_env_entry(t_shell *shell, int idx)
 	shell->envp[i] = NULL;
 }
 
-/*
-** builtin_unset - Remove environment variables
-** @args: command arguments (args[1..n] = var names)
-** @shell: shell state
-** Return: 0 on success, 1 if any invalid identifier
-*/
+static int	unset_one_arg(char *arg, t_shell *shell)
+{
+	int	idx;
+
+	if (arg[0] == '-')
+	{
+		ft_putstr_fd("minishell: unset: -", 2);
+		ft_putstr_fd(arg + 1, 2);
+		ft_putendl_fd(": invalid option", 2);
+		return (2);
+	}
+	if (!is_valid_unset_name(arg))
+	{
+		ft_putstr_fd("minishell: unset: '", 2);
+		ft_putstr_fd(arg, 2);
+		ft_putendl_fd("': not a valid identifier", 2);
+		return (1);
+	}
+	idx = find_env_index(shell, arg);
+	if (idx >= 0)
+		remove_env_entry(shell, idx);
+	return (0);
+}
+
 int	builtin_unset(char **args, t_shell *shell)
 {
 	int	i;
-	int	idx;
 	int	ret;
+	int	r;
 
 	i = 1;
 	ret = 0;
 	while (args[i])
 	{
-		if (args[i][0] == '-')
-		{
-			ft_putstr_fd("minishell: unset: -", 2);
-			ft_putstr_fd(args[i] + 1, 2);
-			ft_putendl_fd(": invalid option", 2);
-			ret = 2;
-		}
-		else if (!is_valid_unset_name(args[i]))
-		{
-			ft_putstr_fd("minishell: unset: '", 2);
-			ft_putstr_fd(args[i], 2);
-			ft_putendl_fd("': not a valid identifier", 2);
-			ret = 1;
-		}
-		else
-		{
-			idx = find_env_index(shell, args[i]);
-			if (idx >= 0)
-				remove_env_entry(shell, idx);
-		}
+		r = unset_one_arg(args[i], shell);
+		if (r > ret)
+			ret = r;
 		i++;
 	}
 	return (ret);

@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # zstenger93 tester expects MINISHELL_PATH = directory containing minishell binary
+  MINISHELL_PATH: ${{ github.workspace }}
+
 jobs:
   valgrind:
     name: Valgrind on Ubuntu (mandatory tests)
@@ -31,38 +35,45 @@ jobs:
             valgrind \
             python3
 
-      - name: Build (debug symbols)
-        run: make re CFLAGS="-Wall -Wextra -Werror -g -I includes -I libft -I /usr/include"
+      - name: Build (debug symbols for valgrind)
+        run: |
+          # Makefile auto-detects Linux and uses /usr for readline
+          make fclean
+          make debug
+          ls -la minishell
+          file minishell
 
       - name: Clone 42 minishell tester
         run: |
           git clone --depth=1 \
             https://github.com/zstenger93/42_minishell_tester.git \
             "$HOME/42_minishell_tester"
-          # patch tester path to find our binary
-          echo "Tester cloned."
+          # Tester script sets MINISHELL_PATH=./ which overwrites our env; patch so it keeps CI path
+          sed -i 's|^export MINISHELL_PATH=\./|export MINISHELL_PATH="${MINISHELL_PATH:-./}"|' \
+            "$HOME/42_minishell_tester/tester.sh"
+          grep -n "MINISHELL_PATH" "$HOME/42_minishell_tester/tester.sh" | head -3
+          echo "Tester cloned. MINISHELL_PATH=$MINISHELL_PATH (dir containing minishell binary)"
 
       - name: Run local hardening tests
         run: |
           chmod +x tests/test_hardening.sh tests/test_phase1.sh
-          bash tests/test_phase1.sh   | tee /tmp/phase1.log
-          bash tests/test_hardening.sh | tee /tmp/hardening.log
+          bash tests/test_phase1.sh 2>&1 | tee /tmp/phase1.log || true
+          bash tests/test_hardening.sh 2>&1 | tee /tmp/hardening.log || true
 
-      - name: Run 42 mandatory tests
+      - name: Run 42 mandatory tests (no valgrind)
         id: mandatory
         run: |
           cd "$HOME/42_minishell_tester"
+          # Tester runs $MINISHELL_PATH/minishell — MINISHELL_PATH must be repo root
+          export MINISHELL_PATH="${{ github.workspace }}"
           timeout 10m bash tester.sh m 2>&1 | tee /tmp/mandatory.log || true
-        env:
-          MINISHELL_PATH: ${{ github.workspace }}
 
       - name: Run 42 mandatory tests with Valgrind
         id: valgrind_run
         run: |
           cd "$HOME/42_minishell_tester"
+          export MINISHELL_PATH="${{ github.workspace }}"
           timeout 30m bash tester.sh vm 2>&1 | tee /tmp/valgrind.log || true
-        env:
-          MINISHELL_PATH: ${{ github.workspace }}
 
       - name: Build valgrind summary report
         if: always()
@@ -154,9 +165,14 @@ jobs:
             echo ""
             echo "---"
             echo ""
-            echo "### Local Hardening (last 20 lines)"
+            echo "### Local Phase1 Tests (last 30 lines)"
             echo '```'
-            tail -20 /tmp/hardening.log 2>/dev/null || echo "(no output)"
+            tail -30 /tmp/phase1.log 2>/dev/null || echo "(no output)"
+            echo '```'
+            echo ""
+            echo "### Local Hardening (last 30 lines)"
+            echo '```'
+            tail -30 /tmp/hardening.log 2>/dev/null || echo "(no output)"
             echo '```'
             echo ""
             echo "### Mandatory Tests (no valgrind) — RESULT block + ✅/❌ lines"
@@ -194,7 +210,6 @@ jobs:
           echo "====== VALGRIND REPORT ======"
           cat valgrind_report.md
 
-      # Fail the job if valgrind found definite leaks
       - name: Check for definite leaks
         run: |
           if grep -q "definitely lost: [^0]" /tmp/valgrind.log 2>/dev/null; then

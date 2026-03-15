@@ -69,7 +69,7 @@ void	append_expansion_quoted(char **word, const char *exp)
  * t_token **tokens: Pointer to the head of the token list. Complete words are 
  	flushed to this list when whitespace is encountered.
  */
-void	append_expansion_unquoted(char **word, const char *exp,
+void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		t_token **tokens)
 {
 	size_t	i;
@@ -82,11 +82,11 @@ void	append_expansion_unquoted(char **word, const char *exp,
 		if (exp[i] == ' ' || exp[i] == '\t')
 		{
 			if (*word)
-				flush_word(word, tokens);
+				flush_word(shell, word, tokens);
 			while (exp[i] == ' ' || exp[i] == '\t')
 				i++;
 		}
 		else
-			process_normal_char(exp[i], &i, word);
+			process_normal_char(shell, exp[i], &i, word);
 	}
 }

@@ -26,10 +26,10 @@ static void	handle_heredoc_token(t_command *cmd, t_token *token)
 }
 
 /*
-** append_out_redir - Append an output redirection to the command's list.
-** Builds a linked list so all output redirections are applied in order.
+** append_redir - Append a redirection node to cmd->redirs (ordered list).
+** is_input=1 for <, is_input=0 for > or >>. append=1 for >>.
 */
-static void	append_out_redir(t_command *cmd, char *file, int append)
+static void	append_redir(t_command *cmd, char *file, int is_input, int append)
 {
 	t_redir	*r;
 	t_redir	*tmp;
@@ -38,55 +38,29 @@ static void	append_out_redir(t_command *cmd, char *file, int append)
 	if (!r)
 		return ;
 	r->file = ft_strdup(file);
+	r->is_input = is_input;
 	r->append = append;
 	r->next = NULL;
-	if (!cmd->out_redirs)
-		cmd->out_redirs = r;
+	if (!cmd->redirs)
+		cmd->redirs = r;
 	else
 	{
-		tmp = cmd->out_redirs;
+		tmp = cmd->redirs;
 		while (tmp->next)
 			tmp = tmp->next;
 		tmp->next = r;
 	}
 }
 
-/*
-** add_token_to_command - Dispatch a token into the command structure
-** WORD tokens become command arguments.
-** Redirection tokens (< > >> <<) set the appropriate file/delimiter.
-** Note: parse_tokens() already skips the filename WORD after redirections.
-*/
-void	add_token_to_command(t_command *cmd, t_token *token)
-{
-	if (token->type == WORD)
-		add_word_to_cmd(cmd, token->value);
-	else if (token->type == REDIR_IN)
-	{
-		free(cmd->input_file);
-		cmd->input_file = ft_strdup(token->next->value);
-	}
-	else if (token->type == REDIR_OUT)
-		append_out_redir(cmd, token->next->value, 0);
-	else if (token->type == APPEND)
-		append_out_redir(cmd, token->next->value, 1);
-	else if (token->type == HEREDOC)
-		handle_heredoc_token(cmd, token);
-}
-
-/*
-** add_word_to_cmd - Append a word to the command's argument list
-** Builds a linked list of t_arg nodes, which finalize_argv() converts
-** to a char** array for execve.
-*/
-void	add_word_to_cmd(t_command *cmd, char *word)
+/**
+ * Appends a new argument to the command's argument list.
+ */
+static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 {
 	t_arg	*new;
 	t_arg	*tmp;
 
-	new = malloc(sizeof(t_arg));
-	if (!new)
-		return ;
+	new = msh_calloc(shell, 1, sizeof(t_arg));
 	new->value = ft_strdup(word);
 	new->next = NULL;
 	if (!cmd->args)
@@ -98,4 +72,34 @@ void	add_word_to_cmd(t_command *cmd, char *word)
 			tmp = tmp->next;
 		tmp->next = new;
 	}
+}
+
+/*
+** add_token_to_command - Dispatch a token into the command structure
+** WORD tokens become command arguments.
+** Redirection tokens (< > >> <<) set the appropriate file/delimiter.
+** Note: parse_tokens() already skips the filename WORD after redirections.
+** Returns: 1 for WORD, 2 for redir/heredoc, FAILURE on error.
+*/
+int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
+{
+	if (token->type == WORD)
+	{
+		add_word_to_cmd(shell, cmd, token->value);
+		return (1);
+	}
+	if (token->type == HEREDOC)
+	{
+		handle_heredoc_token(cmd, token);
+		return (2);
+	}
+	if (token->type == REDIR_IN)
+		append_redir(cmd, token->next->value, 1, 0);
+	else if (token->type == REDIR_OUT)
+		append_redir(cmd, token->next->value, 0, 0);
+	else if (token->type == APPEND)
+		append_redir(cmd, token->next->value, 0, 1);
+	else
+		return (1);
+	return (2);
 }

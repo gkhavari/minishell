@@ -36,7 +36,7 @@ int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
 		return (0);
-	process_normal_char(shell->input[*i], i, word);
+	process_normal_char(shell, shell->input[*i], i, word);
 	return (1);
 }
 
@@ -83,6 +83,12 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 		free(expanded);
 		return (1);
 	}
-	process_normal_char(shell->input[*i], i, word);
+	if (shell->input[*i] == '\\' && shell->input[*i + 1] == '$')
+	{
+		append_char(shell, word, '$');
+		*i += 2;
+		return (1);
+	}
+	process_normal_char(shell, shell->input[*i], i, word);
 	return (1);
 }

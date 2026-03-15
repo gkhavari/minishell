@@ -179,7 +179,7 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	if (shell->input[*i] != '$')
 		return (0);
 	expanded = expand_var(shell, i);
-	append_expansion_unquoted(word, expanded, &shell->tokens);
+	append_expansion_unquoted(shell, word, expanded, &shell->tokens);
 	free(expanded);
 	return (1);
 }
@@ -198,7 +198,7 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	home = get_env_value(shell->envp, "HOME");
 	if (!home)
 		home = "";
-	append_expansion_unquoted(word, home, &shell->tokens);
+	append_expansion_unquoted(shell, word, home, &shell->tokens);
 	(*i)++;
 	return (1);
 }

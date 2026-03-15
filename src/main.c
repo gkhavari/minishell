@@ -109,12 +109,7 @@ static void	shell_loop(t_shell *shell)
 			process_input(shell);
 		if (!shell->commands && shell->last_exit == 2)
 			syntax_err = 1;
-		free_commands(shell->commands);
-		shell->commands = NULL;
-		free_tokens(shell->tokens);
-		shell->tokens = NULL;
-		free(shell->input);
-		shell->input = NULL;
+		reset_shell(shell);
 		if (!isatty(STDIN_FILENO) && syntax_err)
 			break ;
 	}

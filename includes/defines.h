@@ -13,6 +13,9 @@
 #ifndef DEFINES_H
 # define DEFINES_H
 
+# define SUCCESS 0
+# define FAILURE -1
+
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"
 # define PROMPT_SUFFIX "$ "
@@ -21,5 +24,13 @@
 
 # define SINGLE_QUOTE 39
 # define DOUBLE_QUOTE 34
+
+/*SYNTAX CHECK*/
+# define SYNTAX_OK 0
+# define SYNTAX_ERR 1
+
+/*EXIT CODES*/
+# define EXIT_SYNTAX_ERROR 2
+# define EXIT_SIGINT 130
 
 #endif

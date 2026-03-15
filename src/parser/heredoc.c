@@ -30,6 +30,7 @@ static char	*read_heredoc_line(void)
 {
 	char	c;
 	char	*line;
+	char	*tmp;
 	size_t	len;
 
 	if (isatty(STDIN_FILENO))
@@ -40,12 +41,12 @@ static char	*read_heredoc_line(void)
 	{
 		if (c == '\n')
 			return (line);
-		line = ft_realloc(line, len + 2);
-		if (line)
-		{
-			line[len++] = c;
-			line[len] = '\0';
-		}
+		tmp = ft_realloc(line, len + 2);
+		if (!tmp)
+			return (line);
+		line = tmp;
+		line[len++] = c;
+		line[len] = '\0';
 	}
 	if (len == 0)
 		return (free(line), NULL);

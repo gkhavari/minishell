@@ -5,22 +5,30 @@
 NAME        = minishell
 
 CC          = cc
-RL_DIR		= /opt/homebrew/opt/readline
+# Linux (CI): readline from /usr; macOS Homebrew: /opt/homebrew/opt/readline
+UNAME_S     = $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+  RL_DIR    = /usr
+  RLFLAGS   = -L$(RL_DIR)/lib -L/usr/lib/x86_64-linux-gnu -lreadline -lncurses
+else
+  RL_DIR    = /opt/homebrew/opt/readline
+  RLFLAGS   = -L$(RL_DIR)/lib -lreadline -lncurses
+endif
 CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -I$(RL_DIR)/include
 
 SRC_DIR     = src
 OBJ_DIR     = obj
 INCLUDES 	= includes
 LIBFT_DIR	= libft
-RLFLAGS		= -L$(RL_DIR)/lib -lreadline -lncurses
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
 # main
 SRCS		=	$(SRC_DIR)/main.c \
 				$(SRC_DIR)/init.c \
 				$(SRC_DIR)/utils.c \
-				$(SRC_DIR)/free.c \
-				$(SRC_DIR)/free_utils.c
+				$(SRC_DIR)/free_utils.c \
+				$(SRC_DIR)/free_runtime.c \
+				$(SRC_DIR)/free_shell.c 
 
 # signals
 SRCS		+=	$(SRC_DIR)/signals/signal_handler.c \
@@ -44,6 +52,8 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
+
+# utils (ft_arrdup is in utils.c; arrdup.c removed to avoid duplicate symbol)
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \

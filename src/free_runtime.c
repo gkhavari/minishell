@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   free.c                                             :+:      :+:    :+:   */
+/*   free_runtime.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -46,45 +46,17 @@ void	free_commands(t_command *cmd)
 
 	while (cmd)
 	{
+		if (cmd->heredoc_fd != -1)
+			close(cmd->heredoc_fd);
 		tmp = cmd->next;
 		free_args(cmd->args);
 		free_argv(cmd->argv);
-		free(cmd->input_file);
-		free_out_redirs(cmd->out_redirs);
-		free(cmd->heredoc_delim);
-		if (cmd->heredoc_fd != -1)
-			close(cmd->heredoc_fd);
+		free_out_redirs(cmd->redirs);
+		if (cmd->heredoc_delim)
+			free(cmd->heredoc_delim);
 		free(cmd);
 		cmd = tmp;
 	}
 }
 
-static void	free_envp(char **envp)
-{
-	int	i;
-
-	if (!envp)
-		return ;
-	i = 0;
-	while (envp[i])
-	{
-		free(envp[i]);
-		i++;
-	}
-	free(envp);
-}
-
-void	free_all(t_shell *shell)
-{
-	if (!shell)
-		return ;
-	if (shell->tokens)
-		free_tokens(shell->tokens);
-	if (shell->commands)
-		free_commands(shell->commands);
-	if (shell->envp)
-		free_envp(shell->envp);
-	free(shell->user);
-	free(shell->cwd);
-	free(shell->input);
-}
+/* free_all is in free_shell.c to avoid duplicate symbol */

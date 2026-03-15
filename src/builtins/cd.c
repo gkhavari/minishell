@@ -17,7 +17,7 @@ static char	*get_cd_target(char **args, t_shell *shell, int *print)
 	char	*target;
 
 	*print = 0;
-	if (!args[1])
+	if (!args[1] || ft_strcmp(args[1], "--") == 0)
 	{
 		target = get_env_value(shell->envp, "HOME");
 		if (!target)
@@ -100,6 +100,11 @@ int	builtin_cd(char **args, t_shell *shell)
 	char	*old_pwd;
 	int		print;
 
+	if (args[1] && args[2])
+	{
+		ft_putendl_fd("minishell: cd: too many arguments", 2);
+		return (1);
+	}
 	target = get_cd_target(args, shell, &print);
 	if (!target)
 		return (1);

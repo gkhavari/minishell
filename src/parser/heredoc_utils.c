@@ -55,7 +55,7 @@ char	*expand_heredoc_line(char *line, t_shell *shell)
 			free(val);
 		}
 		else
-			append_char(&result, line[i++]);
+			append_char(shell, &result, line[i++]);
 	}
 	return (result);
 }
