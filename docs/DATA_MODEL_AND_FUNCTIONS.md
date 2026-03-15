@@ -181,9 +181,9 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **main.c** | `read_input(shell)` | Reads one line: TTY → `build_prompt()` + `readline()`; non-TTY → `silent_readline()`. Returns 1=ok, 0=EOF, -1=signal. (static) |
 | **main.c** | `silent_readline()` | Calls `readline("")` with stdout redirected to `/dev/null` (non-interactive). (static) |
 | **main.c** | `shell_loop(shell)` | REPL: while(1) { check_signal, read_input, process_input if non-empty, reset_shell }. (static) |
-| **init.c** | `get_env_value(envp, key)` | Returns pointer to value part of `KEY=value` in `envp`, or NULL. |
-| **init.c** | `build_prompt(shell)` | Builds `"USER@minishell:CWD$ "` from shell->user/cwd; uses defaults if NULL. |
-| **init.c** | `init_shell(shell, envp)` | Sets envp (dup), user, cwd, last_exit=0, tokens/commands/input=NULL. |
+| **core/init.c** | `get_env_value(envp, key)` | Returns pointer to value part of `KEY=value` in `envp`, or NULL. |
+| **core/init.c** | `build_prompt(shell)` | Builds `"USER@minishell:CWD$ "` from shell->user/cwd; uses defaults if NULL. |
+| **core/init.c** | `init_shell(shell, envp)` | Sets envp (dup), user, cwd, last_exit=0, tokens/commands/input=NULL. |
 
 ---
 
@@ -191,10 +191,10 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **utils.c** | `ft_strcat(dest, src)` | Appends `src` to `dest` in place. |
-| **utils.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
-| **utils.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
-| **utils.c** | `msh_calloc(shell, nmemb, size)` | Like calloc; on failure calls `free_all(shell)` and exit. |
+| **utils/utils.c** | `ft_strcat(dest, src)` | Appends `src` to `dest` in place. |
+| **utils/utils.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
+| **utils/utils.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
+| **utils/utils.c** | `msh_calloc(shell, nmemb, size)` | Like calloc; on failure calls `free_all(shell)` and exit. |
 
 ---
 
@@ -303,11 +303,11 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **signal_handler.c** | `handle_child_exit(last_exit_status, pid)` | Waitpid; sets *last_exit_status from WEXITSTATUS or 128+signal. |
 | **signal_utils.c** | `readline_event_hook()` | Readline hook: sets g_signum on SIGINT. |
 | **signal_utils.c** | `check_signal_received(shell)` | If g_signum==SIGINT, sets shell->last_exit=130 and clears g_signum; returns 1 if signal was seen. |
-| **free_utils.c** | `free_tokens(token)` | Frees entire token list and their values. |
-| **free_utils.c** | `free_args(arg)` | Frees entire t_arg list and their values. |
-| **free_runtime.c** | `free_commands(cmd)` | Frees command list: args, argv, redirs, heredoc_delim, and nodes. |
-| **free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; sets pointers to NULL (per-line cleanup). |
-| **free_shell.c** | `free_all(shell)` | Full teardown: tokens, commands, envp, user, cwd, input. |
+| **free/free_utils.c** | `free_tokens(token)` | Frees entire token list and their values. |
+| **free/free_utils.c** | `free_args(arg)` | Frees entire t_arg list and their values. |
+| **free/free_runtime.c** | `free_commands(cmd)` | Frees command list: args, argv, redirs, heredoc_delim, and nodes. |
+| **free/free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; sets pointers to NULL (per-line cleanup). |
+| **free/free_shell.c** | `free_all(shell)` | Full teardown: tokens, commands, envp, user, cwd, input. |
 
 ---
 

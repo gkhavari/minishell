@@ -54,10 +54,6 @@ jobs:
           (cd minishell_tester && grep -n "MINISHELL_PATH\|RUNDIR" tester.sh | head -5)
           echo "Tester cloned. MINISHELL_PATH=$MINISHELL_PATH"
 
-      - name: Run local test suite (LucasKuhn + project local_tests)
-        run: |
-          make -C tests test 2>&1 | tee /tmp/local_suite.log || true
-
       - name: Run 42 mandatory tests (no valgrind)
         id: mandatory
         run: |
@@ -77,16 +73,10 @@ jobs:
         run: |
           # --- Counts (strip ANSI for parsing) ---
           strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
-          local_log=$(cat /tmp/local_suite.log 2>/dev/null | strip_ansi)
           mand_log=$(cat /tmp/mandatory.log 2>/dev/null | strip_ansi)
           valg_log=$(cat /tmp/valgrind.log 2>/dev/null | strip_ansi)
 
-          # LucasKuhn tester uses ✅ / ❌ per test
-          phase1_pass=$(echo "$local_log" | grep -c '✅' 2>/dev/null || echo "0")
-          phase1_fail=$(echo "$local_log" | grep -c '❌' 2>/dev/null || echo "0")
-          hard_pass=$phase1_pass
-          hard_fail=$phase1_fail
-          # 42_minishell_tester uses ✅ (pass) and ❌ (fail); final block has "TESTS PASSED: N" and "❌ N"
+          # 42_minishell_tester: RESULT block has TOTAL TEST COUNT, TESTS PASSED, LEAKING
           mand_total=$(echo "$mand_log" | grep -oP 'TOTAL TEST COUNT:\s*\K[0-9]+' | tail -1 || echo "0")
           mand_pass=$(echo "$mand_log"  | grep -oP 'TESTS PASSED:\s*\K[0-9]+'   | tail -1 || echo "0")
           mand_fail=$((mand_total - mand_pass))
@@ -130,7 +120,6 @@ jobs:
             echo "### Summary"
             echo "| Suite | Passed | Failed |"
             echo "|-------|--------|--------|"
-            echo "| Local (Lucas + project) | $phase1_pass | $phase1_fail |"
             echo "| Mandatory (no valgrind) | $mand_ok | $mand_ko |"
             echo "| Mandatory + Valgrind | $valg_ok | $valg_ko |"
             echo ""
@@ -139,11 +128,6 @@ jobs:
             echo "---"
             echo ""
             echo "### Failures (grep)"
-            echo ""
-            echo "#### Local suite failures (Lucas + project)"
-            echo '```'
-            echo "$local_log" | grep '❌' 2>/dev/null | head -40 || echo "(none or no log)"
-            echo '```'
             echo ""
             echo "#### Mandatory test failures (no valgrind) — lines with ❌"
             echo '```'
@@ -161,11 +145,6 @@ jobs:
             echo '```'
             echo ""
             echo "---"
-            echo ""
-            echo "### Local suite (last 50 lines)"
-            echo '```'
-            tail -50 /tmp/local_suite.log 2>/dev/null || echo "(no output)"
-            echo '```'
             echo ""
             echo "### Mandatory Tests (no valgrind) — RESULT block + ✅/❌ lines"
             echo '```'
@@ -191,8 +170,6 @@ jobs:
         with:
           name: test-logs-${{ github.sha }}
           path: |
-            /tmp/phase1.log
-            /tmp/hardening.log
             /tmp/mandatory.log
             /tmp/valgrind.log
 

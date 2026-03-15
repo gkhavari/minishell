@@ -79,57 +79,37 @@ exit
 
 Automated tests live under `tests/`. Run them from the **repository root** (so `./minishell` exists).
 
-### Run all tests (recommended)
+### Run tests (recommended)
+
+The project relies on **[42_minishell_tester](https://github.com/zstenger93/42_minishell_tester)** (cozyGarage fork) as the primary test suite. From the project root:
 
 ```bash
 make -C tests test
 ```
 
-This runs the **LucasKuhn/minishell_tester** suite (builtins, pipes, redirects, extras) plus the project’s consolidated **local_tests** (from former phase1, hardening, behavior). The runner clones the tester into `tests/lucas_minishell_tester` if needed and injects `tests/local_tests` as the `local` file. All tests compare minishell output and exit code to bash.
-
-### Other targets
+This runs the **mandatory** tests from the 42_minishell_tester. If `minishell_tester/` is missing, the script clones the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester) for you.
 
 ```bash
-make -C tests test_lucas   # Full suite (Lucas + local_tests)
-make -C tests test_local   # Only tests/local_tests
-make -C tests help         # List targets
-make -C tests clean        # Remove test binaries if present
-```
-
-### LucasKuhn/minishell_tester (primary suite)
-
-[LucasKuhn/minishell_tester](https://github.com/LucasKuhn/minishell_tester) is the project’s main test suite. It lives under `tests/`: the runner clones it into `tests/lucas_minishell_tester` (gitignored) and adds `tests/local_tests` so one run covers both Lucas’s tests and the project’s own cases. Run from repo root:
-
-```bash
-make -C tests test
-# or
-./tests/run_lucas_tester.sh
-```
-
-To run only Lucas’s builtins/pipes/redirects/extras (no local file), use a fresh clone or run `./tester builtins` etc. from inside `tests/lucas_minishell_tester`. Override clone URL with `LUCAS_MINISHELL_TESTER_REPO=<url>` if you use a fork.
-
-### 42_minishell_tester (optional)
-
-CI and local runs use the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester) of [42_minishell_tester](https://github.com/zstenger93/42_minishell_tester) (RUNDIR + MINISHELL_PATH fixed for in-repo use). The fork can be updated with subject-aligned tests. From the project root, if `minishell_tester/` is missing, the script clones it for you.
-
-```bash
-./scripts/run_minishell_tester.sh m       # mandatory tests
+./scripts/run_minishell_tester.sh m       # mandatory (same as make -C tests test)
 ./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
 ./scripts/run_minishell_tester.sh m b     # mandatory, builtins only
 ```
 
-To use the modified fork (RUNDIR + MINISHELL_PATH fixed for in-repo use):
+To use a different fork: `export COZYGARAGE_TESTER_REPO="https://github.com/.../42_minishell_tester.git"` then run the script. To push changes to the fork: `./scripts/push_tester_fork.sh`.
+
+### Other targets
 
 ```bash
-export COZYGARAGE_TESTER_REPO="https://github.com/cozyGarage/42_minishell_tester.git"
-./scripts/run_minishell_tester.sh m
+make -C tests test_42     # Same as test
+make -C tests help        # List targets
+make -C tests clean      # Remove test binaries if present
 ```
 
-To push further changes to the fork: `./scripts/push_tester_fork.sh`
+### Input mode
 
-Scripts under `scripts/` (and `tests/run_lucas_tester.sh`) require **git**. They work on both **macOS and Linux**. If git is missing, set `AUTO_INSTALL_DEPS=1` to try installing it (Homebrew on macOS, apt-get on Linux). For the Lucas tester timeout on macOS, install coreutils: `brew install coreutils` (provides `gtimeout`).
+When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it uses **get_next_line** (in `libft/`, included via `minishell.h`) so line-by-line input matches the tester. Continuation and heredoc use non-readline reads when `!isatty(stdin)` (e.g. `fgets` in continuation, `read()` loop in heredoc).  
 
-**Input mode:** When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it uses **get_next_line** (in `libft/`, included via `minishell.h`) so line-by-line input matches the tester. Continuation and heredoc use non-readline reads when `!isatty(stdin)` (e.g. `fgets` in continuation, `read()` loop in heredoc).
+Scripts under `scripts/` require **git** and work on **macOS and Linux**. If git is missing, set `AUTO_INSTALL_DEPS=1` to try installing it.
 
 ---
 
@@ -138,12 +118,15 @@ Scripts under `scripts/` (and `tests/run_lucas_tester.sh`) require **git**. They
 ```
 minishell/
 ├── src/
-│   ├── main.c              # REPL loop, read_input, process_input
-│   ├── init.c              # init_shell, build_prompt, get_env_value
-│   ├── utils.c             # ft_arrdup, msh_calloc, etc.
-│   ├── free_utils.c         # free_tokens, free_args
-│   ├── free_runtime.c      # free_commands, redirs
-│   ├── free_shell.c        # reset_shell, free_all
+│   ├── main.c              # REPL loop, read_input, process_input (only file in src/ root)
+│   ├── core/
+│   │   └── init.c          # init_shell, build_prompt, get_env_value
+│   ├── utils/
+│   │   └── utils.c         # ft_arrdup, msh_calloc, ft_strcat, ft_realloc
+│   ├── free/
+│   │   ├── free_utils.c    # free_tokens, free_args
+│   │   ├── free_runtime.c  # free_commands, redirs
+│   │   └── free_shell.c    # reset_shell, free_all
 │   ├── signals/
 │   │   ├── signal_handler.c
 │   │   └── signal_utils.c
@@ -177,9 +160,7 @@ minishell/
 │   └── prototypes.h
 ├── libft/                   # Static library (submodule or vendored)
 ├── tests/
-│   ├── Makefile             # make test (= Lucas + local_tests), test_lucas, test_local
-│   ├── local_tests           # Consolidated project tests (Lucas format; injected as "local")
-│   └── run_lucas_tester.sh   # LucasKuhn/minishell_tester runner (injects local_tests)
+│   └── Makefile             # make test (= 42 mandatory), test_42
 ├── scripts/
 │   ├── run_minishell_tester.sh  # 42_minishell_tester runner (mandatory, valgrind)
 │   ├── push_tester_fork.sh      # Push tester changes to fork

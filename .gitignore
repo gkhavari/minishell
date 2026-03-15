@@ -37,7 +37,6 @@ logs/
 # Test binaries
 test_builtins
 minishell_tester/
-tests/lucas_minishell_tester/
 # Generated test report
 test_report.md
 

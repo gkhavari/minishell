@@ -100,11 +100,7 @@ int	builtin_cd(char **args, t_shell *shell)
 	char	*old_pwd;
 	int		print;
 
-	if (args[1] && args[2])
-	{
-		ft_putendl_fd("minishell: cd: too many arguments", 2);
-		return (1);
-	}
+	/* Bash uses only the first argument; extra args are ignored (no error). */
 	target = get_cd_target(args, shell, &print);
 	if (!target)
 		return (1);

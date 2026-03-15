@@ -58,7 +58,7 @@ This document records **what we changed and why** in the minishell codebase: dat
 | --------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Single global variable**        | Only `g_signum` (volatile sig_atomic_t) is global; set in signal handler, read in main loop. | Subject allows one global; we use it only for the signal number so we can react after readline returns.                                    |
 | **No strdup / realloc / isspace** | Use `ft_strdup`, `ft_realloc`, and explicit space/tab checks.                                | Stay within the 42 allowed function list.                                                                                                  |
-| **ft_arrdup naming / build**      | `arrdup.c` renamed to `ft_arrdup.c` in the build; implementation uses `ft_strdup`.           | Naming consistency and allowed functions; Makefile uses one source to avoid duplicate `ft_arrdup` symbol with `utils.c` if both define it. |
+| **ft_arrdup**                     | `ft_arrdup` lives in `utils/utils.c` only (with `ft_strcat`, `ft_realloc`, `msh_calloc`).   | Single definition; no separate ft_arrdup.c to avoid duplicate symbol. |
 
 
 ---

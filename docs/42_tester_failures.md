@@ -248,3 +248,8 @@ So the tester sees **EXIT_CODE: minishell(2) vs bash(0)**.
 | 10_parsing_hell      | 5        | Heredoc, expansion, exit 127 vs 2 |
 
 To debug a specific case, run the failing command from the script line in both bash and minishell and compare stdout, stderr, and exit code.
+
+---
+
+
+**Test suite:** This project uses only **42_minishell_tester** ([cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester)). Run with `make -C tests test`. Expected behavior and test-design guidance are in [BEHAVIOR.md](BEHAVIOR.md).

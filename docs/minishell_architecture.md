@@ -2,7 +2,7 @@
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
 >
-> **Test-backed behavior:** All behaviors described here are covered by the passing test suite (LucasKuhn/minishell_tester + tests/local_tests). For input/output examples, exit codes, and edge-case tables, see **[BEHAVIOR.md](BEHAVIOR.md)**.
+> **Test-backed behavior:** The test suite is **42_minishell_tester** (mandatory). For expected behavior per input, exit codes, and test-design guidance, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 
 ---
 
@@ -14,27 +14,26 @@ This section reflects the **actual codebase** as built: source layout, data flow
 
 | Suite | Description | Status |
 |-------|-------------|--------|
-| LucasKuhn + local_tests | `make -C tests test` runs [LucasKuhn/minishell_tester](https://github.com/LucasKuhn/minishell_tester) (builtins, pipes, redirects, extras) plus `tests/local_tests` (injected as `local`) | ✅ Run from repo root |
+| 42_minishell_tester (mandatory) | `make -C tests test` runs [42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester) mandatory | ✅ |
 
 Run from repo root: `make -C tests test`.
 
 ### 0.2 Test coverage map (what the suite verifies)
 
-Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by LucasKuhn’s files and **tests/local_tests** (consolidated from former phase1, hardening, behavior):
+Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by **42_minishell_tester**’s files and **tests/local_tests** :
 
 | Area | Coverage |
 |------|----------|
-| **Echo** | echo basic, -n, -nnn, empty, quotes, -n -a (Lucas builtins + local_tests) |
-| **PWD / CD** | pwd; cd /tmp then pwd; cd HOME; cd nonexistent; cd with extra args (local_tests) |
-| **Env / Export / Unset** | export, env, set/unset var, invalid name (Lucas builtins + local_tests) |
-| **Exit** | exit 0/42/255, 256, -1, 257, non-numeric, too many args (Lucas + local_tests) |
-| **Expansion** | undefined var, $, $?, $1, quotes, set/unset, invalid export (local_tests) |
-| **Redirections** | >, >>, <, bad path, missing file; pipe then redir (Lucas redirects + local_tests) |
-| **Pipes** | simple pipe, multiple pipes, grep, wc -l, exit code (Lucas pipes + local_tests) |
-| **Heredoc** | basic, expand vars, quoted delim (local_tests) |
-| **Syntax / resilience** | lone pipe, unclosed quotes, redir no file (local_tests) |
-| **Path / exit codes** | absolute path; 127; directory as cmd 126 (local_tests) |
-| **Stress / no crash** | empty input, combo pipe+redir, export then pipe (local_tests) |
+| **Echo** | 1_builtins.sh — echo, -n, quotes, $?, backslash escaping |
+| **PWD / CD** | 1_builtins.sh — pwd, cd, cd -, extra args ignored |
+| **Env / Export / Unset** | 1_builtins.sh — env, export, unset, invalid names |
+| **Exit** | 1_builtins.sh — exit 0/42/255/256/257, non-numeric, too many args |
+| **Expansion** | 0_compare_parsing.sh, 1_builtins.sh, 1_variables.sh — $VAR, $?, quotes |
+| **Redirections** | 1_redirs.sh — >, >>, <, <<, combined, missing file |
+| **Pipes** | 1_pipelines.sh — pipelines, heredocs in pipes |
+| **Syntax** | 8_syntax_errors.sh — \|, \| \|, >, >>, <<, invalid tokens |
+| **Path / 127 / 126** | 1_scmds.sh, 2_path_check.sh, 9_go_wild.sh |
+| **Parsing** | 0_compare_parsing.sh, 10_parsing_hell.sh |
 
 ### 0.3 Source Layout (real files)
 
@@ -43,14 +42,16 @@ graph TB
     subgraph Entry
         main[main.c]
     end
-    subgraph Init
-        init[init.c]
+    subgraph core
+        init[core/init.c]
     end
-    subgraph Core
-        utils[utils.c]
-        free_utils[free_utils.c]
-        free_runtime[free_runtime.c]
-        free_shell[free_shell.c]
+    subgraph utils
+        utils_file[utils/utils.c]
+    end
+    subgraph free
+        free_utils[free/free_utils.c]
+        free_runtime[free/free_runtime.c]
+        free_shell[free/free_shell.c]
     end
     subgraph Signals
         sig_handler[signals/signal_handler.c]
@@ -95,6 +96,7 @@ graph TB
         exit[exit.c]
     end
     main --> init
+    main --> utils_file
     main --> tok
     main --> parser
     main --> exec
@@ -183,7 +185,7 @@ if (g_signum == SIGINT)
 
 ### 1.3 Initialization (actual implementation)
 
-**Current `init_shell()` behavior** (see `src/init.c`):
+**Current `init_shell()` behavior** (see `src/core/init.c`):
 
 ```
 init_shell(t_shell *shell, char **envp)
@@ -1063,7 +1065,7 @@ ft_putstr_fd("\n", 2);
 
 ## 11. Memory Management & Cleanup
 
-### 11.1 Per-Loop Cleanup (actual: `free_shell.c`)
+### 11.1 Per-Loop Cleanup (actual: `free/free_shell.c`)
 
 ```c
 void reset_shell(t_shell *shell)
@@ -1077,10 +1079,10 @@ void reset_shell(t_shell *shell)
 }
 ```
 
-### 11.2 Exit Cleanup (actual: `free_shell.c`)
+### 11.2 Exit Cleanup (actual: `free/free_shell.c`)
 
 ```c
-/* free_shell.c: free_all() — used at process exit (e.g. from builtin_exit) */
+/* free/free_shell.c: free_all() — used at process exit (e.g. from builtin_exit) */
 void free_all(t_shell *shell)
 {
     free_tokens(shell->tokens);
@@ -1110,7 +1112,7 @@ void safe_free(void **ptr)
 
 ## 12. Testing Checklist
 
-Covered by **LucasKuhn/minishell_tester** plus **tests/local_tests**. Run: `make -C tests test`.
+Covered by **42_minishell_tester** (`make -C tests test`). See [BEHAVIOR.md](BEHAVIOR.md) for expected behavior and test-design guidance.
 
 ### 12.1 Basic Commands
 
@@ -1175,7 +1177,7 @@ Reflects the **built** codebase; phase1 + hardening tests pass.
 
 ```
 Phase 1: Foundation
-├── [x] Shell struct and initialization (init.c, structs.h)
+├── [x] Shell struct and initialization (core/init.c, structs.h)
 ├── [x] Main loop with readline (main.c, silent_readline for non-TTY)
 ├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
@@ -1206,7 +1208,7 @@ Phase 5: Pipes & Heredoc
 
 Phase 6: Polish
 ├── [x] Error messages (minishell: cmd: msg style)
-├── [x] Memory cleanup (free_shell.c, free_runtime.c, reset_shell)
+├── [x] Memory cleanup (free/free_shell.c, free/free_runtime.c, reset_shell)
 ├── [x] Edge case handling (hardening tests pass)
 └── [ ] Norminette / 42 compliance (project-specific)
 ```
