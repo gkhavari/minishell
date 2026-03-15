@@ -65,13 +65,11 @@ int	handle_end_of_string(t_shell *shell, t_state *state)
  RETURN VALUE:
  * 1 if backslash was handled, 0 otherwise.
 **/
+/* Skip the backslash, append next char literally */
 int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
 		return (0);
-	if (!shell->input[*i + 1] || shell->input[*i + 1] == '\n')
-		return (0);
-	/* Skip the backslash, append next char literally */
 	if (!*word)
 		*word = ft_strdup("");
 	append_char(shell, word, shell->input[*i + 1]);
@@ -180,26 +178,4 @@ int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 		return (1);
 	}
 	return (0);
-}
-
-/**
- DESCRIPTION:
- * Appends a single character to the current word buffer and advances 
- 	the input index.
-
-PARAMETERS:
-* char c: The character to append to the current word buffer.
-* size_t *i: Pointer to the current index in the input string. 
-	This index is incremented after the character is processed.
-* char **word: Pointer to the current word buffer. The character is 
-	appended to this buffer.
-
-BEHAVIOR:
-* Calls append_char(word, c) to append the character to the word buffer.
-* Increments *i to move to the next character in the input.
-**/
-void	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
-{
-	append_char(shell, word, c);
-	(*i)++;
 }

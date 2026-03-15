@@ -26,36 +26,29 @@ static void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 		ft_putendl_fd(line, fd);
 }
 
-static char	*read_heredoc_line(void)
+static char	*read_heredoc_line(t_shell *shell)
 {
 	char	*line;
 	char	c;
 	int		ret;
-	size_t	len;
 
 	if (isatty(STDIN_FILENO))
 		return (readline("> "));
 	line = ft_strdup("");
 	if (!line)
 		return (NULL);
-	len = 0;
 	while (1)
 	{
 		ret = read(STDIN_FILENO, &c, 1);
 		if (ret <= 0)
 		{
-			if (len == 0)
+			if (ft_strlen(line) == 0)
 				return (free(line), NULL);
 			return (line);
 		}
 		if (c == '\n')
 			return (line);
-		line = ft_realloc(line, len + 2);
-		if (!line)
-			return (NULL);
-		line[len] = c;
-		line[len + 1] = '\0';
-		len++;
+		append_char(shell, &line, c);
 	}
 }
 
@@ -66,7 +59,7 @@ static int	heredoc_read_loop(t_command *cmd, t_shell *shell, int *pipe_fd,
 
 	while (1)
 	{
-		line = read_heredoc_line();
+		line = read_heredoc_line(shell);
 		if (g_signum == SIGINT)
 			return (free(line), close(pipe_fd[0]), close(pipe_fd[1]), 1);
 		if (!line)

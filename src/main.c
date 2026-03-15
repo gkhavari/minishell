@@ -32,44 +32,31 @@ static void	process_input(t_shell *shell)
 }
 
 /*
-** read_input - Display prompt and read one line of user input
+** read_input - Display prompt and read one line of user input.
 ** Returns 1 on success, 0 on EOF (Ctrl+D), -1 on signal.
-** When stdin is a TTY uses readline(); when not (e.g. tester) uses get_next_line.
+** When stdin is not a TTY (e.g. tester) uses read_line_stdin.
 */
-/*
-** read_line_stdin - Read one line from stdin one byte at a time.
-** Avoids get_next_line buffering which would consume data needed
-** by the parent bash after minishell exits (critical for tester).
-** Returns newly allocated line without trailing newline, or NULL on EOF.
-*/
-static char	*read_line_stdin(void)
+static char	*read_line_stdin(t_shell *shell)
 {
 	char	*line;
 	char	c;
 	int		ret;
-	size_t	len;
 
 	line = ft_strdup("");
 	if (!line)
 		return (NULL);
-	len = 0;
 	while (1)
 	{
 		ret = read(STDIN_FILENO, &c, 1);
 		if (ret <= 0)
 		{
-			if (len == 0)
+			if (ft_strlen(line) == 0)
 				return (free(line), NULL);
 			return (line);
 		}
 		if (c == '\n')
 			return (line);
-		line = ft_realloc(line, len + 2);
-		if (!line)
-			return (NULL);
-		line[len] = c;
-		line[len + 1] = '\0';
-		len++;
+		append_char(shell, &line, c);
 	}
 }
 
@@ -78,7 +65,7 @@ static int	read_input(t_shell *shell)
 	char	*prompt;
 
 	if (!isatty(STDIN_FILENO))
-		shell->input = read_line_stdin();
+		shell->input = read_line_stdin(shell);
 	else
 	{
 		prompt = build_prompt(shell);

@@ -97,13 +97,13 @@ static int	do_chdir(char *target, char *old_pwd)
 	return (0);
 }
 
+/* Bash uses only the first argument; extra args are ignored (no error). */
 int	builtin_cd(char **args, t_shell *shell)
 {
 	char	*target;
 	char	*old_pwd;
 	int		print;
 
-	/* Bash uses only the first argument; extra args are ignored (no error). */
 	target = get_cd_target(args, shell, &print);
 	if (!target)
 		return (1);

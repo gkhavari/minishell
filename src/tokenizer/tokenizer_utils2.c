@@ -49,6 +49,27 @@ void	add_token(t_token **head, t_token *new)
 		tmp = *head;
 		while (tmp->next)
 			tmp = tmp->next;
-		tmp->next = new;
 	}
+}
+
+/**
+ DESCRIPTION:
+ * Appends a single character to the current word buffer and advances 
+ 	the input index.
+
+ PARAMETERS:
+ * char c: The character to append to the current word buffer.
+ * size_t *i: Pointer to the current index in the input string. 
+ 	This index is incremented after the character is processed.
+ * char **word: Pointer to the current word buffer. The character is 
+ 	appended to this buffer.
+
+ BEHAVIOR:
+ * Calls append_char(word, c) to append the character to the word buffer.
+ * Increments *i to move to the next character in the input.
+ **/
+void	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
+{
+	append_char(shell, word, c);
+	(*i)++;
 }
