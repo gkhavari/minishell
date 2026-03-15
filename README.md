@@ -106,6 +106,27 @@ make -C tests help   # List test targets
 make -C tests clean  # Remove test binaries (e.g. test_builtins if present)
 ```
 
+### 42_minishell_tester (optional)
+
+The [42_minishell_tester](https://github.com/zstenger93/42_minishell_tester) can be run from the project root. If `minishell_tester/` is missing, the script clones it for you.
+
+```bash
+./run_minishell_tester.sh m       # mandatory tests
+./run_minishell_tester.sh vm      # mandatory + valgrind
+./run_minishell_tester.sh m b     # mandatory, builtins only
+```
+
+To use the modified fork (RUNDIR + MINISHELL_PATH fixed for in-repo use):
+
+```bash
+export COZYGARAGE_TESTER_REPO="https://github.com/cozyGarage/42_minishell_tester.git"
+./run_minishell_tester.sh m
+```
+
+To push further changes to the fork: `./scripts/push_tester_fork.sh`
+
+**Input mode:** When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it uses **get_next_line** (in `libft/`, included via `minishell.h`) so line-by-line input matches the tester. Continuation and heredoc use non-readline reads when `!isatty(stdin)` (e.g. `fgets` in continuation, `read()` loop in heredoc).
+
 ---
 
 ## Project structure

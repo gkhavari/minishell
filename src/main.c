@@ -34,28 +34,17 @@ static void	process_input(t_shell *shell)
 /*
 ** read_input - Display prompt and read one line of user input
 ** Returns 1 on success, 0 on EOF (Ctrl+D), -1 on signal.
+** When stdin is a TTY uses readline(); when not (e.g. tester) uses get_next_line.
 */
-/*
-** silent_readline - Call readline with stdout suppressed (non-interactive)
-** Redirects stdout to /dev/null during readline to suppress echo.
-*/
-static char	*silent_readline(void)
+static void	trim_trailing_newline(char *line)
 {
-	int		saved;
-	int		devnull;
-	char	*line;
+	size_t	len;
 
-	saved = dup(STDOUT_FILENO);
-	devnull = open("/dev/null", O_WRONLY);
-	if (devnull >= 0)
-	{
-		dup2(devnull, STDOUT_FILENO);
-		close(devnull);
-	}
-	line = readline("");
-	dup2(saved, STDOUT_FILENO);
-	close(saved);
-	return (line);
+	if (!line)
+		return ;
+	len = ft_strlen(line);
+	if (len > 0 && line[len - 1] == '\n')
+		line[len - 1] = '\0';
 }
 
 static int	read_input(t_shell *shell)
@@ -64,7 +53,8 @@ static int	read_input(t_shell *shell)
 
 	if (!isatty(STDIN_FILENO))
 	{
-		shell->input = silent_readline();
+		shell->input = get_next_line(STDIN_FILENO);
+		trim_trailing_newline(shell->input);
 	}
 	else
 	{
