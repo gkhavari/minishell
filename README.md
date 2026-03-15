@@ -41,6 +41,12 @@ Produces the `minishell` executable. For debug build (e.g. for Valgrind):
 make debug
 ```
 
+> ⚠️ If you see a `_codeql_detected_source_root` entry in the repo root, it is a CodeQL artifact (a symlink to `.`). It can safely be removed (and is already ignored by `.gitignore`).
+> 
+> ```bash
+git rm --cached --force _codeql_detected_source_root && rm -f _codeql_detected_source_root
+```
+
 ---
 
 ## Usage
