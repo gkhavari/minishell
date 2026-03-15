@@ -51,6 +51,36 @@ int	handle_end_of_string(t_shell *shell, t_state *state)
 
 /**
  DESCRIPTION:
+ * Handles backslash escape sequences in the NORMAL (unquoted) tokenizer state.
+ * In unquoted context, a backslash followed by any character means "treat
+ * the next character literally" (no expansion, no operator, no word split).
+ * This matches POSIX/bash: echo \$USER prints $USER literally.
+
+ PARAMETERS:
+ * shell: shell struct (for append_char)
+ * i: current index in input string (advanced by 2 on match)
+ * word: accumulating word buffer
+ * state: current tokenizer state (only active in ST_NORMAL)
+
+ RETURN VALUE:
+ * 1 if backslash was handled, 0 otherwise.
+**/
+int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
+{
+	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
+		return (0);
+	if (!shell->input[*i + 1] || shell->input[*i + 1] == '\n')
+		return (0);
+	/* Skip the backslash, append next char literally */
+	if (!*word)
+		*word = ft_strdup("");
+	append_char(shell, word, shell->input[*i + 1]);
+	*i += 2;
+	return (1);
+}
+
+/**
+ DESCRIPTION:
  * Handles transitions between quoting states in the tokenizer.
  * This function detects opening and closing of:
  ** single quotes '...'

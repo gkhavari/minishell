@@ -44,12 +44,20 @@ static int	set_env_var(t_shell *shell, char *arg)
 {
 	char	*eq;
 	char	*key;
+	char	*new_entry;
+	char	*tmp;
+	char	*old_val;
 	int		ret;
+	int		append_mode;
 
 	eq = ft_strchr(arg, '=');
 	if (!eq)
 		return (export_no_value(shell, arg));
-	key = ft_substr(arg, 0, eq - arg);
+	append_mode = (eq > arg && *(eq - 1) == '+');
+	if (append_mode)
+		key = ft_substr(arg, 0, eq - arg - 1);
+	else
+		key = ft_substr(arg, 0, eq - arg);
 	if (!key)
 		return (1);
 	if (!is_valid_export_name(key))
@@ -60,7 +68,39 @@ static int	set_env_var(t_shell *shell, char *arg)
 		ft_putendl_fd("': not a valid identifier", 2);
 		return (1);
 	}
-	ret = replace_or_append(shell, arg, key);
+	if (!append_mode)
+	{
+		ret = replace_or_append(shell, arg, key);
+		free(key);
+		return (ret);
+	}
+	/* += mode: build KEY=oldval+newval */
+	old_val = get_env_value(shell->envp, key);
+	if (old_val)
+		tmp = ft_strjoin(old_val, eq + 1);
+	else
+		tmp = ft_strdup(eq + 1);
+	if (!tmp)
+		return (free(key), 1);
+	new_entry = ft_strjoin(key, "=");
+	if (!new_entry)
+		return (free(key), free(tmp), 1);
+	key = ft_strjoin(new_entry, tmp);
+	free(new_entry);
+	free(tmp);
+	if (!key)
+		return (1);
+	{
+		char	*temp_key;
+		char	*eq_pos;
+
+		eq_pos = ft_strchr(key, '=');
+		temp_key = ft_substr(key, 0, eq_pos - key);
+		if (!temp_key)
+			return (free(key), 1);
+		ret = replace_or_append(shell, key, temp_key);
+		free(temp_key);
+	}
 	free(key);
 	return (ret);
 }

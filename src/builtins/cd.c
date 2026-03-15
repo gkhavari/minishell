@@ -11,6 +11,8 @@
 /* ************************************************************************** */
 
 #include "minishell.h"
+#include <errno.h>
+#include <string.h>
 
 static char	*get_cd_target(char **args, t_shell *shell, int *print)
 {
@@ -87,7 +89,8 @@ static int	do_chdir(char *target, char *old_pwd)
 	{
 		ft_putstr_fd("minishell: cd: ", 2);
 		ft_putstr_fd(target, 2);
-		ft_putendl_fd(": No such file or directory", 2);
+		ft_putstr_fd(": ", 2);
+		ft_putendl_fd(strerror(errno), 2);
 		free(old_pwd);
 		return (1);
 	}
