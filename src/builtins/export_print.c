@@ -36,6 +36,27 @@ static void	print_export_entry(char *entry)
 	}
 }
 
+static int	cmp_env_keys(char *a, char *b)
+{
+	size_t	la;
+	size_t	lb;
+	int		cmp;
+
+	la = 0;
+	while (a[la] && a[la] != '=')
+		la++;
+	lb = 0;
+	while (b[lb] && b[lb] != '=')
+		lb++;
+	if (la < lb)
+		cmp = ft_strncmp(a, b, la);
+	else
+		cmp = ft_strncmp(a, b, lb);
+	if (cmp != 0)
+		return (cmp);
+	return ((int)(la - lb));
+}
+
 static void	sort_env(char **sorted, int count)
 {
 	int		i;
@@ -44,7 +65,7 @@ static void	sort_env(char **sorted, int count)
 	i = -1;
 	while (++i < count - 1)
 	{
-		if (ft_strcmp(sorted[i], sorted[i + 1]) > 0)
+		if (cmp_env_keys(sorted[i], sorted[i + 1]) > 0)
 		{
 			tmp = sorted[i];
 			sorted[i] = sorted[i + 1];

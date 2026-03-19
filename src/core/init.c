@@ -59,6 +59,33 @@ char	*build_prompt(t_shell *shell)
 	return (prompt);
 }
 
+static void	update_shlvl(t_shell *shell)
+{
+	char	*shlvl_val;
+	char	*num_str;
+	char	*entry;
+	int		shlvl;
+	int		idx;
+
+	shlvl_val = get_env_value(shell->envp, "SHLVL");
+	if (shlvl_val)
+		shlvl = ft_atoi(shlvl_val) + 1;
+	else
+		shlvl = 1;
+	num_str = ft_itoa(shlvl);
+	if (!num_str)
+		return ;
+	entry = ft_strjoin("SHLVL=", num_str);
+	free(num_str);
+	if (!entry)
+		return ;
+	idx = find_export_key_index(shell, "SHLVL", 5);
+	if (idx >= 0)
+		(free(shell->envp[idx]), (shell->envp[idx] = entry));
+	else
+		(append_export_env(shell, entry), free(entry));
+}
+
 /*
 ** init_shell - Initialize the shell structure
 ** Duplicates envp so we own the memory and can modify it.
@@ -86,4 +113,5 @@ void	init_shell(t_shell *shell, char **envp)
 	shell->tokens = NULL;
 	shell->commands = NULL;
 	shell->input = NULL;
+	update_shlvl(shell);
 }
