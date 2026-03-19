@@ -44,13 +44,15 @@ int	is_valid_export_name(char *name)
 */
 int	find_export_key_index(t_shell *shell, char *key, int key_len)
 {
-	int	i;
+	int		i;
+	char	end;
 
 	i = 0;
 	while (shell->envp[i])
 	{
+		end = shell->envp[i][key_len];
 		if (ft_strncmp(shell->envp[i], key, key_len) == 0
-			&& shell->envp[i][key_len] == '=')
+			&& (end == '=' || end == '\0'))
 			return (i);
 		i++;
 	}

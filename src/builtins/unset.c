@@ -43,15 +43,17 @@ static int	is_valid_unset_name(char *name)
 */
 static int	find_env_index(t_shell *shell, char *key)
 {
-	int	i;
-	int	len;
+	int		i;
+	int		len;
+	char	end;
 
 	len = ft_strlen(key);
 	i = 0;
 	while (shell->envp[i])
 	{
+		end = shell->envp[i][len];
 		if (ft_strncmp(shell->envp[i], key, len) == 0
-			&& shell->envp[i][len] == '=')
+			&& (end == '=' || end == '\0'))
 			return (i);
 		i++;
 	}

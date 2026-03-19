@@ -94,7 +94,7 @@ char	*find_command_path(char *cmd, t_shell *shell)
 		return (ft_strdup(cmd));
 	path_env = get_env_value(shell->envp, "PATH");
 	if (!path_env)
-		path_env = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+		return (NULL);
 	paths = ft_split(path_env, ':');
 	if (!paths)
 		return (NULL);

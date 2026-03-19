@@ -70,6 +70,11 @@ int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
 		return (0);
+	if (!shell->input[*i + 1])
+	{
+		(*i)++;
+		return (1);
+	}
 	if (!*word)
 		*word = ft_strdup("");
 	append_char(shell, word, shell->input[*i + 1]);

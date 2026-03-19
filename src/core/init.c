@@ -66,13 +66,19 @@ char	*build_prompt(t_shell *shell)
 */
 void	init_shell(t_shell *shell, char **envp)
 {
+	char	*user;
+
 	shell->envp = ft_arrdup(envp);
 	if (!shell->envp)
 	{
 		perror("minishell: failed to duplicate environment");
 		exit(1);
 	}
-	shell->user = ft_strdup(get_env_value(shell->envp, "USER"));
+	user = get_env_value(shell->envp, "USER");
+	if (user)
+		shell->user = ft_strdup(user);
+	else
+		shell->user = NULL;
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		shell->cwd = ft_strdup("/");

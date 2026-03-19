@@ -56,6 +56,21 @@ int	count_cmds(t_command *cmd)
 	return (n);
 }
 
+static int	backup_fds(int *in, int *out)
+{
+	*in = dup(STDIN_FILENO);
+	*out = dup(STDOUT_FILENO);
+	if (*in == -1 || *out == -1)
+	{
+		if (*in != -1)
+			close(*in);
+		if (*out != -1)
+			close(*out);
+		return (1);
+	}
+	return (0);
+}
+
 /*
 ** execute_single_command - Run a single command (no pipeline)
 ** Builtins run in the parent process (so cd/export/unset/exit work).
@@ -68,9 +83,7 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 	int	stdout_backup;
 	int	status;
 
-	stdin_backup = dup(STDIN_FILENO);
-	stdout_backup = dup(STDOUT_FILENO);
-	if (stdin_backup == -1 || stdout_backup == -1)
+	if (backup_fds(&stdin_backup, &stdout_backup))
 		return (1);
 	if (apply_redirections(cmd))
 	{
