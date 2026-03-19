@@ -91,12 +91,7 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 		return (2);
 	}
 	if (!is_valid_unset_name(arg))
-	{
-		ft_putstr_fd("minishell: unset: '", 2);
-		ft_putstr_fd(arg, 2);
-		ft_putendl_fd("': not a valid identifier", 2);
-		return (1);
-	}
+		return (0);
 	idx = find_env_index(shell, arg);
 	if (idx >= 0)
 		remove_env_entry(shell, idx);
