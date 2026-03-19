@@ -21,7 +21,7 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 {
 	int	fd;
 
-	if (r->is_input)
+	if (r->fd == STDIN_FILENO)
 	{
 		fd = open(r->file, O_RDONLY);
 		if (fd == -1)
@@ -38,7 +38,7 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1)
 			return (perror("minishell"), 1);
-		dup2(fd, STDOUT_FILENO);
+		dup2(fd, r->fd);
 		close(fd);
 	}
 	return (0);

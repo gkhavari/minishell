@@ -29,7 +29,7 @@ static void	handle_heredoc_token(t_command *cmd, t_token *token)
 ** append_redir - Append a redirection node to cmd->redirs (ordered list).
 ** is_input=1 for <, is_input=0 for > or >>. append=1 for >>.
 */
-static void	append_redir(t_command *cmd, char *file, int is_input, int append)
+static void	append_redir(t_command *cmd, char *file, int fd, int append)
 {
 	t_redir	*r;
 	t_redir	*tmp;
@@ -38,7 +38,7 @@ static void	append_redir(t_command *cmd, char *file, int is_input, int append)
 	if (!r)
 		return ;
 	r->file = ft_strdup(file);
-	r->is_input = is_input;
+	r->fd = fd;
 	r->append = append;
 	r->next = NULL;
 	if (!cmd->redirs)
@@ -94,11 +94,13 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 		return (2);
 	}
 	if (token->type == REDIR_IN)
-		append_redir(cmd, token->next->value, 1, 0);
+		append_redir(cmd, token->next->value, STDIN_FILENO, 0);
 	else if (token->type == REDIR_OUT)
-		append_redir(cmd, token->next->value, 0, 0);
+		append_redir(cmd, token->next->value, STDOUT_FILENO, 0);
 	else if (token->type == APPEND)
-		append_redir(cmd, token->next->value, 0, 1);
+		append_redir(cmd, token->next->value, STDOUT_FILENO, 1);
+	else if (token->type == REDIR_ERR_OUT)
+		append_redir(cmd, token->next->value, STDERR_FILENO, 0);
 	else
 		return (1);
 	return (2);

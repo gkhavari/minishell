@@ -97,13 +97,14 @@ static int	do_chdir(char *target, char *old_pwd)
 	return (0);
 }
 
-/* Bash uses only the first argument; extra args are ignored (no error). */
 int	builtin_cd(char **args, t_shell *shell)
 {
 	char	*target;
 	char	*old_pwd;
 	int		print;
 
+	if (args[1] && args[2])
+		return (ft_putendl_fd("minishell: cd: too many arguments", 2), 1);
 	target = get_cd_target(args, shell, &print);
 	if (!target)
 		return (1);

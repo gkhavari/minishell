@@ -145,15 +145,21 @@ int	process_quote(char c, t_state *state)
 **/
 int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
-	if (is_op_char(shell->input[*i]))
+	if (!is_op_char(shell->input[*i]))
+		return (0);
+	if (*word && !(*word)[1] && (*word)[0] == '2' && shell->input[*i] == '>')
 	{
-		flush_word(shell, word, &shell->tokens);
-		if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
-			set_heredoc_mode(1);
-		*i += read_operator(shell, &shell->input[*i], &shell->tokens);
+		free(*word);
+		*word = NULL;
+		add_token(&shell->tokens, new_token(shell, REDIR_ERR_OUT, "2>"));
+		(*i)++;
 		return (1);
 	}
-	return (0);
+	flush_word(shell, word, &shell->tokens);
+	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
+		set_heredoc_mode(1);
+	*i += read_operator(shell, &shell->input[*i], &shell->tokens);
+	return (1);
 }
 
 /**

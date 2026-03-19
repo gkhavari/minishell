@@ -20,7 +20,8 @@ typedef enum e_tokentype
 	REDIR_IN,
 	REDIR_OUT,
 	APPEND,
-	HEREDOC
+	HEREDOC,
+	REDIR_ERR_OUT
 }	t_tokentype;
 
 typedef enum e_state
@@ -59,7 +60,7 @@ typedef struct s_arg
 typedef struct s_redir
 {
 	char			*file;
-	int				is_input;
+	int				fd;
 	int				append;
 	struct s_redir	*next;
 }	t_redir;

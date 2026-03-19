@@ -48,7 +48,7 @@ static int	check_redir_syntax(t_token *token)
 static int	is_redirection(t_tokentype type)
 {
 	return (type == REDIR_IN || type == REDIR_OUT
-		|| type == APPEND || type == HEREDOC);
+		|| type == APPEND || type == HEREDOC || type == REDIR_ERR_OUT);
 }
 
 /**
