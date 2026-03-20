@@ -83,3 +83,23 @@ int	execute_builtin(t_command *cmd, t_shell *shell)
 {
 	return (run_builtin(cmd->argv, shell));
 }
+
+void	set_underscore(t_shell *shell, char *path)
+{
+	char	*entry;
+	int		idx;
+
+	if (!path)
+		return ;
+	entry = ft_strjoin("_=", path);
+	if (!entry)
+		return ;
+	idx = find_export_key_index(shell, "_", 1);
+	if (idx >= 0)
+	{
+		free(shell->envp[idx]);
+		shell->envp[idx] = entry;
+	}
+	else
+		(append_export_env(shell, entry), free(entry));
+}

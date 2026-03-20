@@ -83,6 +83,7 @@ typedef struct s_shell
 	char		*user;
 	char		*cwd;
 	int			last_exit;
+	int			had_path;
 	t_token		*tokens;
 	t_command	*commands;
 	char		*input;

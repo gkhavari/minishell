@@ -112,6 +112,7 @@ int			count_cmds(t_command *cmd);
 int			apply_redirections(t_command *cmd);
 void		restore_fds(int stdin_backup, int stdout_backup);
 int			execute_builtin(t_command *cmd, t_shell *shell);
+void		set_underscore(t_shell *shell, char *path);
 
 /* executor_external.c */
 int			execute_external(t_command *cmd, t_shell *shell);

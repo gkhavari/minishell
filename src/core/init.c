@@ -86,11 +86,32 @@ static void	update_shlvl(t_shell *shell)
 		(append_export_env(shell, entry), free(entry));
 }
 
-/*
-** init_shell - Initialize the shell structure
-** Duplicates envp so we own the memory and can modify it.
-** Sets user from USER env var, cwd from getcwd.
-*/
+static void	remove_env_key(t_shell *shell, char *key)
+{
+	int		i;
+	int		j;
+	size_t	klen;
+
+	klen = ft_strlen(key);
+	i = 0;
+	while (shell->envp[i])
+	{
+		if (ft_strncmp(shell->envp[i], key, klen) == 0
+			&& (shell->envp[i][klen] == '=' || !shell->envp[i][klen]))
+		{
+			free(shell->envp[i]);
+			j = i;
+			while (shell->envp[j])
+			{
+				shell->envp[j] = shell->envp[j + 1];
+				j++;
+			}
+			return ;
+		}
+		i++;
+	}
+}
+
 void	init_shell(t_shell *shell, char **envp)
 {
 	char	*user;
@@ -113,5 +134,7 @@ void	init_shell(t_shell *shell, char **envp)
 	shell->tokens = NULL;
 	shell->commands = NULL;
 	shell->input = NULL;
+	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
 	update_shlvl(shell);
+	remove_env_key(shell, "_");
 }
