@@ -90,7 +90,12 @@ int	print_sorted_env(t_shell *shell)
 	sort_env(sorted, count);
 	i = -1;
 	while (++i < count)
+	{
+		if (sorted[i][0] == '_'
+			&& (sorted[i][1] == '=' || !sorted[i][1]))
+			continue ;
 		print_export_entry(sorted[i]);
+	}
 	free_array(sorted);
 	return (0);
 }
