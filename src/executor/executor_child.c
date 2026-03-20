@@ -55,7 +55,15 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 	char	*path;
 
 	if (cmd->is_builtin)
+	{
+		path = find_command_path(cmd->argv[0], shell);
+		if (path)
+		{
+			set_underscore(shell, path);
+			free(path);
+		}
 		exit(run_builtin(cmd->argv, shell));
+	}
 	if (!cmd->argv || !cmd->argv[0])
 		exit(0);
 	path = find_command_path(cmd->argv[0], shell);
