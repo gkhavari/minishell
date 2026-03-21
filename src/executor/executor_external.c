@@ -46,13 +46,13 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	return (get_child_status(status));
 }
 
-static int	is_regular_exec(char *path)
+static int	is_regular_file(char *path)
 {
 	struct stat	sb;
 
 	if (stat(path, &sb) != 0)
 		return (0);
-	return (S_ISREG(sb.st_mode) && access(path, X_OK) == 0);
+	return (S_ISREG(sb.st_mode));
 }
 
 static char	*search_in_path(char **paths, char *cmd)
@@ -71,7 +71,7 @@ static char	*search_in_path(char **paths, char *cmd)
 		free(tmp);
 		if (!full_path)
 			break ;
-		if (is_regular_exec(full_path))
+		if (is_regular_file(full_path))
 		{
 			free_array(paths);
 			return (full_path);
@@ -94,7 +94,7 @@ char	*find_command_path(char *cmd, t_shell *shell)
 		return (ft_strdup(cmd));
 	path_env = get_env_value(shell->envp, "PATH");
 	if (!path_env && shell->had_path)
-		path_env = "/usr/local/bin:/usr/bin:/bin";
+		path_env = "/usr/local/bin:/usr/bin:/bin:.";
 	if (!path_env)
 		return (NULL);
 	paths = ft_split(path_env, ':');

@@ -33,6 +33,9 @@ void	finalize_all_commands(t_shell *shell, t_command *cmd)
 	{
 		finalize_argv(shell, cmd);
 		cmd->is_builtin = is_builtin(cmd->argv[0]);
+		if (cmd->is_builtin && cmd->argv[1]
+			&& ft_strcmp(cmd->argv[0], "env") == 0)
+			cmd->is_builtin = 0;
 		cmd = cmd->next;
 	}
 }

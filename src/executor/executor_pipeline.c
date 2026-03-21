@@ -45,7 +45,7 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 
 	pid = fork();
 	if (pid < 0)
-		return (-1);
+		return (perror("minishell"), -1);
 	if (pid == 0)
 	{
 		set_signals_default();
