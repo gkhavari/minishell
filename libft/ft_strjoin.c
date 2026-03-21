@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_strjoin.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/22 14:00:25 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/04/22 14:00:28 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 21:02:26 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,30 +66,3 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	joined[len1 + len2] = '\0';
 	return (joined);
 }
-/*
-#include <stdio.h>
-
-typedef struct TestCase {
-	char str1[1024];
-	char str2[1024];
-} TestCase;
-
-int main(void)
-{
-	TestCase test_cases[] = {
-		{.str1 = "Lorem ip", .str2 = "sum"},
-		{.str1 = "", .str2 = "Lorem ipsum"},
-		{.str1 = "Lorem ipsum", .str2 = ""},
-		{.str1 = "", .str2 = ""}
-	};
-	size_t num_of_tests = sizeof(test_cases) / sizeof(test_cases[0]);
-	size_t i = 0;
-	while (i < num_of_tests)
-	{
-		printf("String 1:         %s\n", test_cases[i].str1);
-		printf("String 2:         %s\n", test_cases[i].str2);
-		printf("joined string:    %s\n\n", ft_strjoin(test_cases[i].str1, \
-		test_cases[i].str2));
-		i++;
-	}
-}*/

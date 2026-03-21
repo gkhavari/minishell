@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/03/21 20:57:17 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/21 21:00:47 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "get_next_line.h"
 
 static char	*gnl_clear_and_return_null(t_buffer **stash_ptr, char *line)
@@ -41,12 +53,18 @@ int	read_to_stash(int fd, t_buffer **stash)
 			return (ERROR);
 		bytes_read = read(fd, buffer, BUFFER_SIZE);
 		if (bytes_read < 0)
-			return (free(buffer), ERROR);
+		{
+			free(buffer);
+			return (ERROR);
+		}
 		if (bytes_read > 0)
 		{
 			buffer[bytes_read] = '\0';
 			if (add_buffer_to_stash(stash, buffer, bytes_read) == -1)
-				return (free(buffer), ERROR);
+			{
+				free(buffer);
+				return (ERROR);
+			}
 		}
 		free(buffer);
 	}
@@ -97,7 +115,11 @@ int	cleanup_stash(t_buffer **stash)
 	if (i < last->size && last->content[i] == '\n')
 		i++;
 	if (i >= last->size)
-		return (free_stash_list(*stash), *stash = NULL, 0);
+	{
+		free_stash_list(*stash);
+		*stash = NULL;
+		return (0);
+	}
 	new_node = create_new_buffer(last->content + i, last->size - i);
 	if (!new_node)
 		return (ERROR);
