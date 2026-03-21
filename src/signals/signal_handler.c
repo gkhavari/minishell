@@ -32,7 +32,6 @@ int	set_signals_default(void)
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGQUIT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
-	sigaction(SIGPIPE, &sa, NULL);
 	return (0);
 }
 
