@@ -12,10 +12,21 @@
 
 #include "minishell.h"
 
-/*
-** handle_heredoc_token - Store heredoc delimiter from the next token
-** Frees any previous delimiter (handles multiple heredocs per command).
-** The actual heredoc reading happens later in process_heredocs().
+/**
+ DESCRIPTION:
+* Store the heredoc delimiter from the token following a HEREDOC token.
+
+ BEHAVIOR:
+* Frees any previously stored delimiter (supporting multiple heredocs)
+* and duplicates the following token's value into `cmd->heredoc_delim`.
+* The actual heredoc content is read later in `process_heredocs`.
+
+ PARAMETERS:
+* t_command *cmd: Command node to store the delimiter in.
+* t_token *token: Token node pointing at the HEREDOC token.
+
+ RETURN:
+* None.
 */
 static void	handle_heredoc_token(t_command *cmd, t_token *token)
 {
@@ -25,9 +36,22 @@ static void	handle_heredoc_token(t_command *cmd, t_token *token)
 	cmd->heredoc_quoted = token->next->quoted;
 }
 
-/*
-** append_redir - Append a redirection node to cmd->redirs (ordered list).
-** is_input=1 for <, is_input=0 for > or >>. append=1 for >>.
+/**
+ DESCRIPTION:
+* Append a redirection node to a command's redirection list.
+
+ BEHAVIOR:
+* Allocates a `t_redir` node with the given `file`, `fd` and `append`
+* flag and appends it to `cmd->redirs` preserving order.
+
+ PARAMETERS:
+* t_command *cmd: Command to receive the redirection.
+* char *file: Filename for the redirection.
+* int fd: Target file descriptor (e.g., STDIN_FILENO, STDOUT_FILENO).
+* int append: Non-zero for append mode (>>), zero for truncate (>).
+
+ RETURN:
+* None.
 */
 static void	append_redir(t_command *cmd, char *file, int fd, int append)
 {
@@ -53,8 +77,21 @@ static void	append_redir(t_command *cmd, char *file, int fd, int append)
 }
 
 /**
- * Appends a new argument to the command's argument list.
- */
+ DESCRIPTION:
+* Append a `word` as an argument node to `cmd->args`.
+
+ BEHAVIOR:
+* Allocates a `t_arg` node, duplicates `word` into it and appends it
+* to the end of the command's argument linked list.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime used for allocator `msh_calloc`.
+* t_command *cmd: Command node to receive the argument.
+* char *word: Argument string to append.
+
+ RETURN:
+* None.
+*/
 static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 {
 	t_arg	*new;
@@ -74,12 +111,23 @@ static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 	}
 }
 
-/*
-** add_token_to_command - Dispatch a token into the command structure
-** WORD tokens become command arguments.
-** Redirection tokens (< > >> <<) set the appropriate file/delimiter.
-** Note: parse_tokens() already skips the filename WORD after redirections.
-** Returns: 1 for WORD, 2 for redir/heredoc, FAILURE on error.
+/**
+ DESCRIPTION:
+* Dispatch a single token into the command structure.
+
+ BEHAVIOR:
+* WORD tokens are added as arguments. Redirection tokens create
+* redirection nodes and HEREDOC stores the delimiter. The parser
+* already advances past the filename after redirection tokens.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime for allocation helpers.
+* t_command *cmd: Command node to modify.
+* t_token *token: Token to process.
+
+ RETURN:
+* `1` when a WORD was added, `2` when a redirection/heredoc was handled,
+* or `FAILURE` on error.
 */
 int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {

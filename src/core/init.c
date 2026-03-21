@@ -12,11 +12,21 @@
 
 #include "minishell.h"
 
-/*
-** build_prompt - Create the shell prompt string
-** Format: "USER@minishell:CWD$ "
-** Falls back to defaults if user or cwd are not set.
-** Returns: newly allocated prompt string, or NULL on malloc failure.
+/**
+ DESCRIPTION:
+* Retrieve the value part of an environment variable from `envp`.
+
+ BEHAVIOR:
+* Scans the NULL-terminated `envp` array for an entry beginning with
+* `key=` and returns a pointer to the value substring within the
+* existing `envp` entry. Does not allocate a new string.
+
+ PARAMETERS:
+* char **envp: NULL-terminated environment array.
+* const char *key: Variable name to search for (without `=`).
+
+ RETURN:
+* Pointer to the value within `envp` if found, otherwise NULL.
 */
 char	*get_env_value(char **envp, const char *key)
 {
@@ -34,6 +44,21 @@ char	*get_env_value(char **envp, const char *key)
 	return (NULL);
 }
 
+/**
+ DESCRIPTION:
+* Build and return a newly allocated prompt string.
+
+ BEHAVIOR:
+* Concatenates user, prefix, cwd and suffix into a single allocated
+* string (e.g. "user@minishell:/cwd$ "). Falls back to defaults when
+* `shell->user` or `shell->cwd` are NULL.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime providing `user` and `cwd`.
+
+ RETURN:
+* Allocated prompt string, or NULL on allocation failure.
+*/
 char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;
@@ -59,6 +84,21 @@ char	*build_prompt(t_shell *shell)
 	return (prompt);
 }
 
+/**
+ DESCRIPTION:
+* Update the `SHLVL` environment variable for this shell instance.
+
+ BEHAVIOR:
+* Increments `SHLVL` if present, otherwise sets it to `1`. Updates the
+* exported environment array, replacing an existing entry or appending
+* a new one.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime whose `envp` will be modified.
+
+ RETURN:
+* None.
+*/
 static void	update_shlvl(t_shell *shell)
 {
 	char	*shlvl_val;
@@ -86,6 +126,22 @@ static void	update_shlvl(t_shell *shell)
 		(append_export_env(shell, entry), free(entry));
 }
 
+/**
+ DESCRIPTION:
+* Initialize the shell runtime structure from the provided environment.
+
+ BEHAVIOR:
+* Duplicates `envp`, sets `user`, `cwd`, and initial runtime fields,
+* records whether `PATH` was present, and increments `SHLVL`.
+* Exits the process on fatal allocation failure.
+
+ PARAMETERS:
+* t_shell *shell: Uninitialized shell structure to populate.
+* char **envp: Process environment to duplicate.
+
+ RETURN:
+* None.
+*/
 void	init_shell(t_shell *shell, char **envp)
 {
 	char	*user;

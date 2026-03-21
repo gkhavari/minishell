@@ -194,6 +194,25 @@ Notes:
 - The tester runs the bash reference with `enable -n .` to disable builtins; your project is not required to implement `enable` (subject does not mandate it), so ignore `enable`-related stderr differences when prioritizing fixes.
 - Focus on `src/executor/*` and `src/signals/*` for pipeline FD and SIGPIPE behavior: ensure children close unused pipe ends before exec and that SIGPIPE handling matches the non-interactive behavior expected by the tester environment.
 
+### Tokenizer globals — 2026-03-21: planned refactor
+
+Issue:
+- `norminette src/` reported `GLOBAL_VAR_DETECTED` for two file-scope statics in [src/tokenizer/tokenizer_utils.c](src/tokenizer/tokenizer_utils.c#L15-L16): `g_word_quoted` and `g_heredoc_mode`.
+- Project policy allows only the single process-wide global `g_signum` for signal handling.
+
+Plan / Implementation:
+1. Move tokenizer state into the per-shell runtime struct `t_shell` (add fields `int word_quoted; int heredoc_mode;`).
+2. Update tokenizer helpers to use `t_shell *` state instead of file-global statics. Replace `mark_word_quoted()`, `set_heredoc_mode()` and `is_heredoc_mode()` with versions that accept `t_shell *shell` or access `shell` where available.
+3. Update `includes/prototypes.h` and any callers to the modified functions.
+4. Remove the `static` globals from `src/tokenizer/tokenizer_utils.c` and run `norminette src/` to confirm the warning is gone.
+5. Run `make` and the tester (`./scripts/run_minishell_tester.sh m`) to validate behavior hasn't regressed.
+
+Rationale:
+- Keeps tokenizer state per-shell (important if shell state ever becomes reentrant or when tests run multiple shells in the same process).
+- Eliminates forbidden file-level globals and satisfies Norminette.
+
+I can apply this refactor now: update `t_shell`, change the tokenizer helpers and their callers, then run `norminette` and `make`. Proceed? 
+
 
 ---
 

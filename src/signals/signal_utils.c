@@ -12,9 +12,19 @@
 
 #include "minishell.h"
 
-/*
-** readline_event_hook - called periodically during readline input
-** Returns: 0 to continue readline operation
+/**
+ DESCRIPTION:
+* Readline event hook invoked periodically while readline is active.
+
+ BEHAVIOR:
+* If a SIGINT was received via the signal handler sets up a fresh
+* prompt line by calling `rl_on_new_line` and `rl_redisplay`.
+
+ PARAMETERS:
+* None.
+
+ RETURN:
+* `0` to indicate readline should continue processing.
 */
 int	readline_event_hook(void)
 {
@@ -27,9 +37,19 @@ int	readline_event_hook(void)
 	return (0);
 }
 
-/*
-** check_signal_received - check for pending signal after readline
-** Returns: 1 if SIGINT was handled, 0 otherwise
+/**
+ DESCRIPTION:
+* Check whether a pending signal was received and handle it.
+
+ BEHAVIOR:
+* If `g_signum` indicates `SIGINT` updates `shell->last_exit` to the
+* appropriate status and clears the global signal indicator.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime whose `last_exit` will be updated.
+
+ RETURN:
+* `1` if a SIGINT was handled, otherwise `0`.
 */
 int	check_signal_received(t_shell *shell)
 {

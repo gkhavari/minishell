@@ -12,10 +12,20 @@
 
 #include "minishell.h"
 
-/*
-** process_input - Tokenize, parse, process heredocs, execute
-** Runs the full pipeline for one line of user input.
-** Returns early at any stage that fails (syntax error, signal, etc).
+/**
+ DESCRIPTION:
+* Run the full processing pipeline for the current input line.
+
+ BEHAVIOR:
+* Tokenizes input, parses commands, processes heredocs and executes
+* the resulting commands. Sets `shell->last_exit` and returns early
+* on errors or signals.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime holding the input and parsed commands.
+
+ RETURN:
+* None.
 */
 static void	process_input(t_shell *shell)
 {
@@ -31,10 +41,20 @@ static void	process_input(t_shell *shell)
 	shell->last_exit = execute_commands(shell);
 }
 
-/*
-** read_input - Display prompt and read one line of user input.
-** Returns 1 on success, 0 on EOF (Ctrl+D), -1 on signal.
-** When stdin is not a TTY (e.g. tester) uses read_line_stdin.
+/**
+ DESCRIPTION:
+* Read a line from stdin when not operating interactively.
+
+ BEHAVIOR:
+* Reads bytes until a newline or EOF, appending characters into a
+* dynamically allocated buffer. Returns NULL on EOF when no data was
+* read, otherwise returns the allocated line (without the newline).
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime used by `append_char` helper.
+
+ RETURN:
+* Allocated line string on success, or NULL on EOF/error.
 */
 static char	*read_line_stdin(t_shell *shell)
 {
@@ -60,6 +80,21 @@ static char	*read_line_stdin(t_shell *shell)
 	}
 }
 
+/**
+ DESCRIPTION:
+* Read one line of input and store it in `shell->input`.
+
+ BEHAVIOR:
+* If stdin is a TTY builds and displays a prompt then uses
+* `readline`; otherwise reads from stdin directly. Handles EOF and
+* signal conditions and normalizes return values for the caller.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime where `input` will be stored.
+
+ RETURN:
+* `1` on successful read, `0` on EOF, `-1` when interrupted by a signal.
+*/
 static int	read_input(t_shell *shell)
 {
 	char	*prompt;
@@ -85,11 +120,20 @@ static int	read_input(t_shell *shell)
 	return (1);
 }
 
-/*
-** shell_loop - Main REPL loop following architecture doc
-** 1. Check signals  2. Build prompt  3. Read input
-** 4. Check signals again  5. Process (lex/parse/expand/execute)
-** 6. Cleanup
+/**
+ DESCRIPTION:
+* Main read–eval–print loop for the shell.
+
+ BEHAVIOR:
+* Repeatedly checks signals, reads input, processes the input
+* (tokenize/parse/execute), and resets transient runtime state.
+* Exits on EOF or on non-interactive syntax errors.
+
+ PARAMETERS:
+* t_shell *shell: Initialized shell runtime.
+
+ RETURN:
+* None.
 */
 static void	shell_loop(t_shell *shell)
 {

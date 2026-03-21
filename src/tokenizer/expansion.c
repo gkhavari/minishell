@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/06 20:01:07 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 17:35:29 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:56:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -178,14 +178,14 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	return (1);
 }
 
-
 /**
  DESCRIPTION:
 * Handles tilde expansion when a ~ is encountered at the start of a word.
 * Only expands if ~ is the first character and is followed by a valid separator
 * (/, space, tab, or end of string). Otherwise, ~ is treated literally.
 * Appends the HOME directory value to the current word buffer.
-* Advances the input index appropriately to skip the ~ and any following separator.
+* Advances the input index appropriately to skip the ~ and any following
+* separator.
 * This function is called in the main tokenizer loop when a ~ is encountered.
 * If HOME is not set, it appends an empty string (effectively removing the ~).
 * Returns 1 if ~ was handled (expanded or treated literally), 0 otherwise.
