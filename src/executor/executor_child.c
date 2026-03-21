@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 16:20:11 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 17:44:18 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:13:33 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,18 +51,19 @@ static void	cmd_not_found(char *cmd_name)
 
 /**
  DESCRIPTION:
-* execute_in_child - Execute a command in the child process
+* Execute a command in a forked child process.
 
  BEHAVIOR:
-* If the command is a builtin, find its path for _ variable, then run it and exit.
-* If it's an external command, find its path. If not found, print error and exit 127.
-* If found but is a directory, print error and exit 126.
-* If found and is executable, set _ variable, execve it. If execve fails, print error and exit 126.
+* If the command is a builtin runs it and exits with its status after
+* setting the `_` variable when a path is available. For external
+* commands searches for the executable path, reports `command not found`
+* (127) or `is a directory` (126) errors, sets `_` and `execve`s the
+* program; on exec failure prints an error and exits with 126.
 
  PARAMETERS:
-* @cmd: The command to execute (with argv and is_builtin set)
-* @shell: The shell state (for envp and _ variable)
-**/
+* t_command *cmd: Command node containing argv and is_builtin flag.
+* t_shell *shell: Shell runtime providing `envp` and helpers.
+*/
 void	execute_in_child(t_command *cmd, t_shell *shell)
 {
 	char	*path;
@@ -90,11 +91,11 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 
 /**
  DESCRIPTION:
-* free_array - Free a 2D character array
+* Free a NULL-terminated array of strings and the array itself.
 
  PARAMETERS:
-* @arr: The array to free
-**/
+* char **arr: Array of C-strings to free; may be NULL.
+*/
 void	free_array(char **arr)
 {
 	int	i;

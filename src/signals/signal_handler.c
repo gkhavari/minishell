@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 21:01:22 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 17:27:11 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:16:26 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,17 @@
 
 volatile sig_atomic_t	g_signum = 0;
 
+/**
+ DESCRIPTION:
+* Interactive SIGINT handler used while the shell waits for user input.
+
+ BEHAVIOR:
+* Sets the global `g_signum` to `SIGINT` and writes a newline to
+* stdout to ensure the prompt appears on a new line.
+
+ PARAMETERS:
+* int signum: Signal number (ignored).
+*/
 static void	interactive_sigint_handler(int signum)
 {
 	(void)signum;
@@ -21,6 +32,16 @@ static void	interactive_sigint_handler(int signum)
 	ft_putstr_fd("\n", STDOUT_FILENO);
 }
 
+/**
+ DESCRIPTION:
+* Restore default signal handlers for SIGINT, SIGQUIT and SIGTERM.
+
+ BEHAVIOR:
+* Installs `SIG_DFL` for SIGINT, SIGQUIT and SIGTERM using `sigaction`.
+
+ RETURN:
+* Returns 0 on success.
+*/
 int	set_signals_default(void)
 {
 	struct sigaction	sa;
@@ -35,6 +56,16 @@ int	set_signals_default(void)
 	return (0);
 }
 
+/**
+ DESCRIPTION:
+* Install SIG_IGN for interactive-specific signals.
+
+ BEHAVIOR:
+* Sets `SIG_IGN` for SIGINT and SIGQUIT using `sigaction`.
+
+ RETURN:
+* Returns 0 on success.
+*/
 int	set_signals_ignore(void)
 {
 	struct sigaction	sa;
@@ -48,6 +79,17 @@ int	set_signals_ignore(void)
 	return (0);
 }
 
+/**
+ DESCRIPTION:
+* Configure signal handling for the interactive shell prompt.
+
+ BEHAVIOR:
+* Resets global `g_signum`, sets `SA_RESTART`, ignores several signals
+* and installs a custom handler for SIGINT that records the event.
+
+ RETURN:
+* Returns 0 on success.
+*/
 int	set_signals_interactive(void)
 {
 	struct sigaction	sa;
@@ -65,9 +107,21 @@ int	set_signals_interactive(void)
 	return (0);
 }
 
-/*
-** Handle child process termination and set exit status
-** Returns: 0 on success, -1 on error
+/**
+ DESCRIPTION:
+* Wait for a specific child and set the provided `last_exit_status`.
+
+ BEHAVIOR:
+* Calls `waitpid` for `pid`, updates `*last_exit_status` with either
+* the child's exit status or a signal-derived code (128 + signum). Prints
+* messages for SIGQUIT and SIGINT to mimic shell behavior.
+
+ PARAMETERS:
+* int *last_exit_status: Pointer to store the resolved exit status.
+* pid_t pid: PID of the child to wait for.
+
+ RETURN:
+* `0` on success, `-1` if `waitpid` fails.
 */
 int	handle_child_exit(int *last_exit_status, pid_t pid)
 {

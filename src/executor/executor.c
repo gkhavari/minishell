@@ -13,9 +13,22 @@
 
 #include "minishell.h"
 
-/*
-** wait_pipeline - Wait for all pipeline children and get last exit status
-** Bash convention: pipeline exit status = exit status of the LAST command.
+/**
+ DESCRIPTION:
+* Wait for all pipeline children and return the pipeline exit status.
+
+ BEHAVIOR:
+* Implements the Bash convention: the pipeline exit status is the
+* exit status of the last command in the pipeline. Waits for each PID
+* in `pids[0..n-1]`, inspects termination status and returns the last
+* command's exit code or signal-derived code (128 + signal).
+
+ PARAMETERS:
+* pid_t *pids: Array of child PIDs for the pipeline.
+* int n: Number of PIDs/commands in the pipeline.
+
+ RETURN:
+* Exit code of the last pipeline command, or signal-derived code.
 */
 int	wait_pipeline(pid_t *pids, int n)
 {
@@ -40,9 +53,18 @@ int	wait_pipeline(pid_t *pids, int n)
 	return (last);
 }
 
-/*
-** count_cmds - Count the number of commands in a pipeline
-** Used by execute_pipeline to allocate the PID array.
+/**
+ DESCRIPTION:
+* Count commands in a pipeline linked list.
+
+ BEHAVIOR:
+* Iterates the `t_command` linked list and returns the number of nodes.
+
+ PARAMETERS:
+* t_command *cmd: Head of the command list.
+
+ RETURN:
+* Number of commands in the pipeline.
 */
 int	count_cmds(t_command *cmd)
 {
@@ -72,11 +94,21 @@ static int	backup_fds(int *in, int *out)
 	return (0);
 }
 
-/*
-** execute_single_command - Run a single command (no pipeline)
-** Builtins run in the parent process (so cd/export/unset/exit work).
-** External commands are forked.
-** FDs are backed up and restored around redirections.
+/**
+ DESCRIPTION:
+* Execute a single command (no pipeline) in the correct context.
+
+ BEHAVIOR:
+* Backs up stdio file descriptors, applies redirections, and either
+* runs builtins in the parent (so they can modify shell state) or
+* forks/execs external commands. Restores file descriptors afterwards.
+
+ PARAMETERS:
+* t_command *cmd: Command to execute.
+* t_shell *shell: Shell runtime state.
+
+ RETURN:
+* Exit/status code from the executed command.
 */
 int	execute_single_command(t_command *cmd, t_shell *shell)
 {
@@ -104,10 +136,19 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 	return (status);
 }
 
-/*
-** execute_commands - Entry point: decide single vs pipeline execution
-** If there is only one command, run it directly (builtins stay in parent).
-** If there are multiple commands, run the full pipeline with pipes.
+/**
+ DESCRIPTION:
+* Entry point to execute pending commands stored in the shell.
+
+ BEHAVIOR:
+* If there is a single command executes it directly (builtins in parent).
+* If multiple commands are present executes them as a pipeline.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime containing `commands`.
+
+ RETURN:
+* Aggregate exit status of executed command(s).
 */
 int	execute_commands(t_shell *shell)
 {

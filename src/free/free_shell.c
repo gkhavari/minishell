@@ -6,16 +6,22 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 22:50:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 17:38:59 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:16:13 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * free_envp - Free memory allocated for environment variable array
- * @envp: Pointer to the environment variable array
- */
+ DESCRIPTION:
+* Free a NULL-terminated environment array and all its entries.
+
+ BEHAVIOR:
+* Frees each string in `envp` and then frees the array itself.
+
+ PARAMETERS:
+* char **envp: Environment array to free; may be NULL.
+*/
 static void	free_envp(char **envp)
 {
 	int	i;
@@ -33,9 +39,16 @@ static void	free_envp(char **envp)
 }
 
 /**
- * reset_shell - Reset shell state
- * @shell: Pointer to the shell state
- */
+ DESCRIPTION:
+* Reset transient shell state without freeing environment or shell object.
+
+ BEHAVIOR:
+* Frees and nulls tokens, commands and the input buffer, leaving other
+* shell fields intact so the shell can continue running.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime to reset; if NULL nothing is done.
+*/
 void	reset_shell(t_shell *shell)
 {
 	if (!shell)
@@ -52,9 +65,16 @@ void	reset_shell(t_shell *shell)
 }
 
 /**
- * free_all - Free all dynamically allocated memory in shell state
- * @shell: Pointer to the shell state
- */
+ DESCRIPTION:
+* Free all dynamically allocated memory associated with the shell.
+
+ BEHAVIOR:
+* Frees tokens, commands, environment array, user, cwd and input
+* fields and nulls the corresponding pointers in `shell`.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime to free; if NULL nothing is done.
+*/
 void	free_all(t_shell *shell)
 {
 	if (!shell)

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   expansion_utils.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/07 17:09:05 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/07 17:09:12 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:11:20 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,20 +14,18 @@
 
 /**
  DESCRIPTION:
-* Appends a string exp to an existing word buffer *word
+* Append a quoted expansion string to a word buffer.
 
  BEHAVIOR:
-* Calculates the current length of *word and the length of exp.
-* Reallocates *word to accommodate the new string.
-* Copies exp to the end of *word.
-* Ensures the final string is null-terminated.
+* Computes the current length of `*word` and the length of `exp`,
+* reallocates `*word` to hold the new combined contents, copies `exp`
+* to the end of the buffer and ensures the result is NUL-terminated.
+* Exits on allocation failure.
 
  PARAMETERS:
-* char **word: Pointer to the current word buffer. Can be NULL if no content
-	has been added yet. The buffer will be reallocated to append exp.
-* const char *exp: The string to append. Can be NULL, in which case 
-	the function does nothing.
-**/
+* char **word: Pointer to the current word buffer; may be NULL.
+* const char *exp: Expansion string to append; may be NULL.
+*/
 void	append_expansion_quoted(char **word, const char *exp)
 {
 	size_t	len_word;

@@ -12,10 +12,18 @@
 
 #include "minishell.h"
 
-/*
-** setup_child_pipes - In a child process, wire up stdin/stdout to pipes
-** prev_fd is the read-end of the previous pipe (or -1 for the first cmd).
-** pipe_fd is the current pipe (write-end goes to stdout for non-last cmds).
+/**
+ DESCRIPTION:
+* Configure pipe file descriptors for a pipeline child process.
+
+ BEHAVIOR:
+* If `prev_fd` != -1 duplicates it to stdin. If `has_next` is true
+* duplicates the current pipe's write end to stdout. Closes fds when done.
+
+ PARAMETERS:
+* int prev_fd: Read end of the previous pipe or -1 for first command.
+* int pipe_fd[2]: Current pipe fds produced by `pipe()`.
+* int has_next: Non-zero when this command is not the last in pipeline.
 */
 static void	setup_child_pipes(int prev_fd, int pipe_fd[2], int has_next)
 {
@@ -32,14 +40,26 @@ static void	setup_child_pipes(int prev_fd, int pipe_fd[2], int has_next)
 	}
 }
 
-/*
-** fork_pipeline_cmd - Fork one child in the pipeline
-** The child sets up its pipe FDs, applies file redirections on top,
-** then executes the command (never returns).
-** Returns the child PID to the parent, or -1 on fork failure.
+/**
+ DESCRIPTION:
+* Fork and prepare a pipeline child for execution.
+
+ BEHAVIOR:
+* In the child: reset signals to defaults, configure pipes, apply
+* redirections and execute the command (does not return). Parent
+* receives the child's PID or -1 on fork error.
+
+ PARAMETERS:
+* t_command *cmd: Command node to execute.
+* t_shell *shell: Shell runtime passed to the child.
+* int prev_fd: Read-end fd from previous stage or -1.
+* int pipe_fd[2]: Current pipe fds for connecting to next stage.
+
+ RETURN:
+* Child PID in the parent, or -1 on fork failure.
 */
 static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
-		int pipe_fd[2])
+	int pipe_fd[2])
 {
 	pid_t	pid;
 
@@ -57,15 +77,26 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 	return (pid);
 }
 
-/*
-** run_pipeline_loop - Fork each command and connect them with pipes
-** Iterates through the command list, creating a pipe before each
-** non-last command. Each child gets prev_fd as stdin and pipe write-end
-** as stdout. Parent closes used FDs and passes the read-end forward.
-** Returns the number of children forked.
+/**
+ DESCRIPTION:
+* Handle one step of the pipeline: create pipes and fork a child.
+
+ BEHAVIOR:
+* Creates a pipe when the command is not the last, forks the child via
+* `fork_pipeline_cmd`, closes/forwards fds in the parent and updates
+* `prev_fd` to feed the next command. Returns 1 on success.
+
+ PARAMETERS:
+* t_command *cmd: Current command node.
+* t_shell *shell: Shell runtime.
+* int *prev_fd: Pointer to the current previous read-end fd.
+* pid_t *pid: Output parameter to receive the forked child's PID.
+
+ RETURN:
+* `1` on success, `0` on failure.
 */
 static int	handle_pipe_step(t_command *cmd, t_shell *shell, int *prev_fd,
-		pid_t *pid)
+	pid_t *pid)
 {
 	int	pipe_fd[2];
 
@@ -105,11 +136,22 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
 	return (i);
 }
 
-/*
-** execute_pipeline - Execute a multi-command pipeline (cmd1 | cmd2 | ...)
-** Allocates a PID array, forks all children connected by pipes,
-** waits for all of them, then returns the last child's exit status.
-** Parent ignores SIGINT/SIGQUIT while children run.
+/**
+ DESCRIPTION:
+* Execute a multi-command pipeline connecting commands with pipes.
+
+ BEHAVIOR:
+* Allocates an array for child PIDs, forks each command connected by
+* pipes, waits for all children and returns the last child's exit status.
+* Temporarily adjusts signal handling so the parent ignores SIGINT/SIGQUIT
+* while children execute.
+
+ PARAMETERS:
+* t_command *cmds: Head of the pipeline command list.
+* t_shell *shell: Shell runtime used during execution.
+
+ RETURN:
+* Exit status of the last command in the pipeline, or non-zero on error.
 */
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {
