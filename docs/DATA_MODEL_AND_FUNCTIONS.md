@@ -12,7 +12,7 @@ All types live in **`includes/structs.h`**. The design follows: (1) one represen
 
 | Type | Definition | Why we use it |
 |------|------------|----------------|
-| **`t_tokentype`** | `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC` | Single enum for every lexeme. Pipes and redirections are distinct so the parser can branch without string compares. `APPEND` and `HEREDOC` are two-char operators; separating them from `REDIR_OUT` / `REDIR_IN` keeps tokenization simple. |
+| **`t_tokentype`** | `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC`, `REDIR_ERR_OUT` | Same as above, plus **`REDIR_ERR_OUT`** for the `2>` operator (redirect stderr to a file). |
 | **`t_state`** | `ST_NORMAL`, `ST_SQUOTE`, `ST_DQUOTE` | Quote context during tokenization. Tells us whether `$` should be expanded (only in double quotes) and when to close a quoted span. |
 
 ### 1.2 Token: `t_token`
@@ -56,23 +56,23 @@ Stores **one argument** (e.g. one element of `argv`). Commands have a variable n
 
 ```c
 typedef struct s_redir {
-    char         *file;     // filename or (for heredoc) delimiter lives in t_command
-    int           is_input; // 1 = < or <<, 0 = > or >>
-    int           append;   // 1 = >>, 0 = >
+    char         *file;   // filename (heredoc delimiter lives on t_command)
+    int           fd;     // dup2 target: STDIN_FILENO, STDOUT_FILENO, or STDERR_FILENO
+    int           append; // 1 for >>; 0 for <, >, 2>
     struct s_redir *next;
 } t_redir;
 ```
 
 | Field | Purpose |
 |-------|--------|
-| **file** | Target: filename for `<` `>` `>>`; heredoc delimiter is stored in `t_command` (see below). |
-| **is_input** | Distinguishes `<` / `<<` from `>` / `>>` so executor knows whether to replace stdin or stdout. |
-| **append** | For output: open with O_APPEND vs O_TRUNC. |
+| **file** | Target filename for `<` `>` `>>` `2>`; heredoc body uses `t_command.heredoc_delim` / pipe. |
+| **fd** | Which standard stream this redir replaces (`apply_one_redir` in `executor_utils.c` opens `file` and `dup2`s to `fd`). |
+| **append** | For stdout: `>>` uses O_APPEND; otherwise O_TRUNC. |
 | **next** | Multiple redirections per command; applied left-to-right. |
 
-**Why a list:** A command can have several redirections (e.g. `cmd < a > b > c`). Order matters (bash applies left-to-right; last wins for stdout). List preserves order and allows arbitrary count.
+**Why a list:** Same as before—order matters; last wins per stream when chained.
 
-**Why not separate `input_file` and `out_redirs`:** Multiple inputs/outputs are possible; a single list with `is_input` and `append` keeps one code path in `apply_redirections()` and matches “sequence of redir ops” semantics.
+**Why `fd` instead of `is_input`:** Supports **stderr** redirection (`2>`) as well as stdin/stdout without extra flags.
 
 ---
 
@@ -95,7 +95,7 @@ typedef struct s_command {
 |-------|--------|
 | **args** | Arguments collected during parse (WORD tokens). |
 | **argv** | Built from `args` in `finalize_argv()`; used by executor and builtins. |
-| **redirs** | File redirections `<` `>` `>>`; applied before running the command. |
+| **redirs** | File redirections `<` `>` `>>` `2>`; applied before running the command. |
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
@@ -115,9 +115,10 @@ typedef struct s_command {
 ```c
 typedef struct s_shell {
     char     **envp;      // owned copy of environment (modified by export/unset/cd)
-    char      *user;      // for prompt (from USER)
+    char      *user;      // for prompt (from USER; may be NULL if unset)
     char      *cwd;       // for prompt (from getcwd)
     int        last_exit; // exit status of last command ($?)
+    int        had_path;  // true if PATH existed at shell startup (see find_command_path)
     t_token   *tokens;    // result of tokenize_input()
     t_command *commands;  // result of parse_input()
     char      *input;     // current line (owned; freed after tokenize or on reset)
@@ -129,9 +130,10 @@ typedef struct s_shell {
 | **envp** | We own it so `export`/`unset`/`cd` can change it; passed to `execve`. |
 | **user, cwd** | Prompt construction; updated by `cd`. |
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
+| **had_path** | Set in `init_shell`: whether `PATH` was present at startup. Used by `find_command_path()` when resolving commands without `/` in the name. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **commands** | Output of parser; input to heredoc + executor; freed after execution or on error. |
-| **input** | Current line from readline (TTY) or get_next_line (non-TTY); freed in tokenizer or in `reset_shell()`. |
+| **input** | Current line from `readline` (TTY) or `read_line_stdin` in `main.c` (non-TTY); freed in tokenizer or in `reset_shell()`. |
 
 **Why one shell struct:** Single place for “current line’s” state (tokens, commands, input) and persistent state (env, cwd, last_exit). No global state except `g_signum` for signals.
 
@@ -182,7 +184,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **main.c** (src/) | `shell_loop(shell)` | REPL: while(1) { check_signal, read_input, process_input if non-empty, reset_shell }. (static) |
 | **core/init.c** | `get_env_value(envp, key)` | Returns pointer to value part of `KEY=value` in `envp`, or NULL. |
 | **core/init.c** | `build_prompt(shell)` | Builds `"USER@minishell:CWD$ "` from shell->user/cwd; uses defaults if NULL. |
-| **core/init.c** | `init_shell(shell, envp)` | Sets envp (dup), user, cwd, last_exit=0, tokens/commands/input=NULL. |
+| **core/init.c** | `init_shell(shell, envp)` | Sets envp (dup), user (NULL-safe if no USER), cwd, `had_path`, `update_shlvl`, last_exit=0, tokens/commands/input=NULL. |
 
 ---
 
@@ -257,14 +259,15 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **executor/executor.c** | `execute_commands(shell)` | If single command → execute_single_command; else execute_pipeline. Returns exit status. |
-| **executor/executor.c** | `execute_single_command(cmd, shell)` | Backs up stdin/stdout, apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
+| **executor/executor.c** | `execute_single_command(cmd, shell)` | `backup_fds` (closes partial dup on failure), apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
 | **executor/executor.c** | `wait_pipeline(pids, n)` | Waitpids all; returns exit status of last process (bash convention). |
 | **executor/executor.c** | `count_cmds(cmd)` | Returns number of commands in the pipeline (linked list length). |
-| **executor/executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (open + dup2); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
+| **executor/executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (`r->fd` stdin/stdout/stderr); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
 | **executor/executor_utils.c** | `restore_fds(stdin_backup, stdout_backup)` | Restores stdin/stdout from backups and closes backups. |
 | **executor/executor_utils.c** | `execute_builtin(cmd, shell)` | Calls run_builtin(cmd->argv, shell). |
+| **executor/executor_utils.c** | `set_underscore(shell, path)` | Updates `_` in envp after resolving executable path (child before execve). |
 | **executor/executor_external.c** | `execute_external(cmd, shell)` | Forks; child runs execute_in_child; parent waits and returns child exit status. |
-| **executor/executor_external.c** | `find_command_path(cmd, shell)` | Absolute path → stat/executable check; else search PATH; returns path or NULL (127 for caller). |
+| **executor/executor_external.c** | `find_command_path(cmd, shell)` | Absolute path → strdup; else search PATH from env (if missing and `had_path`, may use a built-in default list—see source). Returns path or NULL (127 for caller). |
 | **executor/executor_child.c** | `execute_in_child(cmd, shell)` | In child: if builtin exit(run_builtin); else find path, check dir/exec, execve or exit 127/126. |
 | **executor/executor_child.c** | `free_array(arr)` | Frees each element and the array (used for PATH split). |
 | **executor/executor_pipeline.c** | `execute_pipeline(cmds, shell)` | Creates pipe(s), forks each command with pipes connected, wait_pipeline, returns last exit status. |
@@ -284,11 +287,11 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **builtins/env.c** | `builtin_env(args, shell)` | Prints envp (one KEY=value per line). Returns 0. |
 | **builtins/export.c** | `builtin_export(args, shell)` | No args: print declare -x list; with args: add/update env; invalid name → error, return 1. |
 | **builtins/export_utils.c** | `is_valid_export_name(name)` | Returns 1 if name is valid for export (letter/underscore start, alnum/_). |
-| **builtins/export_utils.c** | `find_export_key_index(shell, key, key_len)` | Finds index of KEY= in envp. |
+| **builtins/export_utils.c** | `find_export_key_index(shell, key, key_len)` | Finds index of `KEY=value` or bare `KEY` in envp. |
 | **builtins/export_utils.c** | `append_export_env(shell, entry)` | Appends one "KEY=value" to shell->envp. |
 | **builtins/export_print.c** | `print_sorted_env(shell)` | Prints env in declare -x format (sorted). |
 | **builtins/unset.c** | `builtin_unset(args, shell)` | Removes listed vars from envp. Returns 0/1. |
-| **builtins/exit.c** | `builtin_exit(args, shell)` | Exits shell: optional numeric status; too many args → error; non-numeric → 255. Calls free_all. |
+| **builtins/exit.c** | `builtin_exit(args, shell)` | Exits shell: optional numeric status; too many args → error; non-numeric → **2** (bash: 255). Calls free_all. |
 
 ---
 
@@ -361,5 +364,6 @@ flowchart TB
 | Document | Content |
 |----------|---------|
 | [minishell_architecture.md](minishell_architecture.md) | Pipeline stages, signals, source layout, testing. |
-| [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | What we changed and why (data, functions, defensive, 42). |
+| [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | What we changed and why (data, functions, defensive, 42); recent fix list. |
+| [42_tester_failures.md](42_tester_failures.md) | 42 tester status and root-cause fixes. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |

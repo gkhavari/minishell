@@ -1,128 +1,152 @@
-# 42_minishell_tester — Status & Known Failures
+# 42_minishell_tester — Working notes & status
 
-This document tracks the tester results and known remaining failures.
+**Purpose:** Living document for **what was fixed**, **what still fails**, and **how to keep debugging**. Update this file when you land a fix or confirm new tester numbers.
 
-**CI:** `.github/workflows/valgrind.yml` runs on Ubuntu (`ubuntu-latest`) using the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester). Both mandatory (`tester.sh m`) and mandatory+valgrind (`tester.sh vm`) are run.
+**Run the mandatory tester from repo root:**
+
+```bash
+make
+./scripts/run_minishell_tester.sh m    # mandatory
+./scripts/run_minishell_tester.sh vm   # mandatory + valgrind
+```
+
+`MINISHELL_PATH` is set by the script; tester lives in `minishell_tester/` (cloned if missing). See `scripts/run_minishell_tester.sh`.
+
+**Related docs:** [BEHAVIOR.md](BEHAVIOR.md) (bash reference + **minishell deltas**), [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md), [minishell_architecture.md](minishell_architecture.md).
 
 ---
 
-## Session 2026-03-19 — Critical Fixes Applied
+## Latest CI snapshot — `logs_61348652699/` (2026-03-20)
 
-### Root-cause bugs fixed (lastshell branch)
+Logged from GitHub Actions job **“Valgrind on Ubuntu (mandatory tests)”**: branch **`lastshell`**, commit **`0a1dea52eedfaed595fee2a7403b465e40742a50`**, tester **`tester.sh m`** (cozyGarage fork).
+
+| Metric | Value |
+|--------|--------|
+| **TOTAL TEST COUNT** | 944 |
+| **TESTS PASSED** | 932 |
+| **LEAKING** | 0 |
+| **Failed criteria** | STD_OUT **3**, STD_ERR **11**, EXIT_CODE **1** → **15** ❌ (tester counts per check, not per block) |
+
+**Failing lines (mandatory, same list under Valgrind — leaks still ✅):**
+
+| Script | Line | STD_OUT | STD_ERR | EXIT_CODE | Notes |
+|--------|------|---------|---------|-----------|--------|
+| `1_builtins.sh` | 552 | ✅ | ❌ | ❌ `minishell(0) bash(127)` | Semicolon / `unset` edge (`;` not in subject) |
+| `1_pipelines.sh` | 4, 6, 55, 59, 68, 84, 110 | ✅ | ❌ | ✅ | Pipeline + heredoc stderr vs bash |
+| `2_path_check.sh` | 47 | ❌ | ✅ | ✅ | Path / stdout mismatch |
+| `9_go_wild.sh` | 7 | ✅ | ❌ | ✅ | Wild / stderr |
+| `9_go_wild.sh` | 46, 52 | ❌ | ❌ | ✅ | Wild stdout+stderr |
+
+**Valgrind:** same **15** criterion failures; **LEAKS: ✅** on those lines in the log (no definite leaks reported for mandatory in that run).
+
+Local numbers may differ slightly if tester revision or env differs from CI.
+
+---
+
+## How exit status propagates (“error chain”) — debugging map
+
+Use this when a test fails on **EXIT_CODE** or when `$?` is wrong.
+
+1. **After each line** (`main.c` → `process_input` → …):
+   - `shell->last_exit` is set from the **last stage that produced a status** for that line.
+
+2. **Syntax error** (`parser/parser.c` → `parse_input`):
+   - `syntax_check()` fails → `shell->last_exit = EXIT_SYNTAX_ERROR` (**2**), tokens freed, **`commands` stay NULL**.
+   - Non-interactive: `shell_loop` sees `!commands && last_exit == 2` and **exits the process** with status 2.
+
+3. **Heredoc interrupted** (`process_heredocs` returns non-zero, e.g. SIGINT):
+   - `shell->last_exit = 130` (`main.c`), early return (no execute).
+
+4. **Execution** (`execute_commands` → single or pipeline):
+   - Return value of `execute_single_command` / `execute_pipeline` becomes **`shell->last_exit`**.
+   - **Builtin in parent:** return value of `run_builtin` / `execute_builtin` (e.g. `cd` fail → 1).
+   - **External:** parent gets child exit via `waitpid` (127 not found, 126 directory, etc.).
+   - **Pipeline:** last command’s exit status (`wait_pipeline`).
+
+5. **Builtin `exit`** (`builtins/exit.c`):
+   - **No arg:** `clean_exit(shell, shell->last_exit)` — process exit = previous command’s status.
+   - **Numeric arg:** `clean_exit(shell, exit_mod256(args[1]))` — process exit = `n % 256` (with sign rule).
+   - **Non-numeric arg:** message to stderr, **`clean_exit(shell, 2)`** — **bash uses 255**; **shell terminates** (not “return 1 and continue”).
+   - **Too many args:** stderr + **`return (1)`** — shell **does not** exit; **`last_exit` for that command is 1** (propagates like any builtin return).
+
+6. **Signals at prompt** (`check_signal_received`):
+   - Sets `last_exit = 130`, clears `g_signum`.
+
+7. **Expansion `$?`** (`tokenizer/expansion.c`):
+   - Uses **`shell->last_exit`** from the **previous** line’s outcome.
+
+8. **Process exit** (`main`):
+   - After `shell_loop`, **`return (shell.last_exit)`** — so the **last** `last_exit` from the loop (often last line or syntax break) is the minishell **process** exit code (what the tester compares).
+
+**There is no single global “errno chain”** — errors are: **stderr messages** + **int return** from functions + **`shell->last_exit`** + occasional **`exit()`** from `builtin_exit` / `init_shell` / `msh_calloc` failure.
+
+---
+
+## Session 2026-03-19 — Critical fixes (root causes)
 
 | File | Bug | Impact |
 |------|-----|--------|
-| `src/tokenizer/tokenizer_utils2.c` | `add_token` was missing `tmp->next = new;` after the while loop | **ALL** multi-token commands, pipes, redirections silently broken. Every token after the first was leaked and invisible. |
-| `src/core/init.c` | `ft_strdup(NULL)` crash when `USER` env var not set (e.g. `env -i ./minishell`) | Crash on clean environments. |
-| `src/executor/executor.c` | When first `dup()` succeeded but second failed, the first FD was leaked | FD leak on dup failure path. |
-| `src/tokenizer/tokenizer_handlers.c` | Backslash at end of string read `input[i+1]` past `\0` then advanced `i` by 2 | UB / potential read past end. |
-| `src/builtins/export_utils.c` | `find_export_key_index` only matched `KEY=val` entries, not bare `KEY` | `export VAR` without value couldn't be found/updated. |
-| `src/builtins/unset.c` | Same as above in `find_env_index` | `unset` couldn't find bare `KEY` entries. |
-| `src/executor/executor_external.c` | Hardcoded fallback PATH when `PATH` unset → commands still found | `unset PATH; ls` should give 127, not 0. |
+| `src/tokenizer/tokenizer_utils2.c` | `add_token` missing `tmp->next = new` after the while loop | Multi-token commands, pipes, redirections broken; leaked tokens. |
+| `src/core/init.c` | `ft_strdup(NULL)` when `USER` unset (`env -i ./minishell`) | Crash on minimal env. |
+| `src/executor/executor.c` | First `dup()` OK, second fails → first FD leaked | FD leak. |
+| `src/tokenizer/tokenizer_handlers.c` | Backslash at EOS read past `\0`, advanced `i` by 2 | UB. |
+| `src/builtins/export_utils.c` | `find_export_key_index` only matched `KEY=val`, not bare `KEY` | `export`/`unset` wrong for bare keys. |
+| `src/builtins/unset.c` | Same pattern in `find_env_index` | Same. |
+| `src/executor/executor_external.c` | PATH resolution when `PATH` unset | Intended: align with bash for `unset PATH` / minimal env (see **PATH caveat** below). |
 
-All fixes are Norm-compliant (`norminette src/` shows zero errors).
-
-### Expected result after these fixes
-
-The previous baseline (before fixes) was **888/941 passed**. The `add_token` bug alone broke every command with more than one token — the fact that 888 passed at all was because many single-token tests still worked. After the fix, essentially all basic command, pipe, redirection, and builtin tests should pass, pushing the score significantly higher.
+Norm: `norminette src/` clean after these changes.
 
 ---
 
-## Is the 42_minishell_tester good for checking bash-like behavior? (Mandatory part)
+## Session 2026-03-20 — Doc baseline & `exit` code
 
-**Short answer:** Yes, for the mandatory part it's a solid way to check that your shell behaves like bash on the same inputs. It's not the subject PDF, and it has some limits, but it's a useful reference.
-
-### How the mandatory tests work
-
-- The tester reads each test block from the scripts under `cmds/mand/`.
-- For each block it:
-  1. Pipes the **same input** into your minishell and captures stdout, stderr, and exit code.
-  2. Pipes the **same input** into **bash** and captures stdout, stderr, and exit code.
-  3. Compares:
-     - **Stdout:** `diff -q` (byte-for-byte).
-     - **Stderr:** Only whether both have stderr or both don't (presence), not exact text.
-     - **Exit code:** Must match exactly.
-
-So the reference is **"bash on this machine"** running the same script.
-
-### Strengths
-
-- **Bash as reference:** Same input → minishell vs bash; good for "behaves like bash" on that input.
-- **Broad coverage:** Mandatory tests cover builtins, parsing, redirections, heredocs, pipelines, variables, path resolution, syntax errors, and edge cases (941 cases in mandatory).
-- **Structured:** You can run subsets (e.g. `m b` = builtins only) to narrow down failures.
-- **Valgrind mode:** `vm` runs the same tests under Valgrind for leak checks.
-
-### Limitations and caveats
-
-- **Subject PDF is the authority:** The tester is third-party. Some tests may go beyond the PDF (e.g. `>|`, `;`); failing them doesn't automatically mean you're wrong per subject.
-- **Bash version:** It uses whatever `bash` is in `PATH` (on macOS often 3.x, on Linux 4.x/5.x). Running on Ubuntu (CI) aligns with the usual 42 evaluation environment.
-- **Stderr:** Only presence is checked, not the exact message.
+| Topic | Status |
+|--------|--------|
+| **Non-numeric `exit`** | Code uses **`clean_exit(shell, 2)`** (bash: **255**). Documented in [BEHAVIOR.md](BEHAVIOR.md), [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md), architecture. |
+| **Structs / docs** | `t_redir`: **`fd` + `append`**, **`REDIR_ERR_OUT`** (`2>`); **`had_path`** on `t_shell`. |
+| **Init** | **USER** optional; **`update_shlvl`**; **`had_path`** at startup. |
+| **Non-TTY input** | **`read_line_stdin()`** in `main.c`. |
 
 ---
 
-## Remaining known failures (post-fix)
+### PATH caveat (still verify against bash / tester)
 
-These are expected to still fail on the current codebase. They require behavior changes beyond the scope of the critical fixes.
-
-### 1. Echo / backslash and quote handling (`0_compare_parsing`, `1_builtins`)
-
-**Examples:** `echo \$USER`, `echo \\$USER`, `echo \\\$USER`, etc.
-
-**Why:** Backslash escaping in unquoted context doesn't fully match bash. Outside quotes, bash treats `\X` as literal `X` (stripping the backslash). Our tokenizer may behave differently.
+`find_command_path` uses `shell->had_path` (PATH existed at **`init_shell`**). If **`PATH` is removed later** but `had_path` is still true, the code may still search a **built-in default path list** — behavior may **differ from bash** after `unset PATH` in a normal login-style env. If tests fail on “command not found” after `unset PATH`, inspect **`executor_external.c`** + **`init.c`**.
 
 ---
 
-### 2. Heredoc edge cases (`1_redirs`, `1_pipelines`, `10_parsing_hell`)
+## Remaining failure themes (from CI log above)
 
-**Examples:**
-- `cat << lim''`, `cat << "lim"`, `cat << 'lim'` — quoted delimiters
-- `cat << $USER` — variable in delimiter
-- Heredocs mixed with pipes: `ls | cat << stop | grep "asd"`
+1. **`1_builtins.sh:552`** — EXIT + STDERR: **minishell(0) vs bash(127)** — semicolon / invalid token after `unset` (subject does not require `;`).
+2. **`1_pipelines.sh`** — **STDERR only** on several heredoc+pipe cases — message presence or wording vs bash.
+3. **`2_path_check.sh:47`** — **STDOUT** — path resolution / output formatting.
+4. **`9_go_wild.sh`** — **STDERR** and **STDOUT** on stress cases.
 
-**Why:** Delimiter quoting (quoted delimiter = no expansion in body) and heredoc+pipe ordering may not fully match bash.
-
----
-
-### 3. Builtins: cd, export, exit edge cases (`1_builtins`)
-
-**Examples:**
-- `cd '/////'` — bash normalizes to `/` and exits 0
-- `export TEST+=100` (invalid name format) — bash exits 0, we exit 1
-- `exit 123"123"` — bash exits 127, we exit 2
-
-**Why:** Edge case behavior differences in path normalization and argument validation.
+Older themes (echo backslash, heredoc delimiters, etc.) may still apply on other lines; **refresh** this section after the next `./scripts/run_minishell_tester.sh m`.
 
 ---
 
-### 4. Semicolons (`1_builtins:552`)
+## Quick reference by script (from last CI)
 
-**Command:** `unset TES;T` — bash parses as `unset TES` then `T` (exits 127); minishell doesn't implement `;` separator.
+| Script | In last log | Main cause |
+|--------|-------------|------------|
+| `1_builtins` | 1 block (552) | `;` / unset / exit 0 vs 127 |
+| `1_pipelines` | 7 blocks | STDERR vs bash (heredoc+pipe) |
+| `2_path_check` | 1 block (47) | STDOUT |
+| `9_go_wild` | 3 blocks (7, 46, 52) | STDERR / STDOUT |
 
-**Note:** `;` is not required by the minishell subject (v10). This is a known and acceptable difference.
-
----
-
-### 5. Exit code 126 in pipelines (`1_pipelines:156,161`)
-
-**Command:** `ls|cat Makefile|cat<<"asd">out` — minishell exits 126, bash exits 0.
-
-**Why:** Heredoc with double-quoted delimiter in a pipeline likely triggers wrong exec path or heredoc FD not set up correctly for child.
+**Replace** with your latest local run if needed.
 
 ---
 
-## Quick reference by script
+## Is 42_minishell_tester good for bash-like behavior?
 
-| Script               | Est. failures | Main cause |
-|----------------------|---------------|------------|
-| 0_compare_parsing    | ~7            | Echo backslash/quote/expansion vs bash |
-| 1_builtins           | ~5            | cd/export/exit edge cases |
-| 1_pipelines          | ~3            | Heredoc+pipe, quoted heredoc delimiter |
-| 1_redirs             | ~9            | Heredoc delimiter/expansion |
-| 8_syntax_errors      | 0             | `>|` is now implemented |
-| 10_parsing_hell      | ~3            | Heredoc, expansion |
+**Yes** for mandatory: same input → compare stdout, stderr **presence**, exit code to **bash** on that machine.
 
-Estimated total remaining: **~27 failures** (vs 888/941 before the critical fixes). Actual number will be confirmed by CI run.
+- **Subject PDF** is still the authority for scope (`;`, `&&`, etc.).
+- **Stderr:** tester often checks presence only, not exact text.
+- **CI:** `.github/workflows/valgrind.yml` — Ubuntu, cozyGarage fork of tester.
 
 ---
 
-**Test suite:** This project uses only **42_minishell_tester** ([cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester)). Run with `make -C tests test`. Expected behavior and test-design guidance are in [BEHAVIOR.md](BEHAVIOR.md).
+**Local regression suites (optional):** `make -C tests test` runs project scripts (`test_phase1.sh`, `test_hardening.sh`) if present — **not** the same as `42_minishell_tester`.

@@ -26,6 +26,8 @@ bin/
 # Logs
 *.log
 logs/
+# Downloaded GitHub Actions / CI artifacts (e.g. logs_<run-id>/)
+logs_*/
 
 # MacOS / Linux metadata
 .DS_Store

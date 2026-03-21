@@ -85,11 +85,13 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | `exit -1` | — | none | **255** (unsigned 8-bit; shell exits) |
 | `exit 00042` | — | none | **42** (leading zeros; shell exits) |
 | `exit +100`, `exit "+100"` | — | none | **100** (shell exits) |
-| `exit hello` (non-numeric) | — | "numeric argument required" or similar | **255** (shell exits) |
+| `exit hello` (non-numeric) | — | "numeric argument required" or similar | **255** (bash; **42 tester** compares exit code) |
 | `exit 42 world` (too many args) | — | "too many arguments" or similar | **1** (shell does **not** exit) |
 | `exit 1 2`, `exit 1 2 3` | — | "too many arguments" | **1** (shell does not exit) |
 
-**Test-design note:** Numeric: exit with `n % 256`. Non-numeric: stderr + exit 255. Too many args: stderr + exit 1, **no exit**. See `1_builtins.sh` (EXIT).
+**Implementation note (this repo):** For non-numeric `exit`, **`exit.c` exits with 2**, not bash’s **255**. Mandatory tester will disagree with bash on **EXIT_CODE** for those blocks until the code matches bash.
+
+**Test-design note:** Numeric: exit with `n % 256`. Non-numeric (bash): stderr + exit **255**. Too many args: stderr + exit 1, **no exit**. See `1_builtins.sh` (EXIT).
 
 ---
 
@@ -119,9 +121,10 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | `cat < /no_such_file` | — | "No such file" or similar | 1 |
 | `echo hi > /no_such/dir/file` | — | error (directory or path) | 1 |
 | `echo a > f1 > f2` | — | none | 0; only **last** file gets output |
+| `echo err 2> file` (stderr to file) | nothing to stdout (or empty line) | none | 0; **stderr** content in `file` (bash-like) |
 | Redirect to directory (e.g. `echo x > /tmp`) | — | error | 1 |
 
-**Test-design note:** Multiple `>`: last wins. Missing input file: stderr + exit 1. See `1_redirs.sh`.
+**Test-design note:** Multiple `>`: last wins. Missing input file: stderr + exit 1. **`2>`** is implemented (`REDIR_ERR_OUT` → `dup2` to stderr’s target file). See `1_redirs.sh`.
 
 ---
 
@@ -193,7 +196,7 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | 126 | Not executable | Running a directory as command |
 | 127 | Command not found | Unknown command name |
 | 128+N | Killed by signal N | e.g. 130 = SIGINT, 131 = SIGQUIT |
-| 255 | Exit with non-numeric arg | Shell exits 255 after "numeric argument required" |
+| 255 | Bash: non-numeric `exit` | Bash exits 255 after "numeric argument required" (**this minishell: 2** — see §4) |
 
 ---
 

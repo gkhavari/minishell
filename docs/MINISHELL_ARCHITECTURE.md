@@ -205,14 +205,15 @@ if (g_signum == SIGINT)
 init_shell(t_shell *shell, char **envp)
 ├── 1. Caller must zero the struct first: ft_bzero(shell, sizeof(t_shell)) (done in main)
 ├── 2. shell->envp = ft_arrdup(envp); exit(1) if NULL
-├── 3. shell->user = ft_strdup(get_env_value(shell->envp, "USER"))
+├── 3. shell->user: if USER in env → ft_strdup(value); else NULL (no ft_strdup(NULL))
 ├── 4. shell->cwd = getcwd(NULL, 0); if NULL → shell->cwd = ft_strdup("/")
-├── 5. shell->last_exit = 0
-├── 6. shell->tokens = NULL, shell->commands = NULL, shell->input = NULL
+├── 5. shell->last_exit = 0; shell->tokens/commands/input = NULL
+├── 6. shell->had_path = (PATH was present in env at startup) — used in PATH resolution
+├── 7. update_shlvl(shell) — increments or sets SHLVL in envp (bash-like nesting)
 └── Signal handlers are set in main() after init: set_signals_interactive()
 ```
 
-**Note:** The code does not currently create a minimal env when `envp` is NULL, nor does it increment `SHLVL`. Those are optional improvements for full bash compatibility; see [BEHAVIOR.md](BEHAVIOR.md) for what is implemented.
+See [BEHAVIOR.md](BEHAVIOR.md) for runtime semantics. For **42 tester–related fixes** (token list, USER, PATH, export/unset, etc.), see [42_tester_failures.md](42_tester_failures.md).
 
 ---
 
@@ -220,7 +221,7 @@ init_shell(t_shell *shell, char **envp)
 
 **Implementation:** `main.c` → `shell_loop()` → `read_input()` → `process_input()`.
 
-**Input source:** When stdin is a TTY, `read_input()` uses `readline(prompt)` (history, editing). When stdin is not a TTY (e.g. pipe from the 42_minishell_tester), it uses `get_next_line(STDIN_FILENO)` from libft so each call returns exactly one line—no prompt, no readline. This matches how testers feed input line-by-line.
+**Input source:** When stdin is a TTY, `read_input()` uses `readline(prompt)` (history, editing). When stdin is not a TTY (e.g. pipe from the 42_minishell_tester), it uses **`read_line_stdin()`** in `main.c`: byte-by-byte `read()` until `\n` or EOF—no prompt, no readline. One call returns one logical line (without the newline).
 
 ```mermaid
 flowchart TD
@@ -228,9 +229,9 @@ flowchart TD
     CHECK_SIG --> READ[read_input]
     READ --> PROMPT{isatty?}
     PROMPT -->|yes| BUILD[build_prompt, readline]
-    PROMPT -->|no| GNL[get_next_line]
+    PROMPT -->|no| RLS[read_line_stdin]
     BUILD --> GOT{input}
-    GNL --> GOT{input}
+    RLS --> GOT{input}
     GOT -->|NULL| EXIT[print exit, break]
     GOT -->|empty| RESET[reset_shell, continue]
     GOT -->|string| CHECK_SIG2[check g_signum again]
@@ -246,10 +247,10 @@ flowchart TD
 | Step | Code / behavior |
 |------|------------------|
 | 1 | `check_signal_received(shell)` — if SIGINT, set `last_exit=130`, reset `g_signum`. |
-| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `get_next_line(STDIN_FILENO)` (one line per call, no prompt). |
-| 3 | NULL → print `"exit"`, break; empty → skip processing; else continue. |
+| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `read_line_stdin()` (one line per call, no prompt). |
+| 3 | NULL → print `"exit"` (TTY only), break; empty → skip processing; else continue. |
 | 4 | Check `g_signum` again (e.g. Ctrl+C during readline). |
-| 5 | Non-empty input is added to history inside `tokenize_input()` (before `free(shell->input)`). |
+| 5 | **TTY:** non-empty input is added to readline history in `tokenizer_handlers.c` during tokenization (before `shell->input` is freed). **Non-TTY:** no history. |
 | 6 | `process_input()`: tokenize → parse → heredocs → execute. |
 | 7 | `reset_shell(shell)` frees tokens, commands, input. |
 
@@ -497,8 +498,8 @@ typedef struct s_arg
 typedef struct s_redir
 {
     char            *file;
-    int             is_input;   /* 1 for < or <<, 0 for > or >> */
-    int             append;     /* 1 for >> */
+    int             fd;         /* Target stream: STDIN_FILENO, STDOUT_FILENO, or STDERR_FILENO */
+    int             append;     /* 1 for >>; 0 for <, >, 2> */
     struct s_redir  *next;
 }   t_redir;
 
@@ -506,7 +507,7 @@ typedef struct s_command
 {
     t_arg               *args;          /* Linked list of args; finalize_argv → argv */
     char                **argv;         /* ["ls", "-la", NULL] for execve */
-    t_redir             *redirs;        /* All redirections: < > >> << (file, is_input, append) */
+    t_redir             *redirs;        /* All redirections: < > >> << 2> (file, fd, append) */
     int                 heredoc_fd;     /* FD for heredoc input (or -1) */
     char                *heredoc_delim; /* Delimiter for heredoc */
     int                 heredoc_quoted; /* Flag if delimiter was quoted */
@@ -933,7 +934,7 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 | Ctrl+C (SIGINT)              | `130`          | `128 + 2`                                       |
 | Ctrl+\ (SIGQUIT)             | `131`          | `128 + 3`                                       |
 | `exit` with valid arg        | `arg % 256`    | 0–255; out-of-range wraps (e.g. 256 → 0)        |
-| `exit` with non-numeric      | `255`          | Print "numeric argument required" to stderr, exit 255 |
+| `exit` with non-numeric      | `255` (bash) / **`2` (this shell)** | Bash: stderr + exit 255. **We:** same message, **exit 2** (known difference). |
 | `exit` with too many args    | (no exit)      | Print error to stderr, return 1, shell continues |
 
 ### 8.2 Where We Use Each Code
@@ -944,12 +945,12 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 - **126** – `execve` not attempted or failed: path is directory or not executable (`executor_child.c`).
 - **127** – Command not found (`executor_child.c`).
 - **128 + signal** – Child terminated by signal; e.g. **130** = SIGINT, **131** = SIGQUIT (`handle_child_exit`, `executor.c`, `executor_external.c`).
-- **255** – `exit <non-numeric>`: print error to stderr then **exit(255)** (`builtin_exit`).
+- **2** (non-bash) – `exit <non-numeric>`: print error to stderr then **exit(2)** (`builtin_exit`). Bash uses **255** here.
 
 ### 8.3 exit Builtin (Bash Reference)
 
 - **Interactive only:** In an interactive shell, bash prints `"exit\n"` (or `"logout\n"` for login shells) to **stderr** before exiting (see `builtins/exit.def`). We do the same: `ft_putendl_fd("exit", STDERR_FILENO)` when `isatty(STDIN_FILENO)`.
-- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. We match this.
+- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. **We exit 2** (same message; exit code differs — see `exit.c`).
 - **Too many arguments:** Bash does not exit; it prints an error and returns 1. We match this.
 
 ---
@@ -1031,13 +1032,13 @@ env                     # Print all environment variables
 Bash reference: message `"exit"` is printed to **stderr** in interactive mode only.
 
 ```bash
-# Behavior (exit codes match bash):
+# Behavior (mostly bash; non-numeric exit uses 2 here, bash uses 255):
 exit                    # Exit with last command's status
 exit 0                  # Exit with 0
 exit 42                 # Exit with 42
 exit 256                # Exit with 0 (256 % 256)
 exit -1                 # Exit with 255 (two's complement)
-exit abc                # Error to stderr: "numeric argument required", then exit 255
+exit abc                # Error to stderr: "numeric argument required", then exit 2 (bash: 255)
 exit 1 2 3              # Error to stderr: "too many arguments", return 1, do NOT exit
 ```
 
@@ -1237,5 +1238,6 @@ Phase 6: Polish
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints. For team and code review. |
+| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints; **recent critical fixes** table. |
+| **[42_tester_failures.md](42_tester_failures.md)** | Mandatory tester CI, session notes (e.g. 2026-03-19 fixes: `add_token`, USER, PATH, export/unset). |
 | **README.md** | Project overview, build, usage, how to run tests. |

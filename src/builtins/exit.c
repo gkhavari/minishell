@@ -77,7 +77,7 @@ static void	clean_exit(t_shell *shell, int code)
 
 /*
 ** builtin_exit - Exit the shell with an optional exit code.
-** Non-numeric arg: prints error and exits 255 (matching bash behavior).
+** Non-numeric arg: prints error and exits 2 (bash uses 255; see docs).
 ** Too many args: prints error, does NOT exit.
 */
 int	builtin_exit(char **args, t_shell *shell)
