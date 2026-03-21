@@ -41,6 +41,12 @@ Produces the `minishell` executable. For debug build (e.g. for Valgrind):
 make debug
 ```
 
+> ⚠️ If you see a `_codeql_detected_source_root` entry in the repo root, it is a CodeQL artifact (a symlink to `.`). It can safely be removed (and is already ignored by `.gitignore`).
+> 
+> ```bash
+git rm --cached --force _codeql_detected_source_root && rm -f _codeql_detected_source_root
+```
+
 ---
 
 ## Usage
@@ -79,32 +85,37 @@ exit
 
 Automated tests live under `tests/`. Run them from the **repository root** (so `./minishell` exists).
 
-### Run all tests (recommended)
+### Run tests (recommended)
+
+The project relies on **[42_minishell_tester](https://github.com/zstenger93/42_minishell_tester)** (cozyGarage fork) as the primary test suite. From the project root:
 
 ```bash
 make -C tests test
 ```
 
-This runs:
-
-1. **Phase 1** (`tests/test_phase1.sh`) — 24 tests: foundation and builtins (echo, pwd, cd, env, export, unset, exit).
-2. **Hardening** (`tests/test_hardening.sh`) — 106 tests: empty input, syntax errors, expansion, redirections, pipes, heredocs, exit codes, path resolution, edge cases.
-
-Both suites must pass (no failures).
-
-### Run suites separately
+This runs the **mandatory** tests from the 42_minishell_tester. If `minishell_tester/` is missing, the script clones the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester) for you.
 
 ```bash
-make -C tests test_phase1    # Phase 1 only
-make -C tests test_hardening # Hardening only
+./scripts/run_minishell_tester.sh m       # mandatory (same as make -C tests test)
+./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
+./scripts/run_minishell_tester.sh m b     # mandatory, builtins only
 ```
+
+To use a different fork: `export COZYGARAGE_TESTER_REPO="https://github.com/.../42_minishell_tester.git"` then run the script. To push changes to the fork: `./scripts/push_tester_fork.sh`.
 
 ### Other targets
 
 ```bash
-make -C tests help   # List test targets
-make -C tests clean  # Remove test binaries (e.g. test_builtins if present)
+make -C tests test_42     # Same as test
+make -C tests help        # List targets
+make -C tests clean      # Remove test binaries if present
 ```
+
+### Input mode
+
+When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it uses **get_next_line** (in `libft/`, included via `minishell.h`) so line-by-line input matches the tester. Continuation and heredoc use non-readline reads when `!isatty(stdin)` (e.g. `fgets` in continuation, `read()` loop in heredoc).  
+
+Scripts under `scripts/` require **git** and work on **macOS and Linux**. If git is missing, set `AUTO_INSTALL_DEPS=1` to try installing it.
 
 ---
 
@@ -113,12 +124,15 @@ make -C tests clean  # Remove test binaries (e.g. test_builtins if present)
 ```
 minishell/
 ├── src/
-│   ├── main.c              # REPL loop, read_input, process_input
-│   ├── init.c              # init_shell, build_prompt, get_env_value
-│   ├── utils.c             # ft_arrdup, msh_calloc, etc.
-│   ├── free_utils.c         # free_tokens, free_args
-│   ├── free_runtime.c      # free_commands, redirs
-│   ├── free_shell.c        # reset_shell, free_all
+│   ├── main.c              # REPL loop, read_input, process_input (only file in src/ root)
+│   ├── core/
+│   │   └── init.c          # init_shell, build_prompt, get_env_value
+│   ├── utils/
+│   │   └── utils.c         # ft_arrdup, msh_calloc, ft_strcat, ft_realloc
+│   ├── free/
+│   │   ├── free_utils.c    # free_tokens, free_args
+│   │   ├── free_runtime.c  # free_commands, redirs
+│   │   └── free_shell.c    # reset_shell, free_all
 │   ├── signals/
 │   │   ├── signal_handler.c
 │   │   └── signal_utils.c
@@ -152,9 +166,11 @@ minishell/
 │   └── prototypes.h
 ├── libft/                   # Static library (submodule or vendored)
 ├── tests/
-│   ├── Makefile             # make test, test_phase1, test_hardening
-│   ├── test_phase1.sh
-│   └── test_hardening.sh
+│   └── Makefile             # make test (= 42 mandatory), test_42
+├── scripts/
+│   ├── run_minishell_tester.sh  # 42_minishell_tester runner (mandatory, valgrind)
+│   ├── push_tester_fork.sh      # Push tester changes to fork
+│   └── ensure_deps.sh           # Git check; optional install (AUTO_INSTALL_DEPS=1)
 ├── docs/
 │   ├── minishell_architecture.md   # Design, flow, Mermaid diagrams
 │   ├── DATA_MODEL_AND_FUNCTIONS.md # Struct/enum rationale + function reference

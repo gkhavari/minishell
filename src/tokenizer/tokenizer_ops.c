@@ -54,6 +54,8 @@ size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 		return (add_token(list, new_token(shell, APPEND, ">>")), 2);
 	if (s[0] == '<')
 		return (add_token(list, new_token(shell, REDIR_IN, "<")), 1);
+	if (s[0] == '>' && s[1] == '|')
+		return (add_token(list, new_token(shell, REDIR_OUT, ">")), 2);
 	if (s[0] == '>')
 		return (add_token(list, new_token(shell, REDIR_OUT, ">")), 1);
 	return (0);

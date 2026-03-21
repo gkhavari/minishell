@@ -22,13 +22,19 @@ INCLUDES 	= includes
 LIBFT_DIR	= libft
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
-# main
-SRCS		=	$(SRC_DIR)/main.c \
-				$(SRC_DIR)/init.c \
-				$(SRC_DIR)/utils.c \
-				$(SRC_DIR)/free_utils.c \
-				$(SRC_DIR)/free_runtime.c \
-				$(SRC_DIR)/free_shell.c 
+# main (only file in src/ root)
+SRCS		=	$(SRC_DIR)/main.c
+
+# core
+SRCS		+=	$(SRC_DIR)/core/init.c
+
+# utils
+SRCS		+=	$(SRC_DIR)/utils/utils.c
+
+# free
+SRCS		+=	$(SRC_DIR)/free/free_utils.c \
+				$(SRC_DIR)/free/free_runtime.c \
+				$(SRC_DIR)/free/free_shell.c
 
 # signals
 SRCS		+=	$(SRC_DIR)/signals/signal_handler.c \
@@ -52,8 +58,6 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
-
-# utils (ft_arrdup is in utils.c; arrdup.c removed to avoid duplicate symbol)
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \
@@ -98,12 +102,14 @@ $(LIBFT):
 # Create obj/ and subdirectories manually
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(OBJ_DIR)/core
+	@mkdir -p $(OBJ_DIR)/utils
+	@mkdir -p $(OBJ_DIR)/free
 	@mkdir -p $(OBJ_DIR)/signals
 	@mkdir -p $(OBJ_DIR)/tokenizer
 	@mkdir -p $(OBJ_DIR)/parser
 	@mkdir -p $(OBJ_DIR)/executor
 	@mkdir -p $(OBJ_DIR)/builtins
-	@mkdir -p $(OBJ_DIR)/utils
 
 # Compile .c -> .o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c

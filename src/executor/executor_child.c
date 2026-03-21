@@ -5,13 +5,12 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 14:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/08 16:20:11 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/21 18:13:33 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-#include <errno.h>
 
 static void	check_is_dir(char *cmd_name, char *path)
 {
@@ -50,22 +49,53 @@ static void	cmd_not_found(char *cmd_name)
 	exit(127);
 }
 
+/**
+ DESCRIPTION:
+* Execute a command in a forked child process.
+
+ BEHAVIOR:
+* If the command is a builtin runs it and exits with its status after
+* setting the `_` variable when a path is available. For external
+* commands searches for the executable path, reports `command not found`
+* (127) or `is a directory` (126) errors, sets `_` and `execve`s the
+* program; on exec failure prints an error and exits with 126.
+
+ PARAMETERS:
+* t_command *cmd: Command node containing argv and is_builtin flag.
+* t_shell *shell: Shell runtime providing `envp` and helpers.
+*/
 void	execute_in_child(t_command *cmd, t_shell *shell)
 {
 	char	*path;
 
 	if (cmd->is_builtin)
+	{
+		path = find_command_path(cmd->argv[0], shell);
+		if (path)
+		{
+			set_underscore(shell, path);
+			free(path);
+		}
 		exit(run_builtin(cmd->argv, shell));
+	}
 	if (!cmd->argv || !cmd->argv[0])
 		exit(0);
 	path = find_command_path(cmd->argv[0], shell);
 	if (!path)
 		cmd_not_found(cmd->argv[0]);
 	check_is_dir(cmd->argv[0], path);
+	set_underscore(shell, path);
 	execve(path, cmd->argv, shell->envp);
 	handle_exec_error(cmd->argv[0], path);
 }
 
+/**
+ DESCRIPTION:
+* Free a NULL-terminated array of strings and the array itself.
+
+ PARAMETERS:
+* char **arr: Array of C-strings to free; may be NULL.
+*/
 void	free_array(char **arr)
 {
 	int	i;

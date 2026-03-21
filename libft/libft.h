@@ -69,4 +69,6 @@ void	ft_putendl_fd(char *s, int fd);
 void	ft_putnbr_fd(int n, int fd);
 char	*ft_strndup(const char *s, size_t n);
 
+# include "get_next_line.h"
+
 #endif

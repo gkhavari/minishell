@@ -6,16 +6,25 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:40 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:41 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:07:17 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/*
-** is_valid_name - Check if name is valid env identifier
-** @name: variable name to check
-** Return: 1 if valid, 0 otherwise
+/**
+ DESCRIPTION:
+* Validate an identifier name for `export`.
+
+ BEHAVIOR:
+* Ensures the name is non-empty, starts with a letter or `_` and
+* contains only alphanumeric characters or underscores afterwards.
+
+ PARAMETERS:
+* char *name: Identifier to validate.
+
+ RETURN:
+* `1` if valid, `0` otherwise.
 */
 int	is_valid_export_name(char *name)
 {
@@ -35,33 +44,53 @@ int	is_valid_export_name(char *name)
 	return (1);
 }
 
-/*
-** find_key_index - Find index of env var by key
-** @shell: shell state
-** @key: variable name
-** @key_len: length of key
-** Return: index if found, -1 otherwise
+/**
+ DESCRIPTION:
+* Find the index of an environment entry matching `key`.
+
+ BEHAVIOR:
+* Iterates `shell->envp` comparing the first `key_len` characters and
+* verifies that the following character is `=` or the end of string.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime containing `envp`.
+* char *key: The key to search for (not terminated by `=`).
+* int key_len: Length of the key to compare.
+
+ RETURN:
+* Index of the matching entry, or `-1` if not found.
 */
 int	find_export_key_index(t_shell *shell, char *key, int key_len)
 {
-	int	i;
+	int		i;
+	char	end;
 
 	i = 0;
 	while (shell->envp[i])
 	{
+		end = shell->envp[i][key_len];
 		if (ft_strncmp(shell->envp[i], key, key_len) == 0
-			&& shell->envp[i][key_len] == '=')
+			&& (end == '=' || end == '\0'))
 			return (i);
 		i++;
 	}
 	return (-1);
 }
 
-/*
-** append_env - Add new entry to envp array
-** @shell: shell state
-** @entry: KEY=value string to add
-** Return: 0 on success, 1 on malloc failure
+/**
+ DESCRIPTION:
+* Append a new environment entry to the shell's `envp` array.
+
+ BEHAVIOR:
+* Allocates a new array one element larger, copies existing entries,
+* duplicates `entry` into the new slot and replaces `shell->envp`.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime whose `envp` will be extended.
+* char *entry: String to append (format `key` or `key=value`).
+
+ RETURN:
+* `0` on success, non-zero on allocation failure.
 */
 int	append_export_env(t_shell *shell, char *entry)
 {

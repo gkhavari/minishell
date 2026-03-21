@@ -2,7 +2,7 @@
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
 >
-> **Test-backed behavior:** All behaviors described here are covered by the passing test suites (Phase 1 + Hardening). For input/output examples, exit codes, and edge-case tables, see **[BEHAVIOR.md](BEHAVIOR.md)**.
+> **Test-backed behavior:** The test suite is **42_minishell_tester** (mandatory). For expected behavior per input, exit codes, and test-design guidance, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 
 ---
 
@@ -12,46 +12,60 @@ This section reflects the **actual codebase** as built: source layout, data flow
 
 ### 0.1 Test Status (as of last run)
 
-| Suite | Script | Count | Status |
-|-------|--------|-------|--------|
-| Phase 1 | `tests/test_phase1.sh` | 24 | ✅ All pass |
-| Hardening | `tests/test_hardening.sh` | 106 | ✅ All pass |
+| Suite | Description | Status |
+|-------|-------------|--------|
+| 42_minishell_tester (mandatory) | `make -C tests test` runs [42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester) mandatory | ✅ |
 
-Run from repo root: `make -C tests test` (or `make test` from `tests/`).
+Run from repo root: `make -C tests test`.
 
-### 0.2 Test coverage map (what each suite verifies)
+### 0.2 Test coverage map (what the suite verifies)
 
-Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by these tests:
+Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by **42_minishell_tester** (scripts in `cmds/mand/`):
 
-| Area | Phase 1 | Hardening |
-|------|---------|-----------|
-| **Echo** | echo basic, -n, empty, -n -a | echo basic, -n, -nnn, empty, quotes |
-| **PWD / CD** | pwd, cd then pwd, cd HOME, cd nonexistent | pwd, cd /tmp and pwd, cd HOME, cd with extra args, cd nonexistent |
-| **Env / Export / Unset** | env, export no args/set var/invalid, unset | export declare, sets var, invalid name; env PATH/HOME; unset removes |
-| **Exit** | exit 0/42/255, exit no args | exit 0/42/255, 256 wraps, non-numeric, too many args; exit -1, 257 |
-| **Expansion** | (via export/echo) | undefined var, $, $?, $1, single/double quotes, set/unset, A_B, invalid export |
-| **Redirections** | — | >, >>, <, bad path, missing file; append then read; pipe then redir; output to dir |
-| **Pipes** | — | simple, 2–5 pipes, grep, wc -l; pipe exit (last cmd); pipe + redir; long pipeline |
-| **Heredoc** | — | basic, expand vars, quoted delim, empty body, EOF |
-| **Syntax / resilience** | — | lone/double pipe, pipe at end, unclosed quotes, redir no file, heredoc no delim; pipe first/last; only `>` |
-| **Path / exit codes** | — | absolute path; command not found (127); directory as cmd (126); cd/export fail (1) |
-| **Stress / no crash** | — | empty, spaces, blank lines; combo pipe+redir; many pipelines; export then pipe; nested quotes |
+| Area | Coverage |
+|------|----------|
+| **Echo** | 1_builtins.sh — echo, -n, quotes, $?, backslash escaping |
+| **PWD / CD** | 1_builtins.sh — pwd, cd, cd -, extra args ignored |
+| **Env / Export / Unset** | 1_builtins.sh — env, export, unset, invalid names |
+| **Exit** | 1_builtins.sh — exit 0/42/255/256/257, non-numeric, too many args |
+| **Expansion** | 0_compare_parsing.sh, 1_builtins.sh, 1_variables.sh — $VAR, $?, quotes |
+| **Redirections** | 1_redirs.sh — >, >>, <, <<, combined, missing file |
+| **Pipes** | 1_pipelines.sh — pipelines, heredocs in pipes |
+| **Syntax** | 8_syntax_errors.sh — \|, \| \|, >, >>, <<, invalid tokens |
+| **Path / 127 / 126** | 1_scmds.sh, 2_path_check.sh, 9_go_wild.sh |
+| **Parsing** | 0_compare_parsing.sh, 10_parsing_hell.sh |
 
 ### 0.3 Source Layout (real files)
+
+**Rule:** Only `main.c` lives in `src/` root. All other sources are in subfolders.
+
+| Directory | Purpose |
+|-----------|---------|
+| `src/` | `main.c` only — REPL loop, read_input, process_input |
+| `src/core/` | Shell initialization: `init.c` (init_shell, build_prompt, get_env_value) |
+| `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
+| `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
+| `src/signals/` | Signal handlers and readline hook |
+| `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
+| `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc |
+| `src/executor/` | Execution: executor.c, executor_utils, external, pipeline, child |
+| `src/builtins/` | Builtin commands and dispatcher |
 
 ```mermaid
 graph TB
     subgraph Entry
         main[main.c]
     end
-    subgraph Init
-        init[init.c]
+    subgraph core
+        init[core/init.c]
     end
-    subgraph Core
-        utils[utils.c]
-        free_utils[free_utils.c]
-        free_runtime[free_runtime.c]
-        free_shell[free_shell.c]
+    subgraph utils
+        utils_file[utils/utils.c]
+    end
+    subgraph free
+        free_utils[free/free_utils.c]
+        free_runtime[free/free_runtime.c]
+        free_shell[free/free_shell.c]
     end
     subgraph Signals
         sig_handler[signals/signal_handler.c]
@@ -96,6 +110,7 @@ graph TB
         exit[exit.c]
     end
     main --> init
+    main --> utils_file
     main --> tok
     main --> parser
     main --> exec
@@ -119,7 +134,7 @@ graph TB
 
 ```mermaid
 flowchart LR
-    A[readline / silent_readline] --> B[tokenize_input]
+    A[readline (TTY) / get_next_line (non-TTY)] --> B[tokenize_input]
     B --> C[parse_input]
     C --> D[process_heredocs]
     D --> E[execute_commands]
@@ -130,10 +145,10 @@ flowchart LR
     I --> J[run_builtin OR execute_external / execute_in_child]
 ```
 
-- **main.c**: `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
-- **Tokenizer**: `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `tokenizer_ops.c`, `continuation.c`.
-- **Parser**: `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
-- **Executor**: `execute_commands()` in `executor.c`; single command → `execute_single_command()` (builtin in parent, external forked); pipeline → `execute_pipeline()` in `executor_pipeline.c`; children run `execute_in_child()` in `executor_child.c`.
+- **main.c** (src/): `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
+- **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `tokenizer_ops.c`, `continuation.c`.
+- **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
+- **Executor** (src/executor/): `execute_commands()` in `executor.c`; single command → `execute_single_command()` (builtin in parent, external forked); pipeline → `execute_pipeline()` in `executor_pipeline.c`; children run `execute_in_child()` in `executor_child.c`.
 
 ---
 
@@ -184,20 +199,21 @@ if (g_signum == SIGINT)
 
 ### 1.3 Initialization (actual implementation)
 
-**Current `init_shell()` behavior** (see `src/init.c`):
+**Current `init_shell()` behavior** (see `src/core/init.c`):
 
 ```
 init_shell(t_shell *shell, char **envp)
 ├── 1. Caller must zero the struct first: ft_bzero(shell, sizeof(t_shell)) (done in main)
 ├── 2. shell->envp = ft_arrdup(envp); exit(1) if NULL
-├── 3. shell->user = ft_strdup(get_env_value(shell->envp, "USER"))
+├── 3. shell->user: if USER in env → ft_strdup(value); else NULL (no ft_strdup(NULL))
 ├── 4. shell->cwd = getcwd(NULL, 0); if NULL → shell->cwd = ft_strdup("/")
-├── 5. shell->last_exit = 0
-├── 6. shell->tokens = NULL, shell->commands = NULL, shell->input = NULL
+├── 5. shell->last_exit = 0; shell->tokens/commands/input = NULL
+├── 6. shell->had_path = (PATH was present in env at startup) — used in PATH resolution
+├── 7. update_shlvl(shell) — increments or sets SHLVL in envp (bash-like nesting)
 └── Signal handlers are set in main() after init: set_signals_interactive()
 ```
 
-**Note:** The code does not currently create a minimal env when `envp` is NULL, nor does it increment `SHLVL`. Those are optional improvements for full bash compatibility; see [BEHAVIOR.md](BEHAVIOR.md) for what is implemented.
+See [BEHAVIOR.md](BEHAVIOR.md) for runtime semantics. For **42 tester–related fixes** (token list, USER, PATH, export/unset, etc.), see [42_tester_failures.md](42_tester_failures.md).
 
 ---
 
@@ -205,15 +221,17 @@ init_shell(t_shell *shell, char **envp)
 
 **Implementation:** `main.c` → `shell_loop()` → `read_input()` → `process_input()`.
 
+**Input source:** When stdin is a TTY, `read_input()` uses `readline(prompt)` (history, editing). When stdin is not a TTY (e.g. pipe from the 42_minishell_tester), it uses **`read_line_stdin()`** in `main.c`: byte-by-byte `read()` until `\n` or EOF—no prompt, no readline. One call returns one logical line (without the newline).
+
 ```mermaid
 flowchart TD
     START([shell_loop]) --> CHECK_SIG[check g_signum]
     CHECK_SIG --> READ[read_input]
     READ --> PROMPT{isatty?}
     PROMPT -->|yes| BUILD[build_prompt, readline]
-    PROMPT -->|no| SILENT[silent_readline]
-    BUILD --> GOT
-    SILENT --> GOT{input}
+    PROMPT -->|no| RLS[read_line_stdin]
+    BUILD --> GOT{input}
+    RLS --> GOT{input}
     GOT -->|NULL| EXIT[print exit, break]
     GOT -->|empty| RESET[reset_shell, continue]
     GOT -->|string| CHECK_SIG2[check g_signum again]
@@ -229,10 +247,10 @@ flowchart TD
 | Step | Code / behavior |
 |------|------------------|
 | 1 | `check_signal_received(shell)` — if SIGINT, set `last_exit=130`, reset `g_signum`. |
-| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `silent_readline()` (stdout to `/dev/null` during read). |
-| 3 | NULL → print `"exit"`, break; empty → skip processing; else continue. |
+| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `read_line_stdin()` (one line per call, no prompt). |
+| 3 | NULL → print `"exit"` (TTY only), break; empty → skip processing; else continue. |
 | 4 | Check `g_signum` again (e.g. Ctrl+C during readline). |
-| 5 | Non-empty input is added to history inside `tokenize_input()` (before `free(shell->input)`). |
+| 5 | **TTY:** non-empty input is added to readline history in `tokenizer_handlers.c` during tokenization (before `shell->input` is freed). **Non-TTY:** no history. |
 | 6 | `process_input()`: tokenize → parse → heredocs → execute. |
 | 7 | `reset_shell(shell)` frees tokens, commands, input. |
 
@@ -462,7 +480,7 @@ echo $USER_NAME         # (value of USER_NAME, not USER + _NAME)
 | `export A-B=x` | stderr "not a valid identifier" | invalid export |
 | `echo $` at end of line | No crash | expansion at end |
 
-Expansion runs during **tokenization** (see `expansion.c`, `expansion_utils.c`). Heredoc expansion is in `heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
+Expansion runs during **tokenization** (see `tokenizer/expansion.c`, `tokenizer/expansion_utils.c`). Heredoc expansion is in `parser/heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
 
 ---
 
@@ -480,8 +498,8 @@ typedef struct s_arg
 typedef struct s_redir
 {
     char            *file;
-    int             is_input;   /* 1 for < or <<, 0 for > or >> */
-    int             append;     /* 1 for >> */
+    int             fd;         /* Target stream: STDIN_FILENO, STDOUT_FILENO, or STDERR_FILENO */
+    int             append;     /* 1 for >>; 0 for <, >, 2> */
     struct s_redir  *next;
 }   t_redir;
 
@@ -489,7 +507,7 @@ typedef struct s_command
 {
     t_arg               *args;          /* Linked list of args; finalize_argv → argv */
     char                **argv;         /* ["ls", "-la", NULL] for execve */
-    t_redir             *redirs;        /* All redirections: < > >> << (file, is_input, append) */
+    t_redir             *redirs;        /* All redirections: < > >> << 2> (file, fd, append) */
     int                 heredoc_fd;     /* FD for heredoc input (or -1) */
     char                *heredoc_delim; /* Delimiter for heredoc */
     int                 heredoc_quoted; /* Flag if delimiter was quoted */
@@ -500,7 +518,7 @@ typedef struct s_command
 
 - **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_argv()` builds `argv`, then `finalize_all_commands()` sets `is_builtin`.
 
-### 5.2 Parsing Flow (actual: `parser.c`, `add_token_to_cmd.c`)
+### 5.2 Parsing Flow (actual: `parser/parser.c`, `parser/add_token_to_cmd.c`)
 
 ```mermaid
 flowchart LR
@@ -514,8 +532,8 @@ flowchart LR
     F --> A2[argv + redirs]
 ```
 
-- **parser.c**: `parse_tokens()` walks tokens; on `PIPE` creates new command, else `consume_command_tokens()` → `add_token_to_command()` (WORD → `add_word_to_cmd`, redirs → `append_redir` / `handle_heredoc_token`).
-- **argv_build.c**: `finalize_all_commands()` → `finalize_argv()` (args list → `argv[]`), then `is_builtin(cmd->argv[0])` → `cmd->is_builtin`.
+- **parser/parser.c**: `parse_tokens()` walks tokens; on `PIPE` creates new command, else `consume_command_tokens()` → `add_token_to_command()` (WORD → `add_word_to_cmd`, redirs → `append_redir` / `handle_heredoc_token`).
+- **parser/argv_build.c**: `finalize_all_commands()` → `finalize_argv()` (args list → `argv[]`), then `is_builtin(cmd->argv[0])` → `cmd->is_builtin`.
 
 ### 5.3 Redirection Parsing (Right-to-Left for Multiple)
 
@@ -654,7 +672,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor.c` (`execute_commands`), `executor_utils.c` (redirections, `execute_builtin`), `executor_external.c`, `executor_pipeline.c`, `executor_child.c`.
+**Implementation:** `executor/executor.c` (`execute_commands`), `executor/executor_utils.c` (redirections, `execute_builtin`), `executor/executor_external.c`, `executor/executor_pipeline.c`, `executor/executor_child.c`.
 
 ### 7.1 Decision Tree (real code path)
 
@@ -715,7 +733,7 @@ flowchart TD
 
 **Simplification for 42:** Run ALL builtins in parent for single commands. It's easier and matches bash behavior.
 
-### 7.3 Single Command with Redirections (actual: `executor.c`)
+### 7.3 Single Command with Redirections (actual: `executor/executor.c`)
 
 ```c
 /* executor.c: execute_single_command() */
@@ -725,7 +743,7 @@ int execute_single_command(t_command *cmd, t_shell *shell)
     int stdout_backup = dup(STDOUT_FILENO);
     int status;
 
-    if (apply_redirections(cmd))  /* executor_utils.c; returns 1 on failure */
+    if (apply_redirections(cmd))  /* executor/executor_utils.c; returns 1 on failure */
     {
         restore_fds(stdin_backup, stdout_backup);
         return (1);
@@ -916,7 +934,7 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 | Ctrl+C (SIGINT)              | `130`          | `128 + 2`                                       |
 | Ctrl+\ (SIGQUIT)             | `131`          | `128 + 3`                                       |
 | `exit` with valid arg        | `arg % 256`    | 0–255; out-of-range wraps (e.g. 256 → 0)        |
-| `exit` with non-numeric      | `255`          | Print "numeric argument required" to stderr, exit 255 |
+| `exit` with non-numeric      | `255` (bash) / **`2` (this shell)** | Bash: stderr + exit 255. **We:** same message, **exit 2** (known difference). |
 | `exit` with too many args    | (no exit)      | Print error to stderr, return 1, shell continues |
 
 ### 8.2 Where We Use Each Code
@@ -927,12 +945,12 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 - **126** – `execve` not attempted or failed: path is directory or not executable (`executor_child.c`).
 - **127** – Command not found (`executor_child.c`).
 - **128 + signal** – Child terminated by signal; e.g. **130** = SIGINT, **131** = SIGQUIT (`handle_child_exit`, `executor.c`, `executor_external.c`).
-- **255** – `exit <non-numeric>`: print error to stderr then **exit(255)** (`builtin_exit`).
+- **2** (non-bash) – `exit <non-numeric>`: print error to stderr then **exit(2)** (`builtin_exit`). Bash uses **255** here.
 
 ### 8.3 exit Builtin (Bash Reference)
 
 - **Interactive only:** In an interactive shell, bash prints `"exit\n"` (or `"logout\n"` for login shells) to **stderr** before exiting (see `builtins/exit.def`). We do the same: `ft_putendl_fd("exit", STDERR_FILENO)` when `isatty(STDIN_FILENO)`.
-- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. We match this.
+- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. **We exit 2** (same message; exit code differs — see `exit.c`).
 - **Too many arguments:** Bash does not exit; it prints an error and returns 1. We match this.
 
 ---
@@ -1014,13 +1032,13 @@ env                     # Print all environment variables
 Bash reference: message `"exit"` is printed to **stderr** in interactive mode only.
 
 ```bash
-# Behavior (exit codes match bash):
+# Behavior (mostly bash; non-numeric exit uses 2 here, bash uses 255):
 exit                    # Exit with last command's status
 exit 0                  # Exit with 0
 exit 42                 # Exit with 42
 exit 256                # Exit with 0 (256 % 256)
 exit -1                 # Exit with 255 (two's complement)
-exit abc                # Error to stderr: "numeric argument required", then exit 255
+exit abc                # Error to stderr: "numeric argument required", then exit 2 (bash: 255)
 exit 1 2 3              # Error to stderr: "too many arguments", return 1, do NOT exit
 ```
 
@@ -1064,7 +1082,7 @@ ft_putstr_fd("\n", 2);
 
 ## 11. Memory Management & Cleanup
 
-### 11.1 Per-Loop Cleanup (actual: `free_shell.c`)
+### 11.1 Per-Loop Cleanup (actual: `free/free_shell.c`)
 
 ```c
 void reset_shell(t_shell *shell)
@@ -1078,10 +1096,10 @@ void reset_shell(t_shell *shell)
 }
 ```
 
-### 11.2 Exit Cleanup (actual: `free_shell.c`)
+### 11.2 Exit Cleanup (actual: `free/free_shell.c`)
 
 ```c
-/* free_shell.c: free_all() — used at process exit (e.g. from builtin_exit) */
+/* free/free_shell.c: free_all() — used at process exit (e.g. from builtin_exit) */
 void free_all(t_shell *shell)
 {
     free_tokens(shell->tokens);
@@ -1111,7 +1129,7 @@ void safe_free(void **ptr)
 
 ## 12. Testing Checklist
 
-Covered by **tests/test_phase1.sh** (24) and **tests/test_hardening.sh** (106). Run: `make -C tests test`.
+Covered by **42_minishell_tester** (`make -C tests test`). See [BEHAVIOR.md](BEHAVIOR.md) for expected behavior and test-design guidance.
 
 ### 12.1 Basic Commands
 
@@ -1176,38 +1194,38 @@ Reflects the **built** codebase; phase1 + hardening tests pass.
 
 ```
 Phase 1: Foundation
-├── [x] Shell struct and initialization (init.c, structs.h)
-├── [x] Main loop with readline (main.c, silent_readline for non-TTY)
+├── [x] Shell struct and initialization (core/init.c, structs.h)
+├── [x] Main loop with readline (TTY) / get_next_line (non-TTY) (src/main.c)
 ├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
 Phase 2: Lexer & Parser
-├── [x] Tokenizer (tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c)
-├── [x] Quote handling (continuation.c for unclosed quotes)
-├── [x] Syntax validation (parser_syntax_check.c)
-└── [x] Command table construction (parser.c, add_token_to_cmd.c, argv_build.c)
+├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c, continuation.c)
+├── [x] Quote handling (tokenizer/continuation.c for unclosed quotes)
+├── [x] Syntax validation (parser/parser_syntax_check.c)
+└── [x] Command table construction (parser/parser.c, add_token_to_cmd.c, argv_build.c)
 
 Phase 3: Expander
-├── [x] Variable expansion (expansion.c, expansion_utils.c — $VAR, $?)
+├── [x] Variable expansion (tokenizer/expansion.c, tokenizer/expansion_utils.c — $VAR, $?)
 ├── [x] Exit status expansion ($?)
 ├── [x] Quote removal (during tokenization)
 └── [x] Edge case handling (e.g. $ at end, invalid names)
 
 Phase 4: Executor (Simple)
-├── [x] Single external command execution (executor_external.c)
+├── [x] Single external command execution (executor/executor_external.c)
 ├── [x] Path resolution (find_command_path in executor_external.c)
 ├── [x] Single builtin with redirections (execute_single_command, apply_redirections)
-└── [x] File redirections (executor_utils.c, apply_one_redir, heredoc_fd)
+└── [x] File redirections (executor/executor_utils.c, apply_one_redir, heredoc_fd)
 
 Phase 5: Pipes & Heredoc
-├── [x] Pipeline execution (executor_pipeline.c)
-├── [x] Heredoc implementation (heredoc.c, heredoc_utils.c)
+├── [x] Pipeline execution (executor/executor_pipeline.c)
+├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
 └── [x] Signal handling in children (wait_pipeline, exit codes 128+N)
 
 Phase 6: Polish
 ├── [x] Error messages (minishell: cmd: msg style)
-├── [x] Memory cleanup (free_shell.c, free_runtime.c, reset_shell)
+├── [x] Memory cleanup (free/free_shell.c, free/free_runtime.c, reset_shell)
 ├── [x] Edge case handling (hardening tests pass)
 └── [ ] Norminette / 42 compliance (project-specific)
 ```
@@ -1220,5 +1238,6 @@ Phase 6: Polish
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints. For team and code review. |
+| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints; **recent critical fixes** table. |
+| **[42_tester_failures.md](42_tester_failures.md)** | Mandatory tester CI, session notes (e.g. 2026-03-19 fixes: `add_token`, USER, PATH, export/unset). |
 | **README.md** | Project overview, build, usage, how to run tests. |

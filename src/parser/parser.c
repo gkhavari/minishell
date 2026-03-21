@@ -1,25 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   parser.c                                          :+:      :+:    :+:   */
+/*   parser.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 20:21:00 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 17:27:04 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 /**
  DESCRIPTION:
-* Allocates and initializes a new t_command structure.
-* Everything is initiallized to 0/NULL.
+* Allocate and initialize a new `t_command` node.
 
-RETURN VALUE:
-* A pointer to a newly allocated and initialized t_command structure.
-* NULL if memory allocation fails.
-**/
+ BEHAVIOR:
+* Uses `msh_calloc` to zero the structure and sets the `heredoc_fd`
+* field to -1 to indicate no open heredoc. Caller owns the result.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime used for allocation and error handling.
+
+ RETURN:
+* Pointer to the newly allocated `t_command`, or NULL on allocation failure.
+*/
 static t_command	*new_command(t_shell *shell)
 {
 	t_command	*cmd;
@@ -31,19 +36,23 @@ static t_command	*new_command(t_shell *shell)
 }
 
 /**
- * DESCRIPTION:
- * Adds tokens to a given command until a PIPE or the end of the list is reached.
- * Uses add_token_to_command() to process tokens.
- *
- * PARAMETERS:
- * shell - Pointer to the shell state used during token processing.
- * cmd   - Pointer to the command structure being filled.
- * token - Pointer to the first token to process.
- *
- * RETURN:
- * Pointer to the next unprocessed token after consumption, 
- * or NULL if an error occurs.
- */
+ DESCRIPTION:
+* Consume tokens for a single command, dispatching them into `cmd`.
+
+ BEHAVIOR:
+* Calls `add_token_to_command` to process the current token. Advances
+* the token pointer by the number of consumed tokens and returns the
+* next unprocessed token. On error frees the partially-built command
+* and returns NULL.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime for allocation and helpers.
+* t_command *cmd: Command node being populated.
+* t_token *token: First token to process.
+
+ RETURN:
+* Next unprocessed `t_token` pointer, or NULL on error.
+*/
 static t_token	*consume_command_tokens(t_shell *shell, t_command *cmd,
 	t_token *token)
 {
@@ -63,6 +72,22 @@ static t_token	*consume_command_tokens(t_shell *shell, t_command *cmd,
 	return (token);
 }
 
+/**
+ DESCRIPTION:
+* Build a linked list of `t_command` from the token stream.
+
+ BEHAVIOR:
+* Allocates the head command and iterates tokens, splitting commands
+* on `PIPE` tokens and delegating token consumption to
+* `consume_command_tokens`.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime used for allocations.
+* t_token *token: Head of the token list to parse.
+
+ RETURN:
+* Head of the constructed `t_command` list, or NULL on failure.
+*/
 static t_command	*parse_tokens(t_shell *shell, t_token *token)
 {
 	t_command	*head;
@@ -86,24 +111,20 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 
 /**
  DESCRIPTION:
-* High-level parsing function that takes the already-tokenized shell input 
-	and constructs
-	the final command list.
-* It first checks syntax validity, and if no errors are present, builds 
-	the command list and performs post-processing.
+* Top-level parsing entry point that converts tokens into commands.
 
-PARAMETERS:
-* shell: A pointer to the main shell structure, containing tokens and
-	a location to store parsed commands.
+ BEHAVIOR:
+* Validates token syntax with `syntax_check`. On success builds the
+* command list via `parse_tokens` and performs finalization steps.
+* On syntax error sets `shell->last_exit` and frees token data.
 
-BEHAVIOR:
-* Calls syntax_check(shell->tokens)
-* If a syntax error is detected, the function immediately returns without
-	altering shell->commands.
-* Calls parse_tokens() to turn tokens into a command list.
-* Calls finalize_all_commands() to perform final adjustments 
-	(e.g., building argv, resolving redirections, etc.).
-**/
+ PARAMETERS:
+* t_shell *shell: Shell runtime containing `tokens` and where
+*                 `commands` will be stored.
+
+ RETURN:
+* None.
+*/
 void	parse_input(t_shell *shell)
 {
 	if (syntax_check(shell->tokens) == SYNTAX_ERR)
@@ -117,9 +138,15 @@ void	parse_input(t_shell *shell)
 	finalize_all_commands(shell, shell->commands);
 }
 
-/*
-** is_redirection - Check if a token type is a redirection operator
-** Returns 1 for < > >> <<, 0 otherwise.
+/**
+ DESCRIPTION:
+* Check whether a token type represents a redirection operator.
+
+ PARAMETERS:
+* t_tokentype type: Token type to inspect.
+
+ RETURN:
+* `1` if `type` is a redirection (<, >, >>, <<), otherwise `0`.
 */
 int	is_redirection(t_tokentype type)
 {

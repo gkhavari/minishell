@@ -3,15 +3,25 @@
 /*                                                        :::      ::::::::   */
 /*   free_shell.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 22:50:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/02/24 22:20:53 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:16:13 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+/**
+ DESCRIPTION:
+* Free a NULL-terminated environment array and all its entries.
+
+ BEHAVIOR:
+* Frees each string in `envp` and then frees the array itself.
+
+ PARAMETERS:
+* char **envp: Environment array to free; may be NULL.
+*/
 static void	free_envp(char **envp)
 {
 	int	i;
@@ -28,6 +38,17 @@ static void	free_envp(char **envp)
 	free(envp);
 }
 
+/**
+ DESCRIPTION:
+* Reset transient shell state without freeing environment or shell object.
+
+ BEHAVIOR:
+* Frees and nulls tokens, commands and the input buffer, leaving other
+* shell fields intact so the shell can continue running.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime to reset; if NULL nothing is done.
+*/
 void	reset_shell(t_shell *shell)
 {
 	if (!shell)
@@ -43,6 +64,17 @@ void	reset_shell(t_shell *shell)
 	shell->input = NULL;
 }
 
+/**
+ DESCRIPTION:
+* Free all dynamically allocated memory associated with the shell.
+
+ BEHAVIOR:
+* Frees tokens, commands, environment array, user, cwd and input
+* fields and nulls the corresponding pointers in `shell`.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime to free; if NULL nothing is done.
+*/
 void	free_all(t_shell *shell)
 {
 	if (!shell)

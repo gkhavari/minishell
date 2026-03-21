@@ -1,21 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                            :+:      :+:    :+:   */
+/*   exit.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:32 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:07:04 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/*
-** is_numeric_str - Check if string is a valid numeric exit argument.
-** Accepts optional single leading sign followed by one or more digits.
-** Returns 1 if valid (including overflow values), 0 otherwise.
+/**
+ DESCRIPTION:
+* Check whether a string represents a valid integer number.
+
+ BEHAVIOR:
+* Accepts an optional leading '+' or '-' followed by at least one digit.
+* Returns true only if all remaining characters are digits.
+
+ PARAMETERS:
+* char *str: Input string to validate.
+
+ RETURN:
+* `1` if `str` is a numeric string, `0` otherwise.
 */
 static int	is_numeric_str(char *str)
 {
@@ -37,10 +46,19 @@ static int	is_numeric_str(char *str)
 	return (1);
 }
 
-/*
-** exit_mod256 - Compute exit code modulo 256 from numeric string.
-** Uses modular arithmetic at each step to avoid overflow entirely.
-** Handles negative values: (-n mod 256) = (256 - (n mod 256)) % 256.
+/**
+ DESCRIPTION:
+* Convert a numeric string to an exit code in the range 0..255.
+
+ BEHAVIOR:
+* Parses the numeric string modulo 256 and handles negative values
+* according to POSIX (e.g., -1 -> 255).
+
+ PARAMETERS:
+* char *str: Numeric string to convert. May have leading '+' or '-'.
+
+ RETURN:
+* Integer exit code in range 0..255.
 */
 static int	exit_mod256(char *str)
 {
@@ -65,8 +83,16 @@ static int	exit_mod256(char *str)
 	return ((int)val);
 }
 
-/*
-** clean_exit - Free all shell resources and exit with given code.
+/**
+ DESCRIPTION:
+* Cleanly shut down the shell and exit with the provided code.
+
+ BEHAVIOR:
+* Clears readline history, frees shell resources and calls `exit(code)`.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime to free.
+* int code: Exit code to return to the OS.
 */
 static void	clean_exit(t_shell *shell, int code)
 {
@@ -75,10 +101,24 @@ static void	clean_exit(t_shell *shell, int code)
 	exit(code);
 }
 
-/*
-** builtin_exit - Exit the shell with an optional exit code.
-** Non-numeric arg: prints error and exits 255 (matching bash behavior).
-** Too many args: prints error, does NOT exit.
+/**
+ DESCRIPTION:
+* `exit` builtin implementation.
+
+ BEHAVIOR:
+* If running interactively prints "exit". Handles zero, one or more
+* arguments: when one numeric argument is present, exits with that code
+* (converted modulo 256). If non-numeric argument is given, prints an
+* error and exits with status 2. If more than one argument is provided
+* prints an error and returns without exiting.
+
+ PARAMETERS:
+* char **args: Argument vector for `exit`.
+* t_shell *shell: Shell runtime used for cleanup and last exit status.
+
+ RETURN:
+* Does not return on successful exit; returns `1` when too many arguments
+* are provided to indicate failure without exiting.
 */
 int	builtin_exit(char **args, t_shell *shell)
 {
@@ -91,7 +131,7 @@ int	builtin_exit(char **args, t_shell *shell)
 		ft_putstr_fd("minishell: exit: ", 2);
 		ft_putstr_fd(args[1], 2);
 		ft_putendl_fd(": numeric argument required", 2);
-		clean_exit(shell, 255);
+		clean_exit(shell, 2);
 	}
 	if (args[2])
 	{

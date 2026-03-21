@@ -51,6 +51,39 @@ int	handle_end_of_string(t_shell *shell, t_state *state)
 
 /**
  DESCRIPTION:
+ * Handles backslash escape sequences in the NORMAL (unquoted) tokenizer state.
+ * In unquoted context, a backslash followed by any character means "treat
+ * the next character literally" (no expansion, no operator, no word split).
+ * This matches POSIX/bash: echo \$USER prints $USER literally.
+
+ PARAMETERS:
+ * shell: shell struct (for append_char)
+ * i: current index in input string (advanced by 2 on match)
+ * word: accumulating word buffer
+ * state: current tokenizer state (only active in ST_NORMAL)
+
+ RETURN VALUE:
+ * 1 if backslash was handled, 0 otherwise.
+**/
+/* Skip the backslash, append next char literally */
+int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
+{
+	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
+		return (0);
+	if (!shell->input[*i + 1])
+	{
+		(*i)++;
+		return (1);
+	}
+	if (!*word)
+		*word = ft_strdup("");
+	append_char(shell, word, shell->input[*i + 1]);
+	*i += 2;
+	return (1);
+}
+
+/**
+ DESCRIPTION:
  * Handles transitions between quoting states in the tokenizer.
  * This function detects opening and closing of:
  ** single quotes '...'
@@ -112,15 +145,21 @@ int	process_quote(char c, t_state *state)
 **/
 int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
-	if (is_op_char(shell->input[*i]))
+	if (!is_op_char(shell->input[*i]))
+		return (0);
+	if (*word && !(*word)[1] && (*word)[0] == '2' && shell->input[*i] == '>')
 	{
-		flush_word(shell, word, &shell->tokens);
-		if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
-			set_heredoc_mode(1);
-		*i += read_operator(shell, &shell->input[*i], &shell->tokens);
+		free(*word);
+		*word = NULL;
+		add_token(&shell->tokens, new_token(shell, REDIR_ERR_OUT, "2>"));
+		(*i)++;
 		return (1);
 	}
-	return (0);
+	flush_word(shell, word, &shell->tokens);
+	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
+		set_heredoc_mode(1);
+	*i += read_operator(shell, &shell->input[*i], &shell->tokens);
+	return (1);
 }
 
 /**
@@ -150,26 +189,4 @@ int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 		return (1);
 	}
 	return (0);
-}
-
-/**
- DESCRIPTION:
- * Appends a single character to the current word buffer and advances 
- 	the input index.
-
-PARAMETERS:
-* char c: The character to append to the current word buffer.
-* size_t *i: Pointer to the current index in the input string. 
-	This index is incremented after the character is processed.
-* char **word: Pointer to the current word buffer. The character is 
-	appended to this buffer.
-
-BEHAVIOR:
-* Calls append_char(word, c) to append the character to the word buffer.
-* Increments *i to move to the next character in the input.
-**/
-void	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
-{
-	append_char(shell, word, c);
-	(*i)++;
 }

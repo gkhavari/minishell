@@ -38,6 +38,7 @@ int			is_heredoc_mode(void);
 
 /* tokenizer_handlers.c */
 int			handle_end_of_string(t_shell *shell, t_state *state);
+int			handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state);
 int			process_quote(char c, t_state *state);
 int			handle_operator(t_shell *shell, size_t *i, char **word);
 int			handle_whitespace(t_shell *shell, size_t *i, char **word);
@@ -111,6 +112,7 @@ int			count_cmds(t_command *cmd);
 int			apply_redirections(t_command *cmd);
 void		restore_fds(int stdin_backup, int stdout_backup);
 int			execute_builtin(t_command *cmd, t_shell *shell);
+void		set_underscore(t_shell *shell, char *path);
 
 /* executor_external.c */
 int			execute_external(t_command *cmd, t_shell *shell);

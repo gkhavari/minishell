@@ -96,7 +96,7 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 		add_token(token, tok);
 		free(*word);
 		*word = NULL;
+		g_word_quoted = 0;
+		g_heredoc_mode = 0;
 	}
-	g_word_quoted = 0;
-	g_heredoc_mode = 0;
 }

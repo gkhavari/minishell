@@ -26,6 +26,12 @@ bin/
 # Logs
 *.log
 logs/
+# Downloaded GitHub Actions / CI artifacts (e.g. logs_<run-id>/)
+logs_*/
+logs_*.zip
+# If a CI zip is extracted at repo root (no logs_<id>/ wrapper)
+/0_Valgrind*.txt
+/Valgrind on Ubuntu (mandatory tests)/
 
 # MacOS / Linux metadata
 .DS_Store

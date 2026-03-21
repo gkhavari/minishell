@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   argv_build.c                                      :+:      :+:    :+:   */
+/*   argv_build.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:01:23 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 17:26:13 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,9 @@ void	finalize_all_commands(t_shell *shell, t_command *cmd)
 	{
 		finalize_argv(shell, cmd);
 		cmd->is_builtin = is_builtin(cmd->argv[0]);
+		if (cmd->is_builtin && cmd->argv[1]
+			&& ft_strcmp(cmd->argv[0], "env") == 0)
+			cmd->is_builtin = 0;
 		cmd = cmd->next;
 	}
 }

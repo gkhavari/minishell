@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   heredoc.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:56:43 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 17:26:52 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,31 +26,30 @@ static void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 		ft_putendl_fd(line, fd);
 }
 
-static char	*read_heredoc_line(void)
+static char	*read_heredoc_line(t_shell *shell)
 {
-	char	c;
 	char	*line;
-	char	*tmp;
-	size_t	len;
+	char	c;
+	int		ret;
 
 	if (isatty(STDIN_FILENO))
 		return (readline("> "));
 	line = ft_strdup("");
-	len = 0;
-	while (line && read(STDIN_FILENO, &c, 1) > 0)
+	if (!line)
+		return (NULL);
+	while (1)
 	{
+		ret = read(STDIN_FILENO, &c, 1);
+		if (ret <= 0)
+		{
+			if (ft_strlen(line) == 0)
+				return (free(line), NULL);
+			return (line);
+		}
 		if (c == '\n')
 			return (line);
-		tmp = ft_realloc(line, len + 2);
-		if (!tmp)
-			return (line);
-		line = tmp;
-		line[len++] = c;
-		line[len] = '\0';
+		append_char(shell, &line, c);
 	}
-	if (len == 0)
-		return (free(line), NULL);
-	return (line);
 }
 
 static int	heredoc_read_loop(t_command *cmd, t_shell *shell, int *pipe_fd,
@@ -60,7 +59,7 @@ static int	heredoc_read_loop(t_command *cmd, t_shell *shell, int *pipe_fd,
 
 	while (1)
 	{
-		line = read_heredoc_line();
+		line = read_heredoc_line(shell);
 		if (g_signum == SIGINT)
 			return (free(line), close(pipe_fd[0]), close(pipe_fd[1]), 1);
 		if (!line)
