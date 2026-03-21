@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokenizer_handlers.c                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/07 17:01:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/07 17:01:03 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:18:29 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
