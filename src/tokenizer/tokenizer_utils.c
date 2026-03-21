@@ -3,31 +3,28 @@
 /*                                                        :::      ::::::::   */
 /*   tokenizer_utils.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/05 22:41:39 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/05 22:41:41 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 20:11:02 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static int	g_word_quoted;
-static int	g_heredoc_mode;
-
-void	mark_word_quoted(void)
+void	mark_word_quoted(t_shell *shell)
 {
-	g_word_quoted = 1;
+	shell->word_quoted = 1;
 }
 
-void	set_heredoc_mode(int mode)
+void	set_heredoc_mode(t_shell *shell, int mode)
 {
-	g_heredoc_mode = mode;
+	shell->heredoc_mode = mode;
 }
 
-int	is_heredoc_mode(void)
+int	is_heredoc_mode(t_shell *shell)
 {
-	return (g_heredoc_mode);
+	return (shell->heredoc_mode);
 }
 
 /**
@@ -92,11 +89,11 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 	if (*word)
 	{
 		tok = new_token(shell, WORD, *word);
-		tok->quoted = g_word_quoted;
+		tok->quoted = shell->word_quoted;
 		add_token(token, tok);
 		free(*word);
 		*word = NULL;
-		g_word_quoted = 0;
-		g_heredoc_mode = 0;
+		shell->word_quoted = 0;
+		shell->heredoc_mode = 0;
 	}
 }

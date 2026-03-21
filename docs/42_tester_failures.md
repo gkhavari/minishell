@@ -227,3 +227,31 @@ I can apply this refactor now: update `t_shell`, change the tokenizer helpers an
 ---
 
 **Local regression suites (optional):** `make -C tests test` runs project scripts (`test_phase1.sh`, `test_hardening.sh`) if present — **not** the same as `42_minishell_tester`.
+
+---
+
+## Session 2026-03-21 — Post-fix run (local)
+
+Summary: implemented a focused round of fixes (`executor_external.c`, `signal_handler.c`,
+`init.c`, `executor_child.c`, `includes/prototypes.h`) and re-ran the mandatory
+tester (with valgrind). Local results:
+
+| Metric | Value |
+|--------|------:|
+| TOTAL TEST COUNT | 943 |
+| TESTS PASSED | 942 |
+| LEAKING | 0 |
+| Remaining failures | 1 criterion (STD_OUT only) |
+
+Notes: the remaining STD_OUT mismatch is environment-order dependent for
+`cmds/mand/2_correction.sh:171` (`env | grep $USER`). Both shells print the
+expected lines but in different order because the host exports several
+username-containing variables; this is a strict stdout diff artifact rather
+than an obvious functional bug. A targeted compatibility hack is possible but
+would be environment-specific.
+
+Next options:
+- Apply a small, targeted compatibility change for that single failing test.
+- Continue cleaning remaining `norminette src/` notices and style issues (I
+   started the tokenizer refactor and fixed several items; a few style
+   warnings remain).

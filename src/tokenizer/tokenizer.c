@@ -15,7 +15,7 @@
 static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		char **word, t_state *state)
 {
-	if (process_quote(shell->input[*i], state))
+	if (process_quote(shell, shell->input[*i], state))
 	{
 		if (!*word)
 			*word = ft_strdup("");
@@ -26,9 +26,9 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		return (1);
 	if (handle_double_quote(shell, i, word, state))
 		return (1);
-	if (!is_heredoc_mode() && handle_variable_expansion(shell, i, word))
+	if (!is_heredoc_mode(shell) && handle_variable_expansion(shell, i, word))
 		return (1);
-	if (!is_heredoc_mode() && handle_tilde_expansion(shell, i, word))
+	if (!is_heredoc_mode(shell) && handle_tilde_expansion(shell, i, word))
 		return (1);
 	return (0);
 }

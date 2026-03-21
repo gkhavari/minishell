@@ -98,12 +98,12 @@ int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
  * 1 if the character was a quote that changed the state.
  * 0 otherwise
 **/
-int	process_quote(char c, t_state *state)
+int	process_quote(t_shell *shell, char c, t_state *state)
 {
 	if (*state == ST_NORMAL && c == '\'')
 	{
 		*state = ST_SQUOTE;
-		mark_word_quoted();
+		mark_word_quoted(shell);
 		return (1);
 	}
 	if (*state == ST_SQUOTE && c == '\'')
@@ -114,7 +114,7 @@ int	process_quote(char c, t_state *state)
 	if (*state == ST_NORMAL && c == '"')
 	{
 		*state = ST_DQUOTE;
-		mark_word_quoted();
+		mark_word_quoted(shell);
 		return (1);
 	}
 	if (*state == ST_DQUOTE && c == '"')
@@ -157,7 +157,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	}
 	flush_word(shell, word, &shell->tokens);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
-		set_heredoc_mode(1);
+		set_heredoc_mode(shell, 1);
 	*i += read_operator(shell, &shell->input[*i], &shell->tokens);
 	return (1);
 }

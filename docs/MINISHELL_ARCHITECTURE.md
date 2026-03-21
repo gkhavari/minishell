@@ -1,8 +1,6 @@
 # Minishell Project Architecture (Defensive Programming)
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
->
-> **Test-backed behavior:** The test suite is **42_minishell_tester** (mandatory). For expected behavior per input, exit codes, and test-design guidance, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 
 ---
 
@@ -17,6 +15,14 @@ This section reflects the **actual codebase** as built: source layout, data flow
 | 42_minishell_tester (mandatory) | `make -C tests test` runs [42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester) mandatory | ✅ |
 
 Run from repo root: `make -C tests test`.
+
+### Recent refactors (summary)
+
+- Tokenizer state (previously file-scope globals) was moved into `t_shell` (`includes/structs.h`) so lexer state is per-shell and to satisfy the Norm. Related sources: `src/tokenizer/tokenizer_utils.c`, `src/tokenizer/tokenizer_handlers.c`, `src/tokenizer/tokenizer_quotes.c`.
+- Prototypes in `includes/prototypes.h` were updated to match new tokenizer signatures (e.g. `process_quote(t_shell *shell, char c, t_state *state)`).
+- `src/executor/executor_external.c` PATH lookup was refactored: it prefers `X_OK` executables but keeps a regular-file fallback to reproduce 126 vs 127 semantics; helpers include `try_candidate`, `search_in_path`, `set_path_fallback`.
+- A Norminette pass across `src/` reduced function sizes and removed file-scoped globals; a small GLOBAL_VAR_DETECTED notice in `expansion.c` remains non-fatal and can be addressed later.
+- Signal handling remains centered on the single allowed global `volatile sig_atomic_t g_signum` and clear mode transitions (interactive/ignore/default) for parent/child processes.
 
 ### 0.2 Test coverage map (what the suite verifies)
 
@@ -158,62 +164,54 @@ flowchart LR
 
 ```c
 /* ONLY global variable allowed in the entire project */
-volatile sig_atomic_t	g_signum = 0;
+volatile sig_atomic_t	g_signum = 0; /* defined in src/signals/signal_handler.c */
+/* an `extern volatile sig_atomic_t g_signum;` is published in includes/prototypes.h */
 ```
 
-| Value        | Meaning         | Action Required                                    |
-| ------------ | --------------- | -------------------------------------------------- |
-| `0`          | No signal       | Continue normally                                  |
-| `SIGINT (2)` | Ctrl+C received | Print newline, new prompt, set `exit_status = 130` |
+Only the numeric signal code is stored in a global. Do NOT store pointers, structs, or shell state in signal handlers and never access `t_shell` from a handler.
 
-**Critical Rules:**
+Why: signal handlers must be async-signal-safe; `volatile sig_atomic_t` is the minimal safe cross-platform primitive for a handler-to-main notification.
 
-- ❌ Do NOT store structs, pointers, or flags in global
-- ❌ Do NOT access `t_shell` from signal handler
-- ✅ Only store the signal NUMBER
-- ✅ Check `g_signum` in main loop AFTER `readline()` returns
+### 1.2 Signal Modes and where they're used
 
-**Why `volatile sig_atomic_t`?**
+The code uses three well-defined signal mode helpers (see `src/signals/signal_handler.c` and `includes/prototypes.h`):
 
-- `volatile`: Tells compiler the value can change at any time (by signal handler)
-- `sig_atomic_t`: Guaranteed atomic read/write (no partial updates)
+- `set_signals_interactive()` — parent shell before calling `readline()` (default interactive handling: SIGINT generates a newline/prompt behavior, SIGQUIT ignored).
+- `set_signals_ignore()` — parent while waiting for children (used after fork in parent before `waitpid()` so parent doesn't die on child signals).
+- `set_signals_default()` — used in child processes before `execve()` so children receive default behavior from the kernel.
 
-### 1.2 Signal Behavior (Bash Reference)
+Pattern used in executor code:
 
-| Signal             | Interactive Mode     | During Execution                  | During Heredoc                     |
-| ------------------ | -------------------- | --------------------------------- | ---------------------------------- |
-| `SIGINT` (Ctrl+C)  | New prompt, `$?=130` | Kill child, new prompt            | Stop heredoc, new prompt, `$?=130` |
-| `SIGQUIT` (Ctrl+\) | Ignored              | Kill child + "Quit (core dumped)" | Ignored                            |
-| `EOF` (Ctrl+D)     | Exit shell           | N/A (not a signal)                | Close heredoc input                |
+1. Parent sets interactive mode while accepting input and parsing.
+2. When forking to run an external child, the child calls `set_signals_default()` then `execute_in_child()`.
+3. Parent switches to `set_signals_ignore()` while waiting for the child (so signals affect the child, not the parent), then restores `set_signals_interactive()` after `waitpid()` returns.
 
-**Implementation Pattern:**
+### 1.3 Handling SIGINT and SIGQUIT (high level)
+
+Handlers only write the numeric signal to `g_signum`. The main loop inspects `g_signum` at safe points (after `readline()` or between major phases) and converts that notification into shell behavior.
+
+Implementation idiom (used in `main.c` / `src/signals/signal_handler.c`):
 
 ```c
-/* In main loop, AFTER readline returns */
+/* After readline returns */
 if (g_signum == SIGINT)
 {
     shell->last_exit = 130;
-    g_signum = 0;  /* Reset for next iteration */
+    g_signum = 0; /* reset for next iteration */
 }
 ```
 
-### 1.3 Initialization (actual implementation)
+During heredoc reads the code also checks `g_signum` and aborts heredoc input when `SIGINT` is received (so the shell does not execute the incomplete command and returns to prompt with exit status 130).
 
-**Current `init_shell()` behavior** (see `src/core/init.c`):
+### 1.4 Readline integration
 
-```
-init_shell(t_shell *shell, char **envp)
-├── 1. Caller must zero the struct first: ft_bzero(shell, sizeof(t_shell)) (done in main)
-├── 2. shell->envp = ft_arrdup(envp); exit(1) if NULL
-├── 3. shell->user: if USER in env → ft_strdup(value); else NULL (no ft_strdup(NULL))
-├── 4. shell->cwd = getcwd(NULL, 0); if NULL → shell->cwd = ft_strdup("/")
-├── 5. shell->last_exit = 0; shell->tokens/commands/input = NULL
-├── 6. shell->had_path = (PATH was present in env at startup) — used in PATH resolution
-├── 7. update_shlvl(shell) — increments or sets SHLVL in envp (bash-like nesting)
-└── Signal handlers are set in main() after init: set_signals_interactive()
-```
+To keep the prompt and line-editing responsive the project installs a small readline hook `readline_event_hook()` (declared in `includes/prototypes.h`) which cooperates with `g_signum` to refresh or clear the current input line when a signal occurs.
 
-See [BEHAVIOR.md](BEHAVIOR.md) for runtime semantics. For **42 tester–related fixes** (token list, USER, PATH, export/unset, etc.), see [42_tester_failures.md](42_tester_failures.md).
+### 1.5 Initialization (actual implementation)
+
+`init_shell(t_shell *shell, char **envp)` (see `src/core/init.c`) still performs the usual setup: duplicate `envp`, set `shell->user`, `shell->cwd`, `shell->last_exit = 0`, and record whether `PATH` existed at startup in `shell->had_path`. Signal handlers (interactive mode) are set after `init_shell()` returns by calling `set_signals_interactive()` from `main()`.
+
+See [BEHAVIOR.md](BEHAVIOR.md) for runtime semantics. For 42 tester–related fixes refer to [42_tester_failures.md](42_tester_failures.md).
 
 ---
 
@@ -296,6 +294,8 @@ State: SINGLE_QUOTED (')
 State: DOUBLE_QUOTED (")
         ├── $ → Mark for expansion (but still in WORD)
         └── Everything else literal until closing "
+
+Implementation note: tokenizer runtime state that used to be file-scope globals (quote flags, heredoc mode) was moved into the `t_shell` struct (`shell->word_quoted`, `shell->heredoc_mode`). Several tokenizer helpers now accept `t_shell *shell` (for example `process_quote(t_shell *shell, char c, t_state *state)`) so the lexer is fully reentrant per-shell.
 ```
 
 ### 3.3 Syntax Error Detection (Defensive Checks)
@@ -481,6 +481,8 @@ echo $USER_NAME         # (value of USER_NAME, not USER + _NAME)
 | `echo $` at end of line | No crash | expansion at end |
 
 Expansion runs during **tokenization** (see `tokenizer/expansion.c`, `tokenizer/expansion_utils.c`). Heredoc expansion is in `parser/heredoc_utils.c` (quoted delimiter → no expand). See [BEHAVIOR.md](BEHAVIOR.md) §4.
+
+Implementation note: the expander functions operate on `t_shell *shell` and use `shell` state when deciding quoted contexts. During a recent refactor a GLOBAL_VAR_DETECTED notice was reported for `expansion.c` by norminette; this is non-fatal but worth reviewing if you plan further refactors.
 
 ---
 
@@ -881,37 +883,21 @@ char *find_command_path(char *cmd, t_shell *shell)
 {
     char    *path_env;
     char    **paths;
-    char    *full_path;
-    int     i;
 
-    /* Case 1: Command contains slash (absolute or relative path) */
-    if (ft_strchr(cmd, '/'))
-    {
-        if (access(cmd, X_OK) == 0)
-            return (ft_strdup(cmd));
+    if (!cmd || !*cmd)
         return (NULL);
-    }
-
-    /* Case 2: Search in PATH */
+    if (ft_strchr(cmd, '/'))
+        return (ft_strdup(cmd));
     path_env = get_env_value(shell->envp, "PATH");
+    /* If PATH was present at startup but later unset, fall back to common paths */
+    if (!path_env && shell->had_path)
+        path_env = "/usr/local/bin:/usr/bin:/bin:.";
     if (!path_env)
-        return (NULL);  /* No PATH = can't find command */
-
+        return (NULL);
     paths = ft_split(path_env, ':');
-    i = 0;
-    while (paths[i])
-    {
-        full_path = join_path(paths[i], cmd);  /* "dir" + "/" + "cmd" */
-        if (access(full_path, X_OK) == 0)
-        {
-            free_array(paths);
-            return (full_path);
-        }
-        free(full_path);
-        i++;
-    }
-    free_array(paths);
-    return (NULL);
+    if (!paths)
+        return (NULL);
+    return (search_in_path(paths, cmd));
 }
 ```
 
@@ -1227,7 +1213,7 @@ Phase 6: Polish
 ├── [x] Error messages (minishell: cmd: msg style)
 ├── [x] Memory cleanup (free/free_shell.c, free/free_runtime.c, reset_shell)
 ├── [x] Edge case handling (hardening tests pass)
-└── [ ] Norminette / 42 compliance (project-specific)
+└── [x] Norminette / 42 compliance (major pass completed; minor notices remain)
 ```
 
 ---

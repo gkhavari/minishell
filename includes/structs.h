@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:13 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/08 16:25:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 20:29:44 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,6 +87,8 @@ typedef struct s_shell
 	t_token		*tokens;
 	t_command	*commands;
 	char		*input;
+	int			word_quoted;
+	int			heredoc_mode;
 }	t_shell;
 
 #endif
