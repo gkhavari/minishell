@@ -27,6 +27,8 @@
 
  RETURN:
 * Exit/status code from the child process, or `1` on failure.
+* On successful fork+exec returns the child's exit code; on fork failure
+* returns `1` after printing a diagnostic.
 */
 int	execute_external(t_command *cmd, t_shell *shell)
 {

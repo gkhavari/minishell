@@ -22,6 +22,9 @@
 
  PARAMETERS:
 * char *entry: Environment entry string, either `key` or `key=value`.
+ 
+ RETURN:
+ * None.
 */
 static void	print_export_entry(char *entry)
 {
@@ -95,6 +98,9 @@ static int	cmp_env_keys(char *a, char *b)
  PARAMETERS:
 * char **sorted: Array of strings to sort.
 * int count: Number of entries in the array.
+ 
+ RETURN:
+ * None.
 */
 static void	sort_env(char **sorted, int count)
 {
