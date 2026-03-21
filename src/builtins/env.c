@@ -6,17 +6,27 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:26 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:27 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 17:54:11 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/*
-** builtin_env - Print all environment variables
-** @args: unused
-** @shell: shell state containing envp
-** Return: 0 on success, 1 if envp is NULL
+/**
+ DESCRIPTION:
+* `env` builtin: print the current environment.
+
+ BEHAVIOR:
+* If extra arguments are provided, prints an error and returns `127`.
+* Otherwise iterates `shell->envp` and prints each entry that contains
+* an '=' character to stdout.
+
+ PARAMETERS:
+* char **args: Argument vector passed to `env`.
+* t_shell *shell: Shell runtime containing the `envp` array.
+
+ RETURN:
+* `0` on success, `1` if `envp` is missing, `127` for invalid usage.
 */
 int	builtin_env(char **args, t_shell *shell)
 {

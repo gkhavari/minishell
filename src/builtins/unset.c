@@ -6,16 +6,25 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:53 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 22:07:19 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 18:08:13 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/*
-** is_valid_unset_name - Check if name is valid identifier
-** @name: variable name to check
-** Return: 1 if valid, 0 otherwise
+/**
+ DESCRIPTION:
+* Validate an identifier name for `unset`.
+
+ BEHAVIOR:
+* Ensures the name is non-empty, starts with a letter or `_` and
+* contains only alphanumeric characters or underscores afterwards.
+
+ PARAMETERS:
+* char *name: Identifier to validate.
+
+ RETURN:
+* `1` if valid, `0` otherwise.
 */
 static int	is_valid_unset_name(char *name)
 {
@@ -35,11 +44,20 @@ static int	is_valid_unset_name(char *name)
 	return (1);
 }
 
-/*
-** find_env_index - Find index of env var by key
-** @shell: shell state containing envp
-** @key: variable name to find
-** Return: index if found, -1 otherwise
+/**
+ DESCRIPTION:
+* Find the index of an environment entry matching `key`.
+
+ BEHAVIOR:
+* Iterates `shell->envp` comparing the first `len` characters and
+* verifies that the following character is `=` or end-of-string.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime containing `envp`.
+* char *key: Key to search for.
+
+ RETURN:
+* Index of matching entry, or `-1` if not found.
 */
 static int	find_env_index(t_shell *shell, char *key)
 {
@@ -60,10 +78,17 @@ static int	find_env_index(t_shell *shell, char *key)
 	return (-1);
 }
 
-/*
-** remove_env_entry - Remove entry at index, shift remaining
-** @shell: shell state
-** @idx: index to remove
+/**
+ DESCRIPTION:
+* Remove an environment entry from `shell->envp` at the given index.
+
+ BEHAVIOR:
+* Frees the entry at `idx` then shifts remaining entries down by one
+* position and terminates the array with NULL.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime whose `envp` will be modified.
+* int idx: Index of the entry to remove.
 */
 static void	remove_env_entry(t_shell *shell, int idx)
 {
@@ -79,6 +104,21 @@ static void	remove_env_entry(t_shell *shell, int idx)
 	shell->envp[i] = NULL;
 }
 
+/**
+ DESCRIPTION:
+* Unset a single environment variable argument.
+
+ BEHAVIOR:
+* Validates the argument, reports invalid options (leading `-`) and
+* removes the environment entry when present.
+
+ PARAMETERS:
+* char *arg: Identifier to unset.
+* t_shell *shell: Shell runtime containing `envp`.
+
+ RETURN:
+* Status code: `0` on success, `2` for invalid option.
+*/
 static int	unset_one_arg(char *arg, t_shell *shell)
 {
 	int	idx;
@@ -98,6 +138,21 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 	return (0);
 }
 
+/**
+ DESCRIPTION:
+* `unset` builtin: remove environment variables.
+
+ BEHAVIOR:
+* Iterates over provided arguments and attempts to unset each one,
+* aggregating return codes and returning the highest error code found.
+
+ PARAMETERS:
+* char **args: Argument vector where `args[1]..` are names to unset.
+* t_shell *shell: Shell runtime whose `envp` will be modified.
+
+ RETURN:
+* Aggregate status code (0 for success, higher values indicate errors).
+*/
 int	builtin_unset(char **args, t_shell *shell)
 {
 	int	i;

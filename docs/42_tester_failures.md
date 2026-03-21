@@ -136,6 +136,67 @@ Norm: `norminette src/` clean after these changes.
 
 ---
 
+### New entry — 2026-03-21: pipeline behavior observed in tester
+
+- File: `cmds/mand/1_pipelines.sh` (first block, line 4)
+- Symptom: minishell produced STDERR output (many "write error: Broken pipe") while bash produced no stderr and printed the expected `ls` output. Tester recorded `STD_ERR: ❌` for that case.
+- Reproduction (from tester dir):
+
+```bash
+# extract the single test input (block 1)
+awk 'NR>=4{ if($0=="") exit; print }' cmds/mand/1_pipelines.sh > /tmp/test_input_1.txt
+
+# run minishell (minishell reads only the test input)
+/home/thanh-ng/42cursus/minishell/minishell < /tmp/test_input_1.txt > /tmp/minishell_out 2> /tmp/minishell_err
+
+# run bash reference (tester prepends `enable -n .` for bash)
+printf "enable -n .\n$(cat /tmp/test_input_1.txt)\n" | bash > /tmp/bash_out 2> /tmp/bash_err
+
+# diffs
+diff -u /tmp/bash_err /tmp/minishell_err || true
+diff -u /tmp/bash_out /tmp/minishell_out || true
+```
+
+- Diagnosis:
+   - The tester uses `enable -n .` when running the bash reference; the project is *not required* to implement `enable` (subject does not require it). Do **not** add `enable` builtin for the project unless you want local parity — CI/tester expects bash behavior only.
+   - The real root cause for `STD_ERR` mismatches in this file is pipeline/process handling and SIGPIPE semantics: under the test environment bash's children behave so that `ls` output reaches the final consumer; in our minishell the pipeline teardown/order of closing FDs or signal handling causes upstream `ls` to get EPIPE and print "write error: Broken pipe". This is a functional difference in how children and pipes are forked/closed and how SIGPIPE is handled.
+
+- Recommended next steps:
+   1. Do NOT implement `enable` (subject doesn't require it). Log kept for reference.
+   2. Debug pipeline FD and signal handling in `src/executor/*` and `src/signals/*` (focus: fork order, parent/child close of pipe ends, and whether children inherit/restore SIGPIPE). See `executor_pipeline.c` and `signal_handler.c`.
+   3. Re-run `cmds/mand/1_pipelines.sh` after signal/FD fixes and confirm stderr matches bash.
+
+Saved logs: `/tmp/minishell_out`, `/tmp/minishell_err`, `/tmp/bash_out`, `/tmp/bash_err` (from local reproduction).
+
+### How to reproduce the pipeline comparison (run with `minishell`)
+
+Run these commands from the project root (they extract the first pipeline block from the tester, run it under `minishell` and under `bash` as the tester does, and show unified diffs):
+
+```bash
+# extract the first test block (block 1) into a temp file
+awk 'NR>=4{ if($0=="") exit; print }' minishell_tester_cozy/cmds/mand/1_pipelines.sh > /tmp/test_input_1.txt
+
+# run your minishell (no enable prepended)
+./minishell < /tmp/test_input_1.txt > /tmp/minishell_out 2> /tmp/minishell_err || true
+
+# run bash reference (tester prepends `enable -n .` for bash)
+printf "enable -n .\n$(cat /tmp/test_input_1.txt)\n" | bash > /tmp/bash_out 2> /tmp/bash_err || true
+
+# view diffs
+echo "=== DIFF STDERR ==="
+diff -u /tmp/bash_err /tmp/minishell_err || true
+echo "=== DIFF STDOUT ==="
+diff -u /tmp/bash_out /tmp/minishell_out || true
+```
+
+Notes:
+- Run these from the project root where `./minishell` is the built executable.
+- The tester runs the bash reference with `enable -n .` to disable builtins; your project is not required to implement `enable` (subject does not mandate it), so ignore `enable`-related stderr differences when prioritizing fixes.
+- Focus on `src/executor/*` and `src/signals/*` for pipeline FD and SIGPIPE behavior: ensure children close unused pipe ends before exec and that SIGPIPE handling matches the non-interactive behavior expected by the tester environment.
+
+
+---
+
 ## Is 42_minishell_tester good for bash-like behavior?
 
 **Yes** for mandatory: same input → compare stdout, stderr **presence**, exit code to **bash** on that machine.

@@ -3,15 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   free_shell.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 22:50:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/02/24 22:20:53 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 17:38:59 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+/**
+ * free_envp - Free memory allocated for environment variable array
+ * @envp: Pointer to the environment variable array
+ */
 static void	free_envp(char **envp)
 {
 	int	i;
@@ -28,6 +32,10 @@ static void	free_envp(char **envp)
 	free(envp);
 }
 
+/**
+ * reset_shell - Reset shell state
+ * @shell: Pointer to the shell state
+ */
 void	reset_shell(t_shell *shell)
 {
 	if (!shell)
@@ -43,6 +51,10 @@ void	reset_shell(t_shell *shell)
 	shell->input = NULL;
 }
 
+/**
+ * free_all - Free all dynamically allocated memory in shell state
+ * @shell: Pointer to the shell state
+ */
 void	free_all(t_shell *shell)
 {
 	if (!shell)

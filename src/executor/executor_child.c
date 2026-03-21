@@ -5,13 +5,12 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 14:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/08 16:20:11 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/21 17:44:18 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-#include <errno.h>
 
 static void	check_is_dir(char *cmd_name, char *path)
 {
@@ -50,6 +49,20 @@ static void	cmd_not_found(char *cmd_name)
 	exit(127);
 }
 
+/**
+ DESCRIPTION:
+* execute_in_child - Execute a command in the child process
+
+ BEHAVIOR:
+* If the command is a builtin, find its path for _ variable, then run it and exit.
+* If it's an external command, find its path. If not found, print error and exit 127.
+* If found but is a directory, print error and exit 126.
+* If found and is executable, set _ variable, execve it. If execve fails, print error and exit 126.
+
+ PARAMETERS:
+* @cmd: The command to execute (with argv and is_builtin set)
+* @shell: The shell state (for envp and _ variable)
+**/
 void	execute_in_child(t_command *cmd, t_shell *shell)
 {
 	char	*path;
@@ -75,6 +88,13 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 	handle_exec_error(cmd->argv[0], path);
 }
 
+/**
+ DESCRIPTION:
+* free_array - Free a 2D character array
+
+ PARAMETERS:
+* @arr: The array to free
+**/
 void	free_array(char **arr)
 {
 	int	i;

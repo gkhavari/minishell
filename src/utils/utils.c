@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 22:47:25 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/01/16 16:28:17 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 17:42:24 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,9 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	return (res);
 }
 
+/* msh_calloc - Allocate and zero-initialize memory for shell state 
+** Exits with error message if allocation fails.
+*/
 void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
 {
 	char	*res;
