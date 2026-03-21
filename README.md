@@ -19,6 +19,14 @@ A minimal Unix shell written in C (42 project). The implementation follows the 4
 - C compiler (`cc`/`gcc`) and standard build tools.
 - `readline` development headers/libraries (`libreadline-dev` on Linux).
 
+### Ubuntu
+
+On Ubuntu/Debian install the build and readline dev packages:
+
+```bash
+sudo apt update && sudo apt install build-essential libreadline-dev
+```
+
 ## Build
 
 From the repository root:
@@ -34,6 +42,18 @@ make debug
 ```
 
 This produces the `minishell` executable in the repository root.
+
+### Style (Norminette)
+
+This project follows the 42 coding style. You can run the Norminette style checker with:
+
+```bash
+make norm
+# or
+norminette src includes libft
+```
+
+The `Makefile` includes a `norm` target that invokes `norminette` on `src`, `includes`, and `libft` (if present). Install `norminette` via your package manager or the official installer if it's not available.
 
 ## Usage
 

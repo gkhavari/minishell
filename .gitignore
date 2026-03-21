@@ -1,56 +1,25 @@
-# Object and library files
-*.o
-*.a
 
-# Executables / binaries
+# Build artifacts
 minishell
-a.out
-
-# Debug / sanitizer files
-*.dSYM/
-*.gch
-vgcore.*
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
-
-# document helpers
-
-# Build directories (if you create any)
-build/
 obj/
-bin/
-
-# Logs
-*.log
-logs/
-# Downloaded GitHub Actions / CI artifacts (e.g. logs_<run-id>/)
-logs_*/
-logs_*.zip
-# If a CI zip is extracted at repo root (no logs_<id>/ wrapper)
-/0_Valgrind*.txt
-/Valgrind on Ubuntu (mandatory tests)/
-
-# MacOS / Linux metadata
-.DS_Store
-.directory
-
-# 42 project checker artifacts (if using)
+*.o
 *.out
 
-# Test binaries
-test_builtins
-minishell_tester/
-42_minishell_tester/
+# libft build
+libft/libft.a
 
-# Test outfiles
-outfile*
-outfiles/
-
-# IDE & Misc
+# Editor and OS files
 .vscode/
-minishellv*.pdf
-_codeql_detected_source_root
-.claude
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Test artifacts
+tester_output/
+
+# Misc
+.cache
+tags
+
+

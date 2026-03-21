@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 20:11:37 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 21:48:18 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,11 +39,13 @@ int			is_heredoc_mode(t_shell *shell);
 
 /* tokenizer_handlers.c */
 int			handle_end_of_string(t_shell *shell, t_state *state);
-int			handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state);
+int			handle_backslash(t_shell *shell, size_t *i,
+				char **word, t_state *state);
 int			process_quote(t_shell *shell, char c, t_state *state);
 int			handle_operator(t_shell *shell, size_t *i, char **word);
 int			handle_whitespace(t_shell *shell, size_t *i, char **word);
-void		process_normal_char(t_shell *shell, char c, size_t *i, char **word);
+void		process_normal_char(t_shell *shell, char c, size_t *i,
+				char **word);
 
 /* tokenizer_quotes.c */
 int			handle_single_quote(t_shell *shell, size_t *i,
