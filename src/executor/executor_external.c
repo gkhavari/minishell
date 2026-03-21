@@ -6,24 +6,11 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 19:37:51 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 20:15:03 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 20:24:09 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-static int	get_child_status(int status)
-{
-	if (WIFSIGNALED(status))
-	{
-		if (WTERMSIG(status) == SIGQUIT)
-			ft_putstr_fd("Quit (core dumped)\n", 2);
-		return (128 + WTERMSIG(status));
-	}
-	if (WIFEXITED(status))
-		return (WEXITSTATUS(status));
-	return (1);
-}
 
 int	execute_external(t_command *cmd, t_shell *shell)
 {
@@ -43,7 +30,15 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	set_signals_ignore();
 	waitpid(pid, &status, 0);
 	set_signals_interactive();
-	return (get_child_status(status));
+	if (WIFSIGNALED(status))
+	{
+		if (WTERMSIG(status) == SIGQUIT)
+			ft_putstr_fd("Quit (core dumped)\n", 2);
+		return (128 + WTERMSIG(status));
+	}
+	if (WIFEXITED(status))
+		return (WEXITSTATUS(status));
+	return (1);
 }
 
 static char	*try_candidate(char *dir, char *cmd, char **fallback)
@@ -59,20 +54,24 @@ static char	*try_candidate(char *dir, char *cmd, char **fallback)
 	free(tmp);
 	if (!full_path)
 		return (NULL);
-	if (stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode)
-		&& access(full_path, X_OK) == 0)
+	if (stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
 	{
-		if (*fallback)
-			free(*fallback);
-		return (full_path);
-	}
-	if (!*fallback && stat(full_path, &sb) == 0
-		&& S_ISREG(sb.st_mode))
-	{
-		*fallback = full_path;
-		return (NULL);
+		if (access(full_path, X_OK) == 0)
+		{
+			if (*fallback)
+				free(*fallback);
+			return (full_path);
+		}
+		if (!*fallback)
+			return (set_path_fallback(fallback, full_path));
 	}
 	free(full_path);
+	return (NULL);
+}
+
+static char	*set_path_fallback(char **fallback, char *path)
+{
+	*fallback = path;
 	return (NULL);
 }
 
