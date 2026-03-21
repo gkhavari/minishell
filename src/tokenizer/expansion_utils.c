@@ -25,6 +25,9 @@
  PARAMETERS:
 * char **word: Pointer to the current word buffer; may be NULL.
 * const char *exp: Expansion string to append; may be NULL.
+ 
+ RETURN:
+ * None. On allocation failure the process exits with code 1.
 */
 void	append_expansion_quoted(char **word, const char *exp)
 {
@@ -64,6 +67,9 @@ void	append_expansion_quoted(char **word, const char *exp)
 * const char *exp: The string to append. If NULL, the function does nothing.
 * t_token **tokens: Pointer to the head of the token list; flushed words are
   appended here.
+
+ RETURN:
+ * None.
 */
 void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		t_token **tokens)

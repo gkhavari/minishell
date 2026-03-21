@@ -22,6 +22,9 @@
 
  PARAMETERS:
 * t_token *token: Pointer to the first token in the list; may be NULL.
+ 
+ RETURN:
+ * None.
 */
 void	free_tokens(t_token *token)
 {
@@ -46,6 +49,9 @@ void	free_tokens(t_token *token)
 
  PARAMETERS:
 * t_arg *arg: Pointer to the first argument node; may be NULL.
+ 
+ RETURN:
+ * None.
 */
 void	free_args(t_arg *arg)
 {

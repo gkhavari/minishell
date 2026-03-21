@@ -32,10 +32,10 @@ BEHAVIOR:
 ** Advances *i by 1.
 * Otherwise, returns NULL to indicate this is not a special variable.
 
-RETURN VALUE:
-* char *: A newly allocated string representing the expanded variable 
-(caller must free).
-* NULL: No special variable matched.
+RETURN:
+* `char *` — A newly allocated string representing the expanded variable
+	(caller must free).
+* `NULL` — No special variable matched.
 **/
 static char	*expand_special_var(t_shell *shell, size_t *i)
 {
@@ -83,9 +83,9 @@ skip the variable name after expansion.
 (NULL if undefined).
 * Frees temporary memory used for the variable name.
 
- RETURN VALUE:
- * A newly allocated string representing the variable’s value (caller must
-free).
+ RETURN:
+ * `char *` — A newly allocated string representing the variable’s value
+ * (caller must free). If undefined, returns an empty string allocation.
 
  **/
 static char	*expand_normal_var(t_shell *shell, size_t *i)
@@ -128,8 +128,8 @@ BEHAVIOR:
 ** If a special variable is matched, returns the expanded string.
 * Otherwise, calls expand_normal_var() to handle normal environment variables.
 
-RETURN VALUE:
-* char * — Newly allocated string containing the variable’s value.
+RETURN:
+* `char *` — Newly allocated string containing the variable’s value.
 **/
 char	*expand_var(t_shell *shell, size_t *i)
 {
@@ -162,9 +162,9 @@ BEHAVIOR:
 * Frees the temporary expanded string.
 * Returns 1 to indicate the character was handled.
 
-RETURN VALUE:
-* 1: $ was found and expansion was handled.
-* 0: No expansion performed.
+RETURN:
+* `1` if `$` was found and expansion was handled.
+* `0` if no expansion was performed.
 **/
 int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 {
@@ -186,9 +186,8 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 * Appends the HOME directory value to the current word buffer.
 * Advances the input index appropriately to skip the ~ and any following
 * separator.
-* This function is called in the main tokenizer loop when a ~ is encountered.
-* If HOME is not set, it appends an empty string (effectively removing the ~).
-* Returns 1 if ~ was handled (expanded or treated literally), 0 otherwise.
+This function is called in the main tokenizer loop when a ~ is encountered.
+If HOME is not set, it appends an empty string (effectively removing the ~).
 
 PARAMETERS:
 * t_shell *shell: Pointer to the shell structure containing input and tokens.
@@ -197,17 +196,16 @@ the ~ and any following separator.
 * char **word: Pointer to the current word buffer being built. The expansion is
 appended to this buffer.
 BEHAVIOR:
-* Checks if the current character is ~ and if it's the start of a word (i.e
-* *word is NULL).
-* If not, returns 0.
-* Checks the character following ~ to ensure it's a valid separator (/, space,
-* tab, or end of string). If it's not a valid separator, returns 0.
-* Retrieves the HOME directory value from shell->envp.
-* If HOME is not set, uses an empty string for expansion.
-* Appends the HOME value to the word buffer using append_expansion_unquoted(),
-* which handles splitting into multiple tokens if necessary.
-* Advances *i to skip the ~ and any following separator.
-* Returns 1 to indicate the ~ was handled.
+* Checks if the current character is `~` and if it's the start of a word
+	(i.e. `*word` is NULL). If not, returns `0`.
+* Ensures the character following `~` is a valid separator (`/`, space,
+	tab, operator, or end-of-string). If not, treats `~` literally and returns `0`.
+* Retrieves the `HOME` value from `shell->envp` and appends it (or an empty
+	string when unset) via `append_expansion_unquoted`.
+* Advances `*i` past the `~` and returns `1` on success.
+
+RETURN:
+* `1` if `~` was handled (expanded or treated literally), otherwise `0`.
 **/
 int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 {

@@ -99,6 +99,9 @@ static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 
  PARAMETERS:
 * t_shell *shell: Shell runtime containing `input` and `tokens`.
+ 
+ RETURN:
+ * None. Consumes `shell->input` and produces tokens in `shell->tokens`.
 */
 void	tokenize_input(t_shell *shell)
 {
