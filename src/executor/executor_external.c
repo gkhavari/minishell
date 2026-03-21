@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/18 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 18:13:33 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/21 19:37:51 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/21 19:57:29 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,9 +120,11 @@ static char	*search_in_path(char **paths, char *cmd)
 {
 	char	*tmp;
 	char	*full_path;
+	char	*fallback;
 	int		i;
 
 	i = 0;
+	fallback = NULL;
 	while (paths[i])
 	{
 		tmp = ft_strjoin(paths[i], "/");
@@ -132,16 +134,21 @@ static char	*search_in_path(char **paths, char *cmd)
 		free(tmp);
 		if (!full_path)
 			break ;
-		if (is_regular_file(full_path))
+		if (is_regular_file(full_path) && access(full_path, X_OK) == 0)
 		{
+			if (fallback)
+				free(fallback);
 			free_array(paths);
 			return (full_path);
 		}
-		free(full_path);
+		if (!fallback && is_regular_file(full_path))
+			fallback = full_path;
+		else
+			free(full_path);
 		i++;
 	}
 	free_array(paths);
-	return (NULL);
+	return (fallback);
 }
 
 /**

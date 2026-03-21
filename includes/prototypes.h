@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/13 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 19:52:44 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 /* init.c */
 char		*build_prompt(t_shell *shell);
 void		init_shell(t_shell *shell, char **envp);
+void		normalize_child_shlvl(t_shell *shell);
 
 /* utils.c */
 char		*get_env_value(char **envp, const char *key);

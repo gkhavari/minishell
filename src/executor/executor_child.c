@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 16:20:11 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 18:13:33 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 19:52:44 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,7 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 	if (!path)
 		cmd_not_found(cmd->argv[0]);
 	check_is_dir(cmd->argv[0], path);
+	normalize_child_shlvl(shell);
 	set_underscore(shell, path);
 	execve(path, cmd->argv, shell->envp);
 	handle_exec_error(cmd->argv[0], path);

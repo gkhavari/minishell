@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:55:26 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 17:24:26 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 19:52:44 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,6 +113,34 @@ static void	update_shlvl(t_shell *shell)
 	else
 		shlvl = 1;
 	num_str = ft_itoa(shlvl);
+	if (!num_str)
+		return ;
+	entry = ft_strjoin("SHLVL=", num_str);
+	free(num_str);
+	if (!entry)
+		return ;
+	idx = find_export_key_index(shell, "SHLVL", 5);
+	if (idx >= 0)
+		(free(shell->envp[idx]), (shell->envp[idx] = entry));
+	else
+		(append_export_env(shell, entry), free(entry));
+}
+
+void	normalize_child_shlvl(t_shell *shell)
+{
+	char	*shlvl_val;
+	char	*num_str;
+	char	*entry;
+	int		lvl;
+	int		idx;
+
+	shlvl_val = get_env_value(shell->envp, "SHLVL");
+	if (!shlvl_val)
+		return ;
+	lvl = ft_atoi(shlvl_val);
+	if (lvl > 0)
+		lvl--;
+	num_str = ft_itoa(lvl);
 	if (!num_str)
 		return ;
 	entry = ft_strjoin("SHLVL=", num_str);
