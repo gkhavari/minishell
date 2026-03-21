@@ -113,12 +113,15 @@ static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 
 /**
  DESCRIPTION:
-* Dispatch a single token into the command structure.
+* Dispatch a single token into the command structure, creating args or
+* redirection nodes as appropriate.
 
  BEHAVIOR:
-* WORD tokens are added as arguments. Redirection tokens create
-* redirection nodes and HEREDOC stores the delimiter. The parser
-* already advances past the filename after redirection tokens.
+* - WORD tokens are appended as argument nodes.
+* - HEREDOC consumes the following token as a delimiter and stores it.
+* - Redirection tokens allocate and append `t_redir` nodes.
+* The function performs defensive checks and will return `FAILURE` on
+* allocation errors to signal the caller to abort command construction.
 
  PARAMETERS:
 * t_shell *shell: Shell runtime for allocation helpers.
@@ -127,7 +130,7 @@ static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 
  RETURN:
 * `1` when a WORD was added, `2` when a redirection/heredoc was handled,
-* or `FAILURE` on error.
+* or `FAILURE` on error (allocation or malformed token sequence).
 */
 int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {

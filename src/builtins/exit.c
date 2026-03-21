@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:32 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:59 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:41:11 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,6 +93,9 @@ static int	exit_mod256(char *str)
  PARAMETERS:
 * t_shell *shell: Shell runtime to free.
 * int code: Exit code to return to the OS.
+ 
+ RETURN:
+ * Does not return; calls `exit(code)` to terminate the process.
 */
 static void	clean_exit(t_shell *shell, int code)
 {

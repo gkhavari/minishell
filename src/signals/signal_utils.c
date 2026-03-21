@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 14:10:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:19:13 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:38:39 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,11 @@
 * Readline event hook invoked periodically while readline is active.
 
  BEHAVIOR:
-* If a SIGINT was received via the signal handler sets up a fresh
-* prompt line by calling `rl_on_new_line` and `rl_redisplay`.
+* When a `SIGINT` was recorded by the async signal handler, this hook
+* resets the global indicator and refreshes the prompt line by calling
+* `rl_on_new_line()` and `rl_redisplay()`. Designed to be lightweight and
+* safe to call from the readline event loop — it does not perform any
+* blocking operations or complex state changes.
 
  PARAMETERS:
 * None.
@@ -39,17 +42,21 @@ int	readline_event_hook(void)
 
 /**
  DESCRIPTION:
-* Check whether a pending signal was received and handle it.
+* Inspect and consume any pending signal previously recorded by the
+* asynchronous signal handler.
 
  BEHAVIOR:
-* If `g_signum` indicates `SIGINT` updates `shell->last_exit` to the
-* appropriate status and clears the global signal indicator.
+* If `g_signum` is `SIGINT` updates `shell->last_exit` with the
+* standardized `EXIT_SIGINT` value, clears `g_signum`, and returns `1` to
+* indicate the caller should treat the loop as interrupted. This centralizes
+* signal-to-exit-code translation and prevents duplicated handling across
+* the main loop.
 
  PARAMETERS:
 * t_shell *shell: Shell runtime whose `last_exit` will be updated.
 
  RETURN:
-* `1` if a SIGINT was handled, otherwise `0`.
+* `1` if a `SIGINT` was handled and consumed, otherwise `0`.
 */
 int	check_signal_received(t_shell *shell)
 {

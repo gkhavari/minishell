@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:25:12 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:11 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:42:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,17 +115,19 @@ void	restore_fds(int stdin_backup, int stdout_backup)
 
 /**
  DESCRIPTION:
-* Execute a builtin command in the parent process.
+* Restore previously backed-up stdin/stdout file descriptors.
 
  BEHAVIOR:
-* Delegates to `run_builtin` forwarding the command argv and shell state.
+* Duplicate the backup descriptors back to standard fds and close the
+* backup descriptors. This is expected to be called after temporary
+* redirections are removed.
 
  PARAMETERS:
-* t_command *cmd: Command node containing `argv`.
-* t_shell *shell: Shell runtime state.
+* int stdin_backup: Backup descriptor for stdin.
+* int stdout_backup: Backup descriptor for stdout.
 
  RETURN:
-* Exit/status code returned by the builtin.
+* None.
 */
 int	execute_builtin(t_command *cmd, t_shell *shell)
 {

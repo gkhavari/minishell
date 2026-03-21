@@ -14,19 +14,19 @@
 
 /**
  DESCRIPTION:
-* Completes the setup of each command in a linked list of t_command structures.
-* For every command, this function:
-** Builds the argv array from the linked list of arguments.
-** Determines whether the command’s executable name corresponds to a builtin.
+* Finalize each `t_command` in a list by building its `argv` array and
+* marking builtin status. Defensively ensures each command has a valid
+* `argv` so downstream execution code does not dereference NULL pointers.
 
-PARAMETERS:
-* cmd: Pointer to the first command in the command list.
+ BEHAVIOR:
+* Iterates the command list, calls `finalize_argv` to allocate and fill
+* `cmd->argv`, and sets `cmd->is_builtin` based on `argv[0]`. Special-cases
+* certain builtins (e.g. `env`) to avoid incorrect builtin dispatch.
 
-BEHAVIOR:
-* Iterates through every command node in the list.
-* Calls finalize_argv(cmd) to construct cmd->argv.
-* Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
-**/
+ PARAMETERS:
+* t_shell *shell: Shell runtime for allocations and error handling.
+* t_command *cmd: First command in the list to finalize.
+*/
 void	finalize_all_commands(t_shell *shell, t_command *cmd)
 {
 	while (cmd)
@@ -42,29 +42,20 @@ void	finalize_all_commands(t_shell *shell, t_command *cmd)
 
 /**
  DESCRIPTION:
-* Constructs the argv array for a command from its linked list of
-	arguments (cmd->args).
-* The resulting array is NULL-terminated
+* Build `cmd->argv` from the linked list `cmd->args`. Ensures a NULL-terminated
+* `argv` so callers can safely iterate and pass it to `execve` or builtin code.
 
-PARAMETERS:
-* cmd: Pointer to the command whose argument list should be converted.
+ BEHAVIOR:
+* Counts arguments, allocates an array of the exact required size (count+1),
+* duplicates each argument string, and NUL-terminates the array. On
+* allocation failure it uses `msh_calloc` where appropriate (or returns)
+* so callers can react; this prevents use-after-free or NULL-dereference in
+* later stages of execution.
 
-PROCESS:
-* Count arguments: Iterates through the t_arg linked list to determine how many
-	arguments exist.
-* Allocate array: Allocates count + 1 slots for the argv array (the extra one
-	for the terminating NULL).
-* Copy arguments: Duplicates each t_arg->value into the argv array.
-* Terminate: Sets argv[count] = NULL.
-
-RESULT:
-* cmd->argv will contain:
-argv[0] = first argument  
-argv[1] = second argument  
-...  
-argv[count-1] = last argument  
-argv[count] = NULL  
-**/
+ PARAMETERS:
+* t_shell *shell: Shell runtime for allocation helpers.
+* t_command *cmd: Command whose argv should be populated.
+*/
 void	finalize_argv(t_shell *shell, t_command *cmd)
 {
 	t_arg	*tmp;

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:25:24 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:20 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:35:01 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,13 @@
 
 /**
  DESCRIPTION:
-* Wait for all pipeline children and return the pipeline exit status.
+* Wait for pipeline children and return the aggregate pipeline exit status.
 
  BEHAVIOR:
-* Implements the Bash convention: the pipeline exit status is the
-* exit status of the last command in the pipeline. Waits for each PID
-* in `pids[0..n-1]`, inspects termination status and returns the last
-* command's exit code or signal-derived code (128 + signal).
+* Implements the convention where the pipeline's status reflects the last
+* command's exit. Waits for each PID and extracts the last command's exit
+* status or a signal-derived value. Defensively ensures the parent doesn't
+* proceed until children have terminated, preventing zombies and races.
 
  PARAMETERS:
 * pid_t *pids: Array of child PIDs for the pipeline.
@@ -54,10 +54,12 @@ int	wait_pipeline(pid_t *pids, int n)
 
 /**
  DESCRIPTION:
-* Count commands in a pipeline linked list.
+* Count commands in a pipeline list.
 
  BEHAVIOR:
-* Iterates the `t_command` linked list and returns the number of nodes.
+* Iterates the `t_command` list and returns the count. Used to allocate
+* PID arrays defensively, ensuring sufficient space and preventing buffer
+* overruns when collecting child PIDs.
 
  PARAMETERS:
 * t_command *cmd: Head of the command list.
@@ -95,12 +97,13 @@ static int	backup_fds(int *in, int *out)
 
 /**
  DESCRIPTION:
-* Execute a single command (no pipeline) in the correct context.
+* Execute a single (non-pipeline) command, handling builtins and externals.
 
  BEHAVIOR:
-* Backs up stdio file descriptors, applies redirections, and either
-* runs builtins in the parent (so they can modify shell state) or
-* forks/execs external commands. Restores file descriptors afterwards.
+* Backs up stdin/stdout, applies file redirections, and either executes a
+* builtin in the parent (allowing it to mutate shell state) or forks to
+* execute an external command. Always restores backups. Defensively handles
+* failures in `dup`/open/redirect to avoid leaking fd state.
 
  PARAMETERS:
 * t_command *cmd: Command to execute.

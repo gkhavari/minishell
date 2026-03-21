@@ -6,11 +6,35 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/07 17:01:14 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:26:28 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:30:30 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+/**
+ * DESCRIPTION:
+ * Handle a character when inside a single-quoted string ('...'). In single
+ * quotes all characters are treated literally and no variable expansion
+ * occurs.
+ *
+ * PARAMETERS:
+ * t_shell *shell: Shell runtime containing the input string.
+ * size_t *i: Pointer to the current index in the input string.
+ * char **word: Pointer to the current word buffer being built.
+ * t_state *state: Pointer to the current tokenizer state; this function acts
+ *  only when state == ST_SQUOTE.
+ *
+ * BEHAVIOR:
+ * Returns 1 if the character was handled (appended literally), 0 otherwise.
+ */
+int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
+{
+	if (*state != ST_SQUOTE)
+		return (0);
+	process_normal_char(shell, shell->input[*i], i, word);
+	return (1);
+}
+
 /**
  * DESCRIPTION:
  * Handle a character when inside a double-quoted string. Double quotes allow

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 16:20:11 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:30:04 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,18 @@ static void	check_is_dir(char *cmd_name, char *path)
 	}
 }
 
+/**
+ DESCRIPTION:
+* Report and exit when the resolved `path` is a directory.
+
+ BEHAVIOR:
+* Prints an error message using `cmd_name`, frees `path` and exits with 126.
+
+ PARAMETERS:
+* char *cmd_name: Original command name for error text.
+* char *path: Filesystem path detected as a directory (will be freed).
+*/
+
 static void	handle_exec_error(char *cmd_name, char *path)
 {
 	ft_putstr_fd("minishell: ", 2);
@@ -41,6 +53,19 @@ static void	handle_exec_error(char *cmd_name, char *path)
 	exit(126);
 }
 
+/**
+ DESCRIPTION:
+* Print an exec-related error and exit with the appropriate status.
+
+ BEHAVIOR:
+* If `errno == ENOENT` prints "No such file or directory" and exits 127.
+* Otherwise prints "Permission denied" and exits 126. Frees `path`.
+
+ PARAMETERS:
+* char *cmd_name: Command name printed in the error message.
+* char *path: Path string to free before exiting.
+*/
+
 static void	cmd_not_found(char *cmd_name)
 {
 	ft_putstr_fd("minishell: ", 2);
@@ -48,6 +73,14 @@ static void	cmd_not_found(char *cmd_name)
 	ft_putstr_fd(": command not found\n", 2);
 	exit(127);
 }
+
+/**
+ DESCRIPTION:
+* Print a "command not found" message for `cmd_name` and exit 127.
+
+ PARAMETERS:
+* char *cmd_name: Name of the command that was not found.
+*/
 
 /**
  DESCRIPTION:

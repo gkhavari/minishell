@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:26:19 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:19:29 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:41:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,23 @@ static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
 	return (ft_strdup(val));
 }
 
+/**
+ DESCRIPTION:
+* Expand variables inside a heredoc line.
+
+ BEHAVIOR:
+* Walks the input `line`, replacing occurrences of `$NAME` or `$?` with
+* their corresponding environment value or last exit code. Handles only
+* variables allowed in heredoc context and appends characters to the
+* result using shell-safe helpers.
+
+ PARAMETERS:
+* char *line: Input heredoc line to expand.
+* t_shell *shell: Shell runtime providing `envp` and `last_exit`.
+
+ RETURN:
+* Newly allocated expanded string (caller must free).
+*/
 char	*expand_heredoc_line(char *line, t_shell *shell)
 {
 	char	*result;
@@ -74,3 +91,20 @@ int	is_quoted_delimiter(char *delim)
 		return (1);
 	return (0);
 }
+
+/**
+ DESCRIPTION:
+* Check whether a heredoc delimiter is quoted.
+
+ BEHAVIOR:
+* A delimiter is considered quoted when it begins and ends with matching
+* single or double quotes and has length >= 2. Quoted delimiters suppress
+* expansion in heredoc processing.
+
+ PARAMETERS:
+* char *delim: The delimiter string to inspect.
+
+ RETURN:
+* `1` if the delimiter is quoted, otherwise `0`.
+*/
+

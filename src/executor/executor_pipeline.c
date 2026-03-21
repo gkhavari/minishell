@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:24:52 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:16 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 22:28:09 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,20 +138,21 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
 
 /**
  DESCRIPTION:
-* Execute a multi-command pipeline connecting commands with pipes.
+* Drive the pipeline creation loop: fork each command and collect PIDs.
 
  BEHAVIOR:
-* Allocates an array for child PIDs, forks each command connected by
-* pipes, waits for all children and returns the last child's exit status.
-* Temporarily adjusts signal handling so the parent ignores SIGINT/SIGQUIT
-* while children execute.
+* Iterates the command list, calling `handle_pipe_step` to create pipes
+* and fork each child. Closes/forwards file descriptors as required and
+* fills `pids` with the returned child PIDs. Returns the number of
+* forked children.
 
  PARAMETERS:
-* t_command *cmds: Head of the pipeline command list.
-* t_shell *shell: Shell runtime used during execution.
+* t_command *cmd: Head of the pipeline command list.
+* t_shell *shell: Shell runtime passed to children.
+* pid_t *pids: Pre-allocated array to store child PIDs.
 
  RETURN:
-* Exit status of the last command in the pipeline, or non-zero on error.
+* Number of children forked (could be less on failure).
 */
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {

@@ -40,11 +40,13 @@ static void	free_envp(char **envp)
 
 /**
  DESCRIPTION:
-* Reset transient shell state without freeing environment or shell object.
+* Reset transient shell state while preserving the persistent environment.
 
  BEHAVIOR:
-* Frees and nulls tokens, commands and the input buffer, leaving other
-* shell fields intact so the shell can continue running.
+* Frees tokens, commands and the input buffer but leaves `envp`, `user`,
+* and other persistent fields intact so the shell can continue. This avoids
+* leaking transient memory between commands and defends against using stale
+* pointers in subsequent iterations.
 
  PARAMETERS:
 * t_shell *shell: Shell runtime to reset; if NULL nothing is done.
@@ -66,11 +68,12 @@ void	reset_shell(t_shell *shell)
 
 /**
  DESCRIPTION:
-* Free all dynamically allocated memory associated with the shell.
+* Free the entire shell runtime state and associated allocations.
 
  BEHAVIOR:
-* Frees tokens, commands, environment array, user, cwd and input
-* fields and nulls the corresponding pointers in `shell`.
+* Frees tokens, commands, environment array, user, cwd and input fields and
+* nulls the corresponding pointers. Intended for final cleanup or fatal
+* error paths; prevents resource leaks across process lifetime.
 
  PARAMETERS:
 * t_shell *shell: Shell runtime to free; if NULL nothing is done.
