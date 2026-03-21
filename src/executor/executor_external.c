@@ -6,27 +6,12 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 19:37:51 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 19:57:29 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 20:15:03 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Normalize a waited child's status to an exit code.
-
- BEHAVIOR:
-* If the child was terminated by a signal returns 128 + signal number
-* and prints a message for SIGQUIT. If exited normally returns its
-* exit status. Otherwise returns 1.
-
- PARAMETERS:
-* int status: Status value filled by `waitpid`.
-
- RETURN:
-* Normalized exit status integer.
-*/
 static int	get_child_status(int status)
 {
 	if (WIFSIGNALED(status))
@@ -40,23 +25,6 @@ static int	get_child_status(int status)
 	return (1);
 }
 
-/**
- DESCRIPTION:
-* Execute an external command by forking and waiting for the child.
-
- BEHAVIOR:
-* Forks a child; the child resets signal handlers and calls
-* `execute_in_child` which performs exec. The parent waits for the
-* child, restores interactive signal handlers and returns the child's
-* normalized exit code.
-
- PARAMETERS:
-* t_command *cmd: Command to execute (argv must be present).
-* t_shell *shell: Shell runtime providing `envp` and lookup helpers.
-
- RETURN:
-* Exit/status code of the executed external command.
-*/
 int	execute_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
@@ -78,95 +46,58 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	return (get_child_status(status));
 }
 
-/**
- DESCRIPTION:
-* Check whether a path refers to a regular file.
-
- BEHAVIOR:
-* Uses `stat` and inspects `st_mode` to determine regular file status.
-
- PARAMETERS:
-* char *path: Filesystem path to inspect.
-
- RETURN:
-* `1` if `path` is a regular file, `0` otherwise.
-*/
-static int	is_regular_file(char *path)
+static char	*try_candidate(char *dir, char *cmd, char **fallback)
 {
+	char		*tmp;
+	char		*full_path;
 	struct stat	sb;
 
-	if (stat(path, &sb) != 0)
-		return (0);
-	return (S_ISREG(sb.st_mode));
+	tmp = ft_strjoin(dir, "/");
+	if (!tmp)
+		return (NULL);
+	full_path = ft_strjoin(tmp, cmd);
+	free(tmp);
+	if (!full_path)
+		return (NULL);
+	if (stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode)
+		&& access(full_path, X_OK) == 0)
+	{
+		if (*fallback)
+			free(*fallback);
+		return (full_path);
+	}
+	if (!*fallback && stat(full_path, &sb) == 0
+		&& S_ISREG(sb.st_mode))
+	{
+		*fallback = full_path;
+		return (NULL);
+	}
+	free(full_path);
+	return (NULL);
 }
 
-/**
- DESCRIPTION:
-* Search for an executable file named `cmd` in the provided path list.
-
- BEHAVIOR:
-* Joins each path with `cmd`, checks whether the resulting path refers
-* to a regular file. On success returns an allocated full path and frees
-* the `paths` array. Returns NULL when not found.
-
- PARAMETERS:
-* char **paths: Null-terminated array of directory paths.
-* char *cmd: Command filename to search for.
-
- RETURN:
-* Allocated full path on success, or NULL if not found.
-*/
 static char	*search_in_path(char **paths, char *cmd)
 {
-	char	*tmp;
-	char	*full_path;
 	char	*fallback;
 	int		i;
+	char	*res;
 
 	i = 0;
 	fallback = NULL;
 	while (paths[i])
 	{
-		tmp = ft_strjoin(paths[i], "/");
-		if (!tmp)
-			break ;
-		full_path = ft_strjoin(tmp, cmd);
-		free(tmp);
-		if (!full_path)
-			break ;
-		if (is_regular_file(full_path) && access(full_path, X_OK) == 0)
+		res = try_candidate(paths[i], cmd, &fallback);
+		if (res)
 		{
-			if (fallback)
-				free(fallback);
 			free_array(paths);
-			return (full_path);
+			return (res);
 		}
-		if (!fallback && is_regular_file(full_path))
-			fallback = full_path;
-		else
-			free(full_path);
 		i++;
 	}
 	free_array(paths);
 	return (fallback);
 }
 
-/**
- DESCRIPTION:
-* Locate a command path using `PATH` environment variable or direct path.
-
- BEHAVIOR:
-* If `cmd` contains a slash returns a duplicate of `cmd`. Otherwise
-* reads `PATH` (with a fallback when `had_path` is set), splits it and
-* searches for a regular file matching `cmd`.
-
- PARAMETERS:
-* char *cmd: Command name to locate.
-* t_shell *shell: Shell runtime for `envp` and `had_path` flag.
-
- RETURN:
-* Allocated path string if found, or NULL.
-*/
 char	*find_command_path(char *cmd, t_shell *shell)
 {
 	char	*path_env;

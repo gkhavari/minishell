@@ -74,7 +74,7 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 
 	if (*state != ST_DQUOTE)
 		return (0);
-	if (shell->input[*i] == '$' && !is_heredoc_mode()
+	if (shell->input[*i] == '$' && !is_heredoc_mode(shell)
 		&& shell->input[*i + 1] != '"'
 		&& shell->input[*i + 1] != '\'')
 	{

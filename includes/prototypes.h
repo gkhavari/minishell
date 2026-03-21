@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 19:52:44 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 20:11:37 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,9 +33,9 @@ void		flush_word(t_shell *shell, char **word, t_token **token);
 void		add_token(t_token **head, t_token *new);
 t_token		*new_token(t_shell *shell, t_tokentype type, char *value);
 void		append_char(t_shell *shell, char **dst, char c);
-void		mark_word_quoted(void);
-void		set_heredoc_mode(int mode);
-int			is_heredoc_mode(void);
+void		mark_word_quoted(t_shell *shell);
+void		set_heredoc_mode(t_shell *shell, int mode);
+int			is_heredoc_mode(t_shell *shell);
 
 /* tokenizer_handlers.c */
 int			handle_end_of_string(t_shell *shell, t_state *state);
