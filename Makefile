@@ -9,13 +9,16 @@ RL_DIR      = /usr
 RLFLAGS     = -L$(RL_DIR)/lib -L/usr/lib/x86_64-linux-gnu -lreadline -lncurses
 CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -I/usr/include
 
+# Debug / sanitizer flags for leak and UB detection
+SANITIZE_FLAGS = -fsanitize=address,undefined -fno-omit-frame-pointer -fstack-protector-strong
+DEBUG_FLAGS = -g -O0 $(SANITIZE_FLAGS) -DDEBUG
+
 SRC_DIR     = src
 OBJ_DIR     = obj
 INCLUDES 	= includes
 LIBFT_DIR	= libft
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
-# main (only file in src/ root)
 SRCS		=	$(SRC_DIR)/main.c
 
 # core
@@ -84,7 +87,7 @@ all: $(NAME)
 
 # Build minishell
 $(NAME): $(LIBFT) $(OBJ_DIR) $(OBJS)
-	@$(CC) $(CFLAGS) $(OBJS) $(LIBFT) $(RLFLAGS) -o $(NAME)
+	@$(CC) $(CFLAGS) $(OBJS) $(LIBFT) $(RLFLAGS) $(SANITIZE_FLAGS) -o $(NAME)
 	@echo "minishell built"
 
 # Build libft
@@ -123,7 +126,7 @@ fclean: clean
 
 re: fclean all
 
-debug: CFLAGS += -g
+debug: CFLAGS += $(DEBUG_FLAGS)
 debug: re
 
 .PHONY: all clean fclean re debug
