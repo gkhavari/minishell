@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 19:37:51 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 20:24:09 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/21 20:31:48 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,12 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	return (1);
 }
 
+static char	*set_path_fallback(char **fallback, char *path)
+{
+	*fallback = path;
+	return (NULL);
+}
+
 static char	*try_candidate(char *dir, char *cmd, char **fallback)
 {
 	char		*tmp;
@@ -66,12 +72,6 @@ static char	*try_candidate(char *dir, char *cmd, char **fallback)
 			return (set_path_fallback(fallback, full_path));
 	}
 	free(full_path);
-	return (NULL);
-}
-
-static char	*set_path_fallback(char **fallback, char *path)
-{
-	*fallback = path;
 	return (NULL);
 }
 
