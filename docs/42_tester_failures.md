@@ -16,9 +16,16 @@ make
 
 ---
 
-## Latest CI snapshot — `logs_61348652699/` (2026-03-20)
+## Latest CI baseline (mandatory + Valgrind job)
 
-Logged from GitHub Actions job **“Valgrind on Ubuntu (mandatory tests)”**: branch **`lastshell`**, commit **`0a1dea52eedfaed595fee2a7403b465e40742a50`**, tester **`tester.sh m`** (cozyGarage fork).
+**Confirmed twice** with identical numbers (no regression, **no improvement** between snapshots):
+
+| Source | Date (UTC) | Commit / run |
+|--------|------------|----------------|
+| `logs_61348652699/` | 2026-03-20 | `0a1dea52…` (`lastshell`) |
+| Artifact `logs_61469307667` (unzipped) | 2026-03-21 | After **`0b85675`** (docs + `exit` 2 + `logs_*/` ignore); same results as row above |
+
+Both logs: branch **`lastshell`**, job **“Valgrind on Ubuntu (mandatory tests)”**, **`tester.sh m`** (cozyGarage fork).
 
 | Metric | Value |
 |--------|--------|
@@ -26,6 +33,8 @@ Logged from GitHub Actions job **“Valgrind on Ubuntu (mandatory tests)”**: b
 | **TESTS PASSED** | 932 |
 | **LEAKING** | 0 |
 | **Failed criteria** | STD_OUT **3**, STD_ERR **11**, EXIT_CODE **1** → **15** ❌ (tester counts per check, not per block) |
+
+**Takeaway for next work:** Treat **932 / 944** and the table below as the current target; fixing any row may not change totals until all criteria for that block pass.
 
 **Failing lines (mandatory, same list under Valgrind — leaks still ✅):**
 
