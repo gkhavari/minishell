@@ -1,6 +1,20 @@
 # Minishell Expected Behavior & Test-Design Guide
 
-This document defines **expected behavior** for minishell: what output and exit code the shell must produce for given inputs. It serves as (1) a **behavior specification** for the program and (2) a **guide for designing tests** for those cases. The reference is **[42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester)** (cozyGarage fork): the tester compares minishell to **bash** on the same input (stdout byte-for-byte, stderr presence, exit code). Run tests with `make -C tests test` from the repository root.
+This document defines **expected behavior** for minishell: what output and exit code the shell must produce for given inputs. It serves as (1) a **behavior specification** for the program and (2) a **guide for designing tests** for those cases.
+
+**Primary reference:** **[42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester)** (cozyGarage fork) — same input as **bash**, compare stdout (`diff -q`), stderr **presence**, and exit code.
+
+**Run mandatory tests from repo root:**
+
+```bash
+make
+./scripts/run_minishell_tester.sh m     # mandatory
+./scripts/run_minishell_tester.sh vm    # mandatory + valgrind
+```
+
+**CI status (Ubuntu):** Current baseline and failure breakdown are tracked in [42_tester_failures.md](42_tester_failures.md).
+
+**Subject vs bash:** Where the PDF says you **must not** interpret **`;`** or **`\`**, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo.
 
 For architecture and data structures, see [minishell_architecture.md](minishell_architecture.md).
 
@@ -11,8 +25,9 @@ For architecture and data structures, see [minishell_architecture.md](minishell_
 - Reads test **blocks** from scripts under `cmds/mand/` (e.g. `1_builtins.sh`, `8_syntax_errors.sh`). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
 - For each block: sends the same input to **minishell** and to **bash** (with `enable -n .` prepended so bash runs the test as the last command).
 - **Pass** requires: stdout identical (`diff -q`), stderr **presence** same (both have stderr or both don’t), exit code identical.
+- **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** (not readline) for non-TTY stdin — one logical line per tester block.
 
-So “expected behavior” here is **bash-like**: whatever bash prints and returns for an input is what minishell should match. The tables below summarize that for each category and point to the 42 script(s) that cover it.
+So “expected behavior” here is **bash-like** unless the **subject** or **documented deltas** say otherwise. The tables summarize bash-oriented expectations and point to the 42 script(s) that cover them.
 
 ---
 
@@ -62,6 +77,7 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | Input | Expected stdout | Expected stderr | Exit |
 |-------|-----------------|-----------------|------|
 | `env` | List of `VAR=value` lines (environment) | none | 0 |
+| `env` **with arguments** (e.g. `env what`, `env -i ./minishell`) | — | As bash: **not** the builtin-with-no-args case — run the **external** `env` from PATH (or absolute path) like a normal command | per command |
 | `export` | Exported variables (e.g. `declare -x` form in bash) | none | 0 |
 | `export HELLO=123` then `env` | Second line shows `HELLO=123` (or equivalent) | none | 0 |
 | `export 1INVALID=x`, `export 1BADNAME=x` | — | "not a valid identifier" or similar | 1 |
@@ -69,7 +85,9 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | `unset VAR` then `env` | `VAR` no longer in env | none | 0 |
 | `unset`, `unset ""` | — | error or no-op per bash | 0 or 1 |
 
-**Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. See `1_builtins.sh` (EXPORT, UNSET).
+**Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. Subject: builtin **`env`** is **no options or arguments** — any `env` with args is executed as **external** `env` (this repo: `argv_build` / dispatch). See `1_builtins.sh` (ENV, EXPORT, UNSET).
+
+**Tester note:** The known edge line is **`unset TES;T`** in `1_builtins.sh`; it depends on **`;`** separator behavior (out of mandatory scope). To test `unset` itself, use **`unset TES`** without semicolon.
 
 ---
 
@@ -150,9 +168,14 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | `true \| false` | (none) | none | **1** (last command) |
 | `false \| true` | (none) | none | **0** (last command) |
 | `cd /tmp \| pwd` | (pwd output) | none | 0; **cd in pipe does not change parent** |
-| Pipeline with heredoc (e.g. `ls \| cat << E \| grep x`) | As in bash | none | 0 or last command’s status |
+| Pipeline with heredoc (e.g. `ls \| cat << E \| grep x`) | As in bash | May match bash on **stderr presence** (see below) | 0 or last command’s status |
+| Huge pipeline / `fork` failure | As bash | **Stderr:** e.g. `fork: Resource temporarily unavailable` (or `perror`-style) — presence should match bash | per bash |
 
-**Test-design note:** Pipeline exit = **last** command’s exit code. Builtins in the middle (e.g. `cd`) run in subshell; parent env unchanged. See `1_pipelines.sh`.
+**Test-design note:** Pipeline exit = **last** command’s exit code. Builtins in the middle (e.g. `cd`) run in subshell; parent env unchanged.
+
+**SIGPIPE / Linux CI:** On many Linux runners (e.g. systemd), **SIGPIPE is ignored** in the parent. **Bash** does not reset it to default for pipeline children; they **inherit SIG_IGN**. Then **GNU** tools such as `ls` / `yes` may write **“write error: Broken pipe”** (or similar) to **stderr** when the pipe breaks. This shell **inherits the same rule** so mandatory **stderr presence** matches bash on Ubuntu. On macOS, the parent often has SIGPIPE **default**, so local stderr may differ from CI — **trust Linux** for tester alignment. See [42_tester_failures.md](42_tester_failures.md) and [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md).
+
+See `1_pipelines.sh`.
 
 ---
 
@@ -181,8 +204,9 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 | `nonexistent_cmd_xyz` | — | "command not found" or similar | **127** |
 | `/tmp` (directory as command) | — | "Is a directory" or similar | **126** |
 | Empty or minimal PATH (e.g. `env -i ./minishell` then `ls`) | — | "command not found" | **127** |
+| **`PATH` unset** but shell started with PATH present (`had_path`) | Match bash for default search list | Often includes **`.`**; non-executable file in cwd → **126** (not 127) when bash does | per bash |
 
-**Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
+**Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. Resolution uses startup **`had_path`** and fallback paths — see [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) and [42_tester_failures.md](42_tester_failures.md) (PATH caveat). See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
 
 ---
 
@@ -204,10 +228,11 @@ So “expected behavior” here is **bash-like**: whatever bash prints and retur
 
 | Feature | Status |
 |---------|--------|
-| `&&` / `\|\|` | ❌ Not implemented |
+| `&&` / `\|\|` | ❌ Not implemented (optional **bonus** in subject — separate from mandatory) |
 | `;` (command separator) | ❌ Not implemented |
+| `\` (backslash) as a special escape outside quotes | ❌ Not required — subject: do **not** interpret `\` as a required metacharacter |
 
-Use multiple input lines to chain commands. The 42 subject does not require `;` or logical operators for the mandatory part.
+Use multiple input lines to chain commands. The 42 subject does not require `;`, `\`, or logical **`&&`/`||`** for the **mandatory** part.
 
 ---
 
@@ -227,4 +252,4 @@ Use multiple input lines to chain commands. The 42 subject does not require `;` 
 | `9_go_wild.sh` | Wild / env -i, PATH |
 | `10_parsing_hell.sh` | Parsing edge cases, heredoc, expansion |
 
-Use these scripts as the **source of truth** for designing new tests: add blocks in the same format (one or more lines, blank line or `#` to separate). Expected behavior is **match bash** on stdout, stderr presence, and exit code.
+Use these scripts as the **source of truth** for designing new tests: add blocks in the same format (one or more lines, blank line or `#` to separate). Expected behavior is **match bash** on stdout, stderr presence, and exit code; **except** where this doc and [minishellv10.md](minishellv10.md) define **subject-only** behavior.

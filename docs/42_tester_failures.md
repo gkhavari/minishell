@@ -18,35 +18,16 @@ make
 
 ## Latest CI baseline (mandatory + Valgrind job)
 
-**Confirmed twice** with identical numbers (no regression, **no improvement** between snapshots):
-
-| Source | Date (UTC) | Commit / run |
-|--------|------------|----------------|
-| `logs_61348652699/` | 2026-03-20 | `0a1dea52…` (`lastshell`) |
-| Artifact `logs_61469307667` (unzipped) | 2026-03-21 | After **`0b85675`** (docs + `exit` 2 + `logs_*/` ignore); same results as row above |
-
-Both logs: branch **`lastshell`**, job **“Valgrind on Ubuntu (mandatory tests)”**, **`tester.sh m`** (cozyGarage fork).
+Branch **`lastshell`**, job **“Valgrind on Ubuntu (mandatory tests)”**, **`tester.sh m`** (cozyGarage fork).
 
 | Metric | Value |
 |--------|--------|
 | **TOTAL TEST COUNT** | 944 |
-| **TESTS PASSED** | 932 |
+| **TESTS PASSED** | 943 |
 | **LEAKING** | 0 |
-| **Failed criteria** | STD_OUT **3**, STD_ERR **11**, EXIT_CODE **1** → **15** ❌ (tester counts per check, not per block) |
+| **Failed criteria** | STD_OUT **0**, STD_ERR **1**, EXIT_CODE **1** → **2** ❌ (tester counts per check, not per block) |
 
-**Takeaway for next work:** Treat **932 / 944** as the CI baseline. Session 2026-03-21 applied fixes — push `lastshell` and wait for new CI run to confirm updated numbers.
-
-**Failing lines (mandatory, same list under Valgrind — leaks still ✅):**
-
-| Script | Line | STD_OUT | STD_ERR | EXIT_CODE | Notes |
-|--------|------|---------|---------|-----------|--------|
-| `1_builtins.sh` | 552 | ✅ | ❌ | ❌ `minishell(0) bash(127)` | Semicolon / `unset` edge (`;` not in subject) |
-| `1_pipelines.sh` | 4, 6, 55, 59, 68, 84, 110 | ✅ | ❌ | ✅ | Pipeline + heredoc stderr vs bash |
-| `2_path_check.sh` | 47 | ❌ | ✅ | ✅ | Path / stdout mismatch |
-| `9_go_wild.sh` | 7 | ✅ | ❌ | ✅ | Wild / stderr |
-| `9_go_wild.sh` | 46, 52 | ❌ | ❌ | ✅ | Wild stdout+stderr |
-
-**Valgrind:** same **15** criterion failures; **LEAKS: ✅** on those lines in the log (no definite leaks reported for mandatory in that run).
+**Valgrind:** no definite leaks in CI (`✅ No definite memory leaks detected`), tester `LEAKING: 0`.
 
 Local numbers may differ slightly if tester revision or env differs from CI.
 
@@ -138,27 +119,18 @@ Norm: `norminette src/` clean after these changes.
 
 ---
 
-## Remaining failure themes (expected after all 2026-03-21 fixes)
+## Remaining failure themes (current CI)
 
-1. **`1_builtins.sh:552`** — EXIT + STDERR: **minishell(0) vs bash(127)** — semicolon / invalid token after `unset` (subject does not require `;`) — **unfixable without `;` operator**.
-2. **`1_pipelines.sh:4,6`** — STDERR: fork failure message — **fixed** by adding `perror("minishell")`.
-3. **`1_pipelines.sh:55,59,68,84,110`** — STDERR: GNU ls prints "write error" due to SIG_IGN inheritance — **fixed** by SIGPIPE inherit fix.
-4. **`2_path_check.sh:47`** — STDOUT — **fixed** by PATH fallback + `is_regular_file`.
-5. **`9_go_wild.sh:7`** — STDERR: GNU yes prints "write error" — **fixed** by SIGPIPE inherit fix.
-6. **`9_go_wild.sh:46,52`** — STDOUT+STDERR — **fixed** by env-with-args fix.
-
-Older themes (echo backslash, heredoc delimiters, etc.) may still apply on other lines; **refresh** this section after the next `./scripts/run_minishell_tester.sh m`.
+1. **`1_builtins.sh:552`** — EXIT + STDERR: **minishell(0) vs bash(127)** — semicolon / invalid token after `unset` (subject does not require `;`).
+2. All previously listed issues (`1_pipelines`, `2_path_check`, `9_go_wild`) are resolved on Ubuntu CI.
 
 ---
 
-## Quick reference by script (from last CI)
+## Quick reference by script (latest CI)
 
 | Script | In last log | Main cause |
 |--------|-------------|------------|
 | `1_builtins` | 1 block (552) | `;` / unset / exit 0 vs 127 |
-| `1_pipelines` | 7 blocks | STDERR vs bash (heredoc+pipe) |
-| `2_path_check` | 1 block (47) | STDOUT |
-| `9_go_wild` | 3 blocks (7, 46, 52) | STDERR / STDOUT |
 
 **Replace** with your latest local run if needed.
 
