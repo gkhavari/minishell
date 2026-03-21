@@ -48,25 +48,23 @@ void	append_expansion_quoted(char **word, const char *exp)
 
 /**
  DESCRIPTION:
- * Appends a string exp to a word buffer *word while splitting the content
- 	on whitespace
+* Append an unquoted expansion string to the current word buffer,
+* splitting on whitespace into separate tokens as required.
 
- BEHAVOIR:
- * Iterates through each character of exp.
- * If a whitespace character is found:
- ** Flushes the current word to the token list (if any).
- ** Skips over consecutive whitespace.
- * If a non-whitespace character is found:
- ** Appends it to *word.
- * Continues until the entire expansion is processed.
+ BEHAVIOR:
+* Iterates each character of `exp`. When whitespace is encountered the
+* current word (if any) is flushed to the token list and consecutive
+* whitespace is skipped. Non-whitespace characters are appended to
+* `*word`. Continues until the entire expansion is processed.
 
  PARAMETERS:
- * char **word: Pointer to the current word buffer being constructed.
- 	Can be NULL.
- * const char *exp: The string to append. If NULL, the function does nothing.
- * t_token **tokens: Pointer to the head of the token list. Complete words are 
- 	flushed to this list when whitespace is encountered.
- */
+* t_shell *shell: Shell runtime used for allocations and token flushes.
+* char **word: Pointer to the current word buffer being constructed; may be
+  NULL.
+* const char *exp: The string to append. If NULL, the function does nothing.
+* t_token **tokens: Pointer to the head of the token list; flushed words are
+  appended here.
+*/
 void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		t_token **tokens)
 {
