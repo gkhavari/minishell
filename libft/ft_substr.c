@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_substr.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/22 14:03:12 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/04/22 14:03:15 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/21 21:02:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,39 +53,3 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	sub[i] = '\0';
 	return (sub);
 }
-/*
-#include <stdio.h>
-typedef struct TestCase {
-	char str[1024];
-	int start;
-	int len; 
-	} TestCase;
-
-int main(void)
-{
-	TestCase test_cases[] = {
-		{.str = "Lorem ipsum dolor sit amet" , .start = 0, .len = 26},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 0, .len = 30},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 5, .len = 20},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 5, .len = 5},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 5, .len = 30},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 10, .len = 5},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 20, .len = 10},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 10, .len = 0},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 30, .len = 5},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 30, .len = 5},
-		{.str = "Lorem ipsum dolor sit amet" , .start = 0, .len = 0}
-	};
-	size_t numb_of_tests = sizeof(test_cases) / sizeof (test_cases[0]);
-	
-	size_t i = 0;
-	while (i < numb_of_tests)
-	{
-		printf("Input string:     %s\n", test_cases[i].str);
-		printf("Start index:      %d\n", test_cases[i].start);
-		printf("Output length:    %d\n", test_cases[i].len);
-		printf("Output string:    %s\n\n", ft_substr(test_cases[i].str, \
-		 test_cases[i].start, test_cases[i].len));
-		i++;
-	}
-}*/

@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/03/21 20:57:17 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/21 21:15:29 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "get_next_line.h"
 
 static char	*gnl_clear_and_return_null(t_buffer **stash_ptr, char *line)
@@ -28,36 +40,25 @@ char	*get_next_line(int fd)
 	return (line);
 }
 
-int	read_to_stash(int fd, t_buffer **stash)
-{
-	char	*buffer;
-	int		bytes_read;
+/* read_to_stash moved to get_next_line_utils2.c to reduce functions per file */
 
-	bytes_read = 1;
-	while (!has_newline(*stash) && bytes_read > 0)
+static void	append_from_node(t_buffer *current, char *line, int *j)
+{
+	int	i;
+
+	i = current->position;
+	while (i < current->size)
 	{
-		buffer = (char *)malloc(BUFFER_SIZE + 1);
-		if (!buffer)
-			return (ERROR);
-		bytes_read = read(fd, buffer, BUFFER_SIZE);
-		if (bytes_read < 0)
-			return (free(buffer), ERROR);
-		if (bytes_read > 0)
-		{
-			buffer[bytes_read] = '\0';
-			if (add_buffer_to_stash(stash, buffer, bytes_read) == -1)
-				return (free(buffer), ERROR);
-		}
-		free(buffer);
+		line[(*j)++] = current->content[i];
+		if (current->content[i++] == '\n')
+			break ;
 	}
-	return (SUCCESS);
 }
 
 char	*build_line_from_stash(t_buffer *stash)
 {
 	t_buffer	*current;
 	char		*line;
-	int			i;
 	int			j;
 
 	if (!stash)
@@ -69,13 +70,7 @@ char	*build_line_from_stash(t_buffer *stash)
 	j = 0;
 	while (current)
 	{
-		i = current->position;
-		while (i < current->size)
-		{
-			line[j++] = current->content[i];
-			if (current->content[i++] == '\n')
-				break ;
-		}
+		append_from_node(current, line, &j);
 		current = current->next;
 	}
 	line[j] = '\0';
@@ -97,7 +92,11 @@ int	cleanup_stash(t_buffer **stash)
 	if (i < last->size && last->content[i] == '\n')
 		i++;
 	if (i >= last->size)
-		return (free_stash_list(*stash), *stash = NULL, 0);
+	{
+		free_stash_list(*stash);
+		*stash = NULL;
+		return (0);
+	}
 	new_node = create_new_buffer(last->content + i, last->size - i);
 	if (!new_node)
 		return (ERROR);

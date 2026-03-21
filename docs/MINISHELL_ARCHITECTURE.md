@@ -43,32 +43,34 @@ Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed 
 
 ### 0.3 Source Layout (real files)
 
-**Rule:** Only `main.c` lives in `src/` root. All other sources are in subfolders.
+**Rule:** `main.c` is the REPL entry in `src/`; implementation files are organized by subsystem.
 
-| Directory | Purpose |
-|-----------|---------|
-| `src/` | `main.c` only — REPL loop, read_input, process_input |
-| `src/core/` | Shell initialization: `init.c` (init_shell, build_prompt, get_env_value) |
-| `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
-| `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
-| `src/signals/` | Signal handlers and readline hook |
-| `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
-| `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc |
-| `src/executor/` | Execution: executor.c, executor_utils, external, pipeline, child |
-| `src/builtins/` | Builtin commands and dispatcher |
+Top-level `src/` contents:
+
+- `main.c` — shell startup, `shell_loop`, `read_input`, `read_line_stdin`, `process_input`.
+- `core/` — `init.c` (initializes `t_shell`, duplicates `envp`, sets `had_path`, updates SHLVL).
+- `utils/` — `utils.c` (helpers: `ft_arrdup`, `msh_calloc`, `ft_realloc`, `ft_strcat`, etc.).
+- `free/` — memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c`.
+- `signals/` — `signal_handler.c`, `signal_utils.c` (defines `g_signum`, `set_signals_*`, `readline_event_hook`).
+- `tokenizer/` — lexer and expansion: `tokenizer.c`, `tokenizer_handlers.c`, `tokenizer_ops.c`, `tokenizer_quotes.c`, `tokenizer_utils.c`, `tokenizer_utils2.c`, `continuation.c`, `expansion.c`, `expansion_utils.c`.
+- `parser/` — parsing and heredoc: `parser.c`, `parser_syntax_check.c`, `add_token_to_cmd.c`, `argv_build.c`, `heredoc.c`, `heredoc_utils.c`.
+- `executor/` — execution engine: `executor.c`, `executor_utils.c`, `executor_external.c`, `executor_child.c`, `executor_pipeline.c`.
+- `builtins/` — builtin implementations: `builtin_dispatcher.c`, `echo.c`, `cd.c`, `pwd.c`, `env.c`, `export.c`, `export_utils.c`, `export_print.c`, `unset.c`, `exit.c`.
+
+Updated architecture diagram (reflects current filenames and organization):
 
 ```mermaid
 graph TB
     subgraph Entry
         main[main.c]
     end
-    subgraph core
+    subgraph Core
         init[core/init.c]
     end
-    subgraph utils
+    subgraph Utils
         utils_file[utils/utils.c]
     end
-    subgraph free
+    subgraph Free
         free_utils[free/free_utils.c]
         free_runtime[free/free_runtime.c]
         free_shell[free/free_shell.c]
@@ -78,15 +80,15 @@ graph TB
         sig_utils[signals/signal_utils.c]
     end
     subgraph Tokenizer
-        tok[tokenizer.c]
+        tokenizer[tokenizer.c]
+        tok_handlers[tokenizer_handlers.c]
+        tok_ops[tokenizer_ops.c]
+        tok_quotes[tokenizer_quotes.c]
         tok_utils[tokenizer_utils.c]
         tok_utils2[tokenizer_utils2.c]
-        tok_ops[tokenizer_ops.c]
-        tok_handlers[tokenizer_handlers.c]
-        tok_quotes[tokenizer_quotes.c]
+        continuation[continuation.c]
         expansion[expansion.c]
         expansion_utils[expansion_utils.c]
-        continuation[continuation.c]
     end
     subgraph Parser
         parser[parser.c]
@@ -100,8 +102,8 @@ graph TB
         exec[executor.c]
         exec_utils[executor_utils.c]
         exec_external[executor_external.c]
-        exec_pipeline[executor_pipeline.c]
         exec_child[executor_child.c]
+        exec_pipeline[executor_pipeline.c]
     end
     subgraph Builtins
         dispatcher[builtin_dispatcher.c]
@@ -117,10 +119,10 @@ graph TB
     end
     main --> init
     main --> utils_file
-    main --> tok
+    main --> tokenizer
     main --> parser
     main --> exec
-    tok --> parser
+    tokenizer --> parser
     parser --> exec
     exec --> dispatcher
     exec --> exec_utils
