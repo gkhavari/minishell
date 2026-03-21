@@ -34,7 +34,7 @@ Both logs: branch **`lastshell`**, job **“Valgrind on Ubuntu (mandatory tests)
 | **LEAKING** | 0 |
 | **Failed criteria** | STD_OUT **3**, STD_ERR **11**, EXIT_CODE **1** → **15** ❌ (tester counts per check, not per block) |
 
-**Takeaway for next work:** Treat **932 / 944** and the table below as the current target; fixing any row may not change totals until all criteria for that block pass.
+**Takeaway for next work:** Treat **932 / 944** as the CI baseline. Session 2026-03-21 applied fixes — push `lastshell` and wait for new CI run to confirm updated numbers.
 
 **Failing lines (mandatory, same list under Valgrind — leaks still ✅):**
 
@@ -88,6 +88,18 @@ Use this when a test fails on **EXIT_CODE** or when `$?` is wrong.
    - After `shell_loop`, **`return (shell.last_exit)`** — so the **last** `last_exit` from the loop (often last line or syntax break) is the minishell **process** exit code (what the tester compares).
 
 **There is no single global “errno chain”** — errors are: **stderr messages** + **int return** from functions + **`shell->last_exit`** + occasional **`exit()`** from `builtin_exit` / `init_shell` / `msh_calloc` failure.
+
+---
+
+## Session 2026-03-21 — Targeted fixes
+
+| Fix | File | Root cause | Expected CI improvement |
+|-----|------|-----------|------------------------|
+| `env` with args → external cmd | `argv_build.c` | `env -i ./minishell` was treated as our `env` builtin (which rejects args), instead of calling real `/usr/bin/env`. | Fixes `9_go_wild.sh:46` (STDOUT+STDERR) and `9_go_wild.sh:52` (STDOUT+STDERR) — 4 criteria. |
+| Fork error message in pipeline | `executor_pipeline.c` | When `fork()` fails in a huge pipeline, bash prints "fork: Resource temporarily unavailable" to stderr, but minishell was silent. | Might fix `1_pipelines.sh:4` and `1_pipelines.sh:6` (STDERR) — 2 criteria. |
+| PATH fallback includes `.` + `is_regular_file` | `executor_external.c` | When PATH is unset (had_path=true), bash searches a default path that includes `.` (current dir), finding non-executable files (→ 126). Minishell's fallback lacked `.` and required X_OK → gave 127 instead of 126. | Fixes `2_path_check.sh:47` (STDOUT) — 1 criterion. |
+
+Local result after fixes: 883/944 passed (was 879/944), 91 criterion failures (was 98).
 
 ---
 
