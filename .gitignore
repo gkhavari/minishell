@@ -55,3 +55,18 @@ outfiles/
 minishellv*.pdf
 _codeql_detected_source_root
 .claude
+
+# Local-only AI assistant guidance (not committed)
+AGENT.md
+CLAUDE.md
+node_modules
+.venv
+venv
+target
+bin
+obj
+build
+.gradle
+__pycache__
+*.pem
+*.key
