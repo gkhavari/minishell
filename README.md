@@ -205,3 +205,24 @@ minishell/
 ## License
 
 This project is part of the 42 curriculum. Check your campus rules for reuse and attribution.
+
+## Dev Container (Docker)
+
+- This repository now contains a ready-to-use VS Code Dev Container based on the 42 Docker DevEnv. The `.devcontainer` directory was added from https://github.com/LeaYeh/42-Docker-DevEnv and includes a `Dockerfile` and `devcontainer.json` that install common 42 tooling (compilers, valgrind, readline, norminette, etc.).
+- Prerequisites: Docker Desktop and the VS Code extensions **Remote - Containers** and **Dev Containers**.
+- To open the project in the container from VS Code: open the Command Palette and choose `Dev Containers: Reopen in Container` (or `Remote-Containers: Reopen in Container`).
+- If you prefer to (re)download the upstream devcontainer files, run:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/LeaYeh/42-Docker-DevEnv/main/install.sh)"
+```
+
+- To build the container manually (first time) you can run the helper from the upstream repo:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/LeaYeh/42-Docker-DevEnv/main/run.sh)"
+```
+
+- Once the container is running, your workspace will be mounted into the container at `/app` and you can build and run the project as on Linux (for example, `make`, `make debug`, `./minishell`, and the tester scripts).
+
+If you want a lighter-weight devcontainer instead of the full 42 image, tell me and I can create a minimal `Dockerfile` that only installs the packages needed by this project.
