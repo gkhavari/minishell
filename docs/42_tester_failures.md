@@ -75,6 +75,18 @@ Remaining mandatory hotspots (latest):
 
 `vm` is currently reduced to one mismatch (`1_pipelines.sh:180`) with `LEAKING: 0`.
 
+### Update — post-rollback & branch push (2026-03-28)
+
+- Created and pushed branch `fixvm` (from commit `c6eb10f`) to `origin` for Ubuntu/CI verification.
+- Reset local `lastshell` to `c6eb10f`, rebuilt, and ran the tester in `vm` mode; the run output is saved as `/workspaces/minishell/tester_vm.log`.
+- Per-test Valgrind outputs for this run are under `mstest_output_2026-03-28_23.06.06/`.
+- VM-run findings: majority of tests passed, but a focused set reported `LEAKS: ❌` (still-reachable blocks rather than `definitely lost`):
+   - `mand/11_expansion.sh:5`
+   - several `mand/10_parsing_hell.sh` indices (approx. 282, 284, 286)
+   - a few `1_builtins_env.sh` and `1_builtins_export.sh` indices
+- Preliminary Valgrind stack traces point to allocations in `ft_strdup` → `new_token` → tokenizer routines and some `init_shell` allocations. These are earmarked for triage (freeing token structures or adjusting init allocations).
+- Next steps: triage the tokenizer/expansion traces, apply minimal fixes, rebuild and re-run `tester.sh vm`. The `fixvm` branch is available for remote CI runs.
+
 ### Slice 2 (2026-03-28) — pipeline scheduling/output-order hardening
 
 Goal: reduce nondeterministic stderr ordering noise in huge all-not-found
