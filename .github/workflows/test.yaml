@@ -1,0 +1,170 @@
+# .github/workflows/test.yaml
+name: Test Workflow
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+env:
+  HOME: /home/runner
+  # Allow overriding the tester repository via repository secret `TESTER_REPO`.
+  # Default points to LeaYeh's tester; set a repo secret to use your own tester fork.
+  TESTER_REPO: https://github.com/LeaYeh/42_minishell_tester.git
+  TESTER_DIR: /home/runner/42_minishell_tester
+  SCRIPTS_DIR: /home/runner/scripts
+
+jobs:
+  compilation_test:
+    name: Compilation Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang, clang-12]
+    steps:
+      - name: Checkout source branch of pull request
+        uses: actions/checkout@v4
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+      - name: 🔨 Compile with Makefile
+        run: make CC="${{ matrix.compiler }}"
+
+  combine_compilation_test_results:
+    name: Combine Compilation Test Results
+    needs: compilation_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Combine compilation test results
+        run: echo "All compilation tests finished"
+
+  prepare_test_matrix:
+    name: Prepare Test Matrix
+    needs: compilation_test
+    runs-on: ubuntu-latest
+    outputs:
+      test_matrix: ${{ steps.prep_matrix.outputs.TEST_MATRIX }}
+    steps:
+      - name: Clone tester repository
+        run: |
+          git clone "${{ secrets.TESTER_REPO != '' && secrets.TESTER_REPO || env.TESTER_REPO }}" "${{ env.TESTER_DIR }}"
+      - name: Prepare matrix
+        id: prep_matrix
+        run: |
+          FILES=$(find ${{ env.TESTER_DIR }}/cmds/**/*.sh \
+          -exec basename {} \; | jq -R -s -c 'split("\n")[:-1]')
+          echo "TEST_MATRIX=${FILES}" >> "$GITHUB_OUTPUT"
+
+  memory_leak_test:
+    name: Memory Leak Test
+    needs: prepare_test_matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        test_script: ${{ fromJson(needs.prepare_test_matrix.outputs.test_matrix) }}
+    env:
+      TESTER_OUTPUT_DIR: /home/runner/tester_output
+      LOG_FILE: /home/runner/leak_test.log
+    steps:
+      - name: Checkout source branch of pull request
+        uses: actions/checkout@v4
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+        with:
+          tester_dir: ${{ env.TESTER_DIR }}
+          scripts_dir: ${{ env.SCRIPTS_DIR }}
+      - name: Delete all but one test script
+        run: |
+          for file in ${{ env.TESTER_DIR }}/cmds/**/*.sh; do
+            if [[ "$(basename "$file")" != "${{ matrix.test_script }}" ]]; then
+              rm "$file"
+            fi
+          done
+      - name: 💧 Check for memory leaks
+        run: |
+          make re CC=clang-12
+          ${{ env.TESTER_DIR }}/tester.sh --no-update va > ${{ env.LOG_FILE }}
+        env:
+          GH_BRANCH: IGNORE
+        continue-on-error: true
+      - name: Save tester output
+        run: mv -f mstest_output* ${{ env.TESTER_OUTPUT_DIR }} || true
+      - name: 📝 Print all test cases that leaked on source branch
+        run: ${{ env.SCRIPTS_DIR }}/print_failed_test_cases.sh -v
+
+  combine_memory_leak_test_results:
+    name: Combine Memory Leak Test Results
+    needs: memory_leak_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Combine memory leak test results
+        run: echo "All memory leak tests finished"
+
+  crash_test:
+    name: Crash Test
+    needs: compilation_test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        test_mode: [a, a --no-env]
+    env:
+      TESTER_OUTPUT_DIR: /home/runner/tester_output
+      LOG_FILE: /home/runner/crash_test.log
+    steps:
+      - name: Checkout source branch of pull request
+        uses: actions/checkout@v4
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+        with:
+          tester_dir: ${{ env.TESTER_DIR }}
+          scripts_dir: ${{ env.SCRIPTS_DIR }}
+      - name: 💥 Check for crashes
+        run: |
+          make re CC=clang-12
+          ${{ env.TESTER_DIR }}/tester.sh --no-update ${{ matrix.test_mode }} > ${{ env.LOG_FILE }}
+        env:
+          GH_BRANCH: IGNORE
+        continue-on-error: true
+      - name: Save tester output
+        run: mv -f mstest_output* ${{ env.TESTER_OUTPUT_DIR }} || true
+      - name: 📝 Print all test cases that crashed on source branch
+        run: ${{ env.SCRIPTS_DIR }}/print_failed_test_cases.sh -c
+
+  combine_crash_test_results:
+    name: Combine Crash Test Results
+    needs: crash_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Combine crash test results
+        run: echo "All crash tests finished"
+
+  regression_test:
+    name: Regression Test
+    needs: compilation_test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test_mode: m
+            test_name: Mandatory Part
+          - test_mode: b
+            test_name: Bonus Part
+          - test_mode: ne
+            test_name: Empty Env
+    uses: ./.github/workflows/regression_test.yaml
+    with:
+      test_mode: ${{ matrix.test_mode }}
+      test_name: ${{ matrix.test_name }}
+
+  combine_regression_test_results:
+    name: Combine Regression Test Results
+    needs: regression_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Combine regression test results
+        run: echo "All regression tests finished"
