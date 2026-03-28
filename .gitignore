@@ -17,7 +17,7 @@ libft/libft.a
 
 # Test artifacts
 tester_output/
-
+mstest_*
 # Misc
 .cache
 tags
