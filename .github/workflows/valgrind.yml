@@ -2,20 +2,18 @@ name: CI - Valgrind Leak & Crash Check
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 permissions:
   contents: read
 
 env:
   # 42_minishell_tester expects MINISHELL_PATH = directory containing minishell binary.
-  # We use the cozyGarage fork (can be updated with subject-aligned tests).
+  # Use LeaYeh's canonical tester repository for CI runs.
   MINISHELL_PATH: ${{ github.workspace }}
-  MINISHELL_TESTER_REPO: https://github.com/cozyGarage/42_minishell_tester.git
+  MINISHELL_TESTER_REPO: https://github.com/LeaYeh/42_minishell_tester.git
 
 jobs:
   valgrind:
