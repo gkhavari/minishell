@@ -1,0 +1,14 @@
+# .github/actions/norminette/action.yaml
+name: Norminette Test Action
+description: Norminette test action
+runs:
+  using: composite
+  steps:
+    - name: Install norminette
+      run: |
+        python3 -m pip install --upgrade pip setuptools
+        python3 -m pip install norminette
+      shell: bash
+    - name: Check norminette
+      run: norminette -R CheckForbiddenSourceHeader -R CheckDefine
+      shell: bash

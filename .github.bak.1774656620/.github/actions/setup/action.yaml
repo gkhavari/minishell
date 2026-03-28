@@ -1,0 +1,43 @@
+# .github/actions/setup/action.yaml
+name: Set Up Test Environment Action
+description: Setup action
+
+inputs:
+  tester_dir:
+    description: Directory where the tester will be installed to
+    required: false
+  scripts_dir:
+    description: Directory where the scripts for analyzing the test results will be copied to
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential valgrind libreadline-dev
+      shell: bash
+    - run: |
+        echo "deb http://archive.ubuntu.com/ubuntu/ jammy main universe" | sudo tee /etc/apt/sources.list.d/jammy-repositories.list
+        sudo apt-get update
+        sudo apt-get install -y clang-12=1:12.0.1-19ubuntu3
+      shell: bash
+    - run: |
+        echo "Iy" | bash -c 'bash <(curl -s https://raw.githubusercontent.com/tmatis/funcheck/main/scripts/install.sh)'
+      shell: bash
+    - run: bash --version
+      shell: bash
+    - run: valgrind --version
+      shell: bash
+    - run: env --list-signal-handling bash
+      shell: bash
+    - if: inputs.tester_dir
+      run: |
+        git clone https://github.com/LeaYeh/42_minishell_tester.git ${{ inputs.tester_dir }}
+        chmod +x ${{ inputs.tester_dir }}/tester.sh
+      shell: bash
+    - if: inputs.scripts_dir
+      run: |
+        find .github/scripts -type f -name "*.sh" -exec chmod +x {} \;
+        cp -r .github/scripts ${{ inputs.scripts_dir }}
+      shell: bash

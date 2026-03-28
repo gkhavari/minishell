@@ -1,0 +1,18 @@
+services:
+  run-container:
+    container_name: 42-Docker-DevEnv
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USER: ${USER}
+    volumes:
+      - .:/app
+      - ${HOME}/.ssh:/root/.ssh:cached
+      - ${HOME}/.gitconfig:/root/.gitconfig:cached
+      - ${HOME}/.zshrc:/root/.zshrc:cached
+    environment:
+      - USER=${USER}
+    working_dir: /app
+    stdin_open: true
+    tty: true

@@ -46,6 +46,8 @@ minishell_tester/
 # Generated test report
 test_report.md
 
+.env
+
 # Test outfiles
 outfile*
 outfiles/
