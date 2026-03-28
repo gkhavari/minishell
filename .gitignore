@@ -23,3 +23,9 @@ tester_output/
 tags
 
 
+AGENT.md
+CLAUDE.md
+.env
+logs/
+.claude
+minishellv10.pdf
