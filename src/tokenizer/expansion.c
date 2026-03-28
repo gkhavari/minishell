@@ -175,11 +175,20 @@ RETURN VALUE:
 int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 {
 	char	*expanded;
+	size_t	start;
 
 	if (shell->input[*i] != '$')
 		return (0);
+	start = *i;
 	expanded = expand_var(shell, i);
-	append_expansion_unquoted(shell, word, expanded, &shell->tokens);
+	if (expanded[0] == '\0' && handle_empty_unquoted_expansion(shell,
+			start, *i, word))
+	{
+		free(expanded);
+		return (1);
+	}
+	else
+		append_expansion_unquoted(shell, word, expanded, &shell->tokens);
 	free(expanded);
 	return (1);
 }

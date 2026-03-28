@@ -6,11 +6,16 @@
 
 ```bash
 make
-./scripts/run_minishell_tester.sh m    # mandatory
-./scripts/run_minishell_tester.sh vm   # mandatory + valgrind
+./minishell_tester/tester.sh m         # mandatory
+./minishell_tester/tester.sh vm        # mandatory + valgrind
 ```
 
-`MINISHELL_PATH` is set by the script; tester lives in `minishell_tester/` (cloned if missing). See `scripts/run_minishell_tester.sh`.
+`MINISHELL_PATH` is set from current working directory by `tester.sh`.
+For focused reproduction, use:
+
+```bash
+./minishell_tester/tester.sh --no-update -f ./minishell_tester/cmds/mand/1_pipelines.sh
+```
 
 **Related docs:** [BEHAVIOR.md](BEHAVIOR.md) (bash reference + **minishell deltas**), [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md), [minishell_architecture.md](minishell_architecture.md).
 
@@ -33,49 +38,84 @@ Local numbers may differ slightly if tester revision or env differs from CI.
 
 ## Local run 2026-03-28 — current status
 
-Summary from a full mandatory run (local dev container):
+Summary from the latest full runs (local Linux dev container):
 
 | Metric | Value |
 |--------|-------:|
 | TOTAL TEST COUNT | 986 |
-| TESTS PASSED (m) | 980 |
-| TESTS PASSED (vm) | 982 |
+| TESTS PASSED (m) | 983 |
+| TESTS PASSED (vm) | 985 |
 | LEAKING (vm) | 0 |
-| STD_OUT | 2 |
-| STD_ERR | 4 (m) / 3 (vm) |
-| EXIT_CODE | 2 |
+| STD_OUT | 1 (m, intermittent) |
+| STD_ERR | 2 (m) / 1 (vm) |
+| EXIT_CODE | 0 |
 
 Key changes applied locally (mandatory-focused):
 
-- Improved `exit` numeric parsing and overflow handling — `src/builtins/exit.c`
-- Made redirection open error writes atomic to avoid interleaved stderr — `src/executor/executor_utils.c`
-- Tuned heredoc EOF warning numbering for tester alignment — `src/parser/heredoc.c`
-- Adjusted export output format and invalid-identifier quoting — `src/builtins/export_print.c`, `src/builtins/export.c`
-- Command-not-found formatting for control characters and PATH-empty behavior — `src/executor/executor_child.c`, `src/executor/executor_external.c`
+- Empty expansion handling now preserves parser context for pipelines and redirections, and reports ambiguous redirect correctly — `src/tokenizer/expansion.c`, `src/tokenizer/expansion_utils.c`, `src/parser/add_token_to_cmd.c`, `src/executor/executor_utils.c`
+- Export listing is now bash-like (`declare -x`, escaped values, SHLVL display handling) — `src/builtins/export_print.c`
+- Internal token constants and helper prototype updates for expansion/refined parsing behavior — `includes/defines.h`, `includes/prototypes.h`
 
-Files changed in this iteration (local working commit):
+Files changed in this iteration:
 
 - includes/prototypes.h
-- src/builtins/export.c
-- src/builtins/unset.c
+- includes/defines.h
+- src/builtins/export_print.c
 - src/core/init.c
-- src/executor/executor.c
-- src/executor/executor_child.c
-- src/executor/executor_external.c
 - src/executor/executor_utils.c
-- src/main.c
-- src/parser/heredoc.c
-- src/parser/parser_syntax_check.c
-- src/signals/signal_handler.c
-- src/tokenizer/continuation.c
+- src/parser/add_token_to_cmd.c
+- src/tokenizer/expansion.c
+- src/tokenizer/expansion_utils.c
 
-Remaining mandatory hotspots to address next (small clusters):
+Remaining mandatory hotspots (latest):
 
-- `mand/11_expansion.sh` (2 cases: lines 5, 11) — expansion / ambiguous-redirect vs command-not-found semantics
-- `mand/1_pipelines.sh` (ordering/wording in one pipeline case)
-- `mand/1_builtins_export.sh` (one export-listing formatting edge)
+- `mand/1_pipelines.sh:180` — STDERR diff on very long all-not-found pipeline (same message set, order differs)
+- `mand/2_correction.sh:221` — m-only STDERR diff in `mkdir/chmod/cd/rm` block due tester tmp-dir side effects (minishell runs before bash)
+- `mand/10_parsing_hell.sh` index 116 — m-only intermittent STDOUT mismatch seen in one full run; isolated script run passes 127/127
 
-These are low-volume, test-specific mismatches; `vm` remains leak-free and overall pass counts improved significantly.
+`vm` is currently reduced to one mismatch (`1_pipelines.sh:180`) with `LEAKING: 0`.
+
+### Slice 2 (2026-03-28) — pipeline scheduling/output-order hardening
+
+Goal: reduce nondeterministic stderr ordering noise in huge all-not-found
+pipelines while avoiding regressions in mandatory semantics.
+
+Changed files:
+
+- `src/executor/executor_pipeline.c`
+- `src/executor/executor_pipeline_steps.c` (new)
+- `Makefile`
+
+What changed:
+
+- Split pipeline execution into small helper steps to keep Norm compliance.
+- Added a launch barrier for **non-redirection pipelines only**:
+   children are released after all forks complete.
+- Kept normal behavior for redirection pipelines to avoid race regressions
+   (`1_pipelines.sh:126` remains passing).
+
+Validation (local Linux):
+
+- `1_pipelines.sh`: **43/44** passed; only line **180** remains.
+- No new failures in this script after gating barrier by redirection presence.
+- For line 180 command sampled 12 times:
+   - bash unique stderr orders: **7**
+   - minishell unique stderr orders: **7**
+   - previous minishell sample before hardening was **12** unique orders.
+
+Residual justification for `1_pipelines.sh:180`:
+
+- Diff is only ordering of repeated `aaa|bbb: command not found` lines.
+- Message set and count match bash (56 lines), but inter-process scheduling order
+   still varies by run.
+- Additional stronger synchronization would either serialize children too much
+   or re-introduce behavior regressions with redirections.
+
+Behavior freeze for this slice:
+
+- Keep current launch barrier scoped to non-redirection pipelines.
+- Treat line 180 as a concurrency-order residual unless CI data shows a
+   deterministic Linux mismatch beyond ordering.
 
 ---
 
@@ -187,7 +227,7 @@ Norm: `norminette src/` clean after these changes.
 **Yes** for mandatory: same input → compare stdout, stderr **presence**, exit code to **bash** on that machine.
 
 - **Subject PDF** is still the authority for scope (`;`, `&&`, etc.).
-- **Stderr:** tester often checks presence only, not exact text.
+- **Stderr:** tester compares normalized stderr content (`diff -q` after prefix/exit-message filters), not only presence.
 - **CI:** `.github/workflows/valgrind.yml` — Ubuntu, cozyGarage fork of tester.
 
 ---

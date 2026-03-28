@@ -12,6 +12,52 @@
 
 #include "minishell.h"
 
+static int	is_word_boundary(char c)
+{
+	if (c == '\0' || c == ' ' || c == '\t')
+		return (1);
+	return (is_op_char(c));
+}
+
+static int	is_redir_target(t_shell *shell, char *word)
+{
+	t_token	*last;
+
+	if (word)
+		return (0);
+	last = shell->tokens;
+	while (last && last->next)
+		last = last->next;
+	if (!last)
+		return (0);
+	return (last->type == REDIR_IN || last->type == REDIR_OUT
+		|| last->type == APPEND || last->type == HEREDOC
+		|| last->type == REDIR_ERR_OUT);
+}
+
+int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
+		size_t end, char **word)
+{
+	char	*raw;
+	char	*value;
+
+	if (*word || !is_word_boundary(shell->input[end]))
+		return (0);
+	if (!is_redir_target(shell, *word))
+		return (add_token(&shell->tokens,
+				new_token(shell, WORD, MSH_EMPTY_EXPAND_TOKEN)), 1);
+	raw = ft_strndup(shell->input + start, end - start);
+	if (!raw)
+		return (1);
+	value = ft_strjoin(MSH_AMBIG_REDIR_PREFIX, raw);
+	free(raw);
+	if (!value)
+		return (1);
+	add_token(&shell->tokens, new_token(shell, WORD, value));
+	free(value);
+	return (1);
+}
+
 /**
  DESCRIPTION:
 * Appends a string exp to an existing word buffer *word

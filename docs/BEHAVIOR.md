@@ -2,7 +2,7 @@
 
 This document defines **expected behavior** for minishell: what output and exit code the shell must produce for given inputs. It serves as (1) a **behavior specification** for the program and (2) a **guide for designing tests** for those cases.
 
-**Primary reference:** **[42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester)** (cozyGarage fork) — same input as **bash**, compare stdout (`diff -q`), stderr **presence**, and exit code.
+**Primary reference:** **[42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester)** (cozyGarage fork) — same input as **bash**, compare stdout (`diff -q`), normalized stderr (`diff -q` after tester filters), and exit code.
 
 **Run mandatory tests from repo root:**
 
@@ -24,8 +24,9 @@ For architecture and data structures, see [minishell_architecture.md](minishell_
 
 - Reads test **blocks** from scripts under `cmds/mand/` (e.g. `1_builtins.sh`, `8_syntax_errors.sh`). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
 - For each block: sends the same input to **minishell** and to **bash** (with `enable -n .` prepended so bash runs the test as the last command).
-- **Pass** requires: stdout identical (`diff -q`), stderr **presence** same (both have stderr or both don’t), exit code identical.
+- **Pass** requires: stdout identical (`diff -q`), normalized stderr identical (`diff -q`), and exit code identical.
 - **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** (not readline) for non-TTY stdin — one logical line per tester block.
+- The tester runs minishell first, then bash, in the same temporary test directory for each block. Blocks with filesystem side effects can expose order-sensitive differences.
 
 So “expected behavior” here is **bash-like** unless the **subject** or **documented deltas** say otherwise. The tables summarize bash-oriented expectations and point to the 42 script(s) that cover them.
 
@@ -174,6 +175,17 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 **Test-design note:** Pipeline exit = **last** command’s exit code. Builtins in the middle (e.g. `cd`) run in subshell; parent env unchanged.
 
 **SIGPIPE / Linux CI:** On many Linux runners (e.g. systemd), **SIGPIPE is ignored** in the parent. **Bash** does not reset it to default for pipeline children; they **inherit SIG_IGN**. Then **GNU** tools such as `ls` / `yes` may write **“write error: Broken pipe”** (or similar) to **stderr** when the pipe breaks. This shell **inherits the same rule** so mandatory **stderr presence** matches bash on Ubuntu. On macOS, the parent often has SIGPIPE **default**, so local stderr may differ from CI — **trust Linux** for tester alignment. See [42_tester_failures.md](42_tester_failures.md) and [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md).
+
+**Current local residual (Linux):** one stubborn long-pipeline case (`1_pipelines.sh:180`) can differ only by ordering of repeated `command not found` lines across many concurrent children.
+
+**Scheduling hardening note (2026-03-28):** pipeline launch now uses a
+light barrier for **non-redirection** pipelines so children start after all
+forks are prepared, which reduced stderr-order variance in the huge
+all-not-found case. The barrier is intentionally disabled when pipeline
+commands include file redirections to avoid races like `cat out1: No such file`
+that can appear if consumers run before producers create redirection targets.
+
+**Current m-only unstable case:** `2_correction.sh:221` can differ because `mkdir/chmod/cd/rm` side effects in the shared tmp-dir run order produce a bash/minishell stderr delta even when core behavior is otherwise aligned.
 
 See `1_pipelines.sh`.
 

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/13 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/28 15:43:17 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,8 @@ char		*expand_var(t_shell *shell, size_t *i);
 void		append_expansion_quoted(char **word, const char *exp);
 void		append_expansion_unquoted(t_shell *shell, char **word,
 				const char *exp, t_token **tokens);
+int			handle_empty_unquoted_expansion(t_shell *shell, size_t start,
+				size_t end, char **word);
 
 /* continuation.c */
 int			append_continuation(t_shell *shell, char **s, t_state state);

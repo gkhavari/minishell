@@ -49,7 +49,16 @@ static void	print_redir_error(char *file, int err)
 static int	apply_one_redir(t_redir *r, int *had_input)
 {
 	int	fd;
+	size_t	prefix_len;
 
+	prefix_len = ft_strlen(MSH_AMBIG_REDIR_PREFIX);
+	if (r->file && ft_strncmp(r->file, MSH_AMBIG_REDIR_PREFIX,
+			prefix_len) == 0)
+	{
+		ft_putstr_fd(r->file + prefix_len, 2);
+		ft_putstr_fd(": ambiguous redirect\n", 2);
+		return (1);
+	}
 	if (r->fd == STDIN_FILENO)
 	{
 		fd = open(r->file, O_RDONLY);

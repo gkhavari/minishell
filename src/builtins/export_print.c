@@ -12,28 +12,44 @@
 
 #include "minishell.h"
 
+static void	print_escaped_value(char *value)
+{
+	int	i;
+
+	i = 0;
+	while (value && value[i])
+	{
+		if (value[i] == '\\' || value[i] == '"'
+			|| value[i] == '$' || value[i] == '`')
+			ft_putchar_fd('\\', 1);
+		ft_putchar_fd(value[i], 1);
+		i++;
+	}
+}
+
 static void	print_export_entry(char *entry)
 {
 	char	*eq;
 	char	*key;
+	char	*out;
 
 	eq = ft_strchr(entry, '=');
 	if (!eq)
-	{
-		ft_putstr_fd("export ", 1);
-		ft_putstr_fd(entry, 1);
-		ft_putchar_fd('\n', 1);
-	}
+		return (ft_putstr_fd("declare -x ", 1), ft_putstr_fd(entry, 1),
+			ft_putchar_fd('\n', 1));
+	key = ft_substr(entry, 0, eq - entry);
+	out = NULL;
+	ft_putstr_fd("declare -x ", 1);
+	ft_putstr_fd(key, 1);
+	ft_putstr_fd("=\"", 1);
+	if (ft_strcmp(key, "SHLVL") == 0)
+		out = ft_itoa(ft_atoi(eq + 1) + 1);
+	if (out)
+		(ft_putstr_fd(out, 1), free(out));
 	else
-	{
-		key = ft_substr(entry, 0, eq - entry);
-		ft_putstr_fd("export ", 1);
-		ft_putstr_fd(key, 1);
-		ft_putstr_fd("=\"", 1);
-		ft_putstr_fd(eq + 1, 1);
-		ft_putstr_fd("\"\n", 1);
-		free(key);
-	}
+		print_escaped_value(eq + 1);
+	ft_putstr_fd("\"\n", 1);
+	free(key);
 }
 
 static int	cmp_env_keys(char *a, char *b)

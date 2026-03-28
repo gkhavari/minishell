@@ -12,6 +12,13 @@
 
 #include "minishell.h"
 
+static int	is_empty_expand_token(char *value)
+{
+	if (!value)
+		return (0);
+	return (ft_strcmp(value, MSH_EMPTY_EXPAND_TOKEN) == 0);
+}
+
 /*
 ** handle_heredoc_token - Store heredoc delimiter from the next token
 ** Frees any previous delimiter (handles multiple heredocs per command).
@@ -85,6 +92,8 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
 	if (token->type == WORD)
 	{
+		if (is_empty_expand_token(token->value))
+			return (1);
 		add_word_to_cmd(shell, cmd, token->value);
 		return (1);
 	}
