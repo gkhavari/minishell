@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/28 01:46:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,8 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	if (pid == 0)
 	{
 		set_signals_default();
+		if (apply_redirections(cmd) != 0)
+			exit_child(shell, 1);
 		execute_in_child(cmd, shell);
 	}
 	set_signals_ignore();

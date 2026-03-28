@@ -105,7 +105,7 @@ int	syntax_check(t_token *token)
 */
 int	syntax_error(const char *msg)
 {
-	ft_putstr_fd("minishell: syntax error near unexpected token '", 2);
+	ft_putstr_fd("minishell: syntax error near unexpected token `", 2);
 	ft_putstr_fd((char *)msg, 2);
 	ft_putstr_fd("'\n", 2);
 	return (SYNTAX_ERR);

@@ -27,6 +27,7 @@ SRCS		=	$(SRC_DIR)/main.c
 
 # core
 SRCS		+=	$(SRC_DIR)/core/init.c
+SRCS		+=	$(SRC_DIR)/core/frontend.c
 
 # utils
 SRCS		+=	$(SRC_DIR)/utils/utils.c

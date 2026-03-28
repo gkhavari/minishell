@@ -71,6 +71,17 @@ static int	backup_fds(int *in, int *out)
 	return (0);
 }
 
+static int	must_run_builtin_in_parent(t_command *cmd)
+{
+	t_builtin	type;
+
+	type = get_builtin_type(cmd->argv[0]);
+	if (type == BUILTIN_CD || type == BUILTIN_EXPORT
+		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT)
+		return (1);
+	return (0);
+}
+
 /*
 ** execute_single_command - Run a single command (no pipeline)
 ** Builtins run in the parent process (so cd/export/unset/exit work).
@@ -82,24 +93,42 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 	int	stdin_backup;
 	int	stdout_backup;
 	int	status;
+	int	need_restore;
 
-	if (backup_fds(&stdin_backup, &stdout_backup))
-		return (1);
-	if (apply_redirections(cmd))
-	{
-		restore_fds(stdin_backup, stdout_backup);
-		return (1);
-	}
 	if (!cmd->argv || !cmd->argv[0])
 	{
-		restore_fds(stdin_backup, stdout_backup);
+		need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+		if (need_restore && backup_fds(&stdin_backup, &stdout_backup))
+			return (1);
+		if (need_restore && apply_redirections(cmd))
+		{
+			restore_fds(stdin_backup, stdout_backup);
+			return (1);
+		}
+		if (need_restore)
+			restore_fds(stdin_backup, stdout_backup);
 		return (0);
 	}
 	if (cmd->is_builtin)
+	{
+		if (!must_run_builtin_in_parent(cmd)
+			&& (cmd->redirs != NULL || cmd->heredoc_fd != -1))
+			return (execute_external(cmd, shell));
+		need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+		if (need_restore && backup_fds(&stdin_backup, &stdout_backup))
+			return (1);
+		if (need_restore && apply_redirections(cmd))
+		{
+			restore_fds(stdin_backup, stdout_backup);
+			return (1);
+		}
 		status = execute_builtin(cmd, shell);
+		if (need_restore)
+			restore_fds(stdin_backup, stdout_backup);
+		return (status);
+	}
 	else
 		status = execute_external(cmd, shell);
-	restore_fds(stdin_backup, stdout_backup);
 	return (status);
 }
 

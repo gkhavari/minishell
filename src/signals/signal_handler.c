@@ -31,6 +31,7 @@ int	set_signals_default(void)
 	sa.sa_handler = SIG_DFL;
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGQUIT, &sa, NULL);
+	sigaction(SIGPIPE, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	return (0);
 }

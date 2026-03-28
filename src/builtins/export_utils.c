@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:40 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 20:29:41 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/28 01:46:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,14 +45,17 @@ int	is_valid_export_name(char *name)
 int	find_export_key_index(t_shell *shell, char *key, int key_len)
 {
 	int		i;
-	char	end;
+	int		env_key_len;
 
 	i = 0;
 	while (shell->envp[i])
 	{
-		end = shell->envp[i][key_len];
-		if (ft_strncmp(shell->envp[i], key, key_len) == 0
-			&& (end == '=' || end == '\0'))
+		env_key_len = 0;
+		while (shell->envp[i][env_key_len]
+			&& shell->envp[i][env_key_len] != '=')
+			env_key_len++;
+		if (env_key_len == key_len
+			&& ft_strncmp(shell->envp[i], key, key_len) == 0)
 			return (i);
 		i++;
 	}

@@ -13,25 +13,6 @@
 #include "minishell.h"
 
 /*
-** process_input - Tokenize, parse, process heredocs, execute
-** Runs the full pipeline for one line of user input.
-** Returns early at any stage that fails (syntax error, signal, etc).
-*/
-static void	process_input(t_shell *shell)
-{
-	tokenize_input(shell);
-	parse_input(shell);
-	if (!shell->commands)
-		return ;
-	if (process_heredocs(shell))
-	{
-		shell->last_exit = 130;
-		return ;
-	}
-	shell->last_exit = execute_commands(shell);
-}
-
-/*
 ** read_input - Display prompt and read one line of user input.
 ** Returns 1 on success, 0 on EOF (Ctrl+D), -1 on signal.
 ** When stdin is not a TTY (e.g. tester) uses read_line_stdin.
@@ -106,7 +87,7 @@ static void	shell_loop(t_shell *shell)
 			continue ;
 		syntax_err = 0;
 		if (shell->input[0])
-			process_input(shell);
+			process_frontend(shell);
 		if (!shell->commands && shell->last_exit == 2)
 			syntax_err = 1;
 		reset_shell(shell);

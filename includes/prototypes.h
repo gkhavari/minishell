@@ -17,6 +17,9 @@
 char		*build_prompt(t_shell *shell);
 void		init_shell(t_shell *shell, char **envp);
 
+/* frontend.c */
+void		process_frontend(t_shell *shell);
+
 /* utils.c */
 char		*get_env_value(char **envp, const char *key);
 char		*ft_strcat(char *dest, const char *src);
@@ -120,6 +123,7 @@ char		*find_command_path(char *cmd, t_shell *shell);
 
 /* executor_child.c */
 void		execute_in_child(t_command *cmd, t_shell *shell);
+void		exit_child(t_shell *shell, int status);
 void		free_array(char **arr);
 
 /* executor_pipeline.c */

@@ -13,6 +13,34 @@
 #include "minishell.h"
 
 /*
+** wait_children_last - Wait for n children and return last command status
+** Uses waitpid(-1) and tracks the child PID of the last pipeline command.
+*/
+static int	wait_children_last(pid_t last_pid, int n)
+{
+	int		status;
+	int		last_status;
+	int		i;
+	pid_t	pid;
+
+	last_status = 1;
+	i = 0;
+	while (i < n)
+	{
+		pid = waitpid(-1, &status, 0);
+		if (pid == last_pid)
+		{
+			if (WIFEXITED(status))
+				last_status = WEXITSTATUS(status);
+			else if (WIFSIGNALED(status))
+				last_status = 128 + WTERMSIG(status);
+		}
+		i++;
+	}
+	return (last_status);
+}
+
+/*
 ** setup_child_pipes - In a child process, wire up stdin/stdout to pipes
 ** prev_fd is the read-end of the previous pipe (or -1 for the first cmd).
 ** pipe_fd is the current pipe (write-end goes to stdout for non-last cmds).
@@ -51,7 +79,7 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 		set_signals_default();
 		setup_child_pipes(prev_fd, pipe_fd, cmd->next != NULL);
 		if (apply_redirections(cmd) != 0)
-			exit(1);
+			exit_child(shell, 1);
 		execute_in_child(cmd, shell);
 	}
 	return (pid);
@@ -88,17 +116,21 @@ static int	handle_pipe_step(t_command *cmd, t_shell *shell, int *prev_fd,
 	return (1);
 }
 
-static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
+static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
+		pid_t *last_pid)
 {
 	int	prev_fd;
 	int	i;
+	pid_t	pid;
 
 	prev_fd = -1;
 	i = 0;
+	*last_pid = -1;
 	while (cmd)
 	{
-		if (!handle_pipe_step(cmd, shell, &prev_fd, &pids[i]))
+		if (!handle_pipe_step(cmd, shell, &prev_fd, &pid))
 			break ;
+		*last_pid = pid;
 		cmd = cmd->next;
 		i++;
 	}
@@ -113,18 +145,16 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
 */
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {
-	pid_t	*pids;
+	pid_t	last_pid;
 	int		n;
 	int		result;
 
-	n = count_cmds(cmds);
-	pids = malloc(sizeof(pid_t) * n);
-	if (!pids)
-		return (1);
 	set_signals_ignore();
-	n = run_pipeline_loop(cmds, shell, pids);
-	result = wait_pipeline(pids, n);
-	free(pids);
+	n = run_pipeline_loop(cmds, shell, &last_pid);
+	if (n <= 0)
+		result = 1;
+	else
+		result = wait_children_last(last_pid, n);
 	set_signals_interactive();
 	return (result);
 }

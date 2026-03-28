@@ -25,7 +25,14 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 	{
 		fd = open(r->file, O_RDONLY);
 		if (fd == -1)
-			return (perror("minishell"), 1);
+		{
+			ft_putstr_fd("minishell: ", 2);
+			ft_putstr_fd(r->file, 2);
+			ft_putstr_fd(": ", 2);
+			ft_putstr_fd(strerror(errno), 2);
+			ft_putstr_fd("\n", 2);
+			return (1);
+		}
 		dup2(fd, STDIN_FILENO);
 		close(fd);
 		*had_input = 1;
@@ -37,7 +44,14 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 		else
 			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1)
-			return (perror("minishell"), 1);
+		{
+			ft_putstr_fd("minishell: ", 2);
+			ft_putstr_fd(r->file, 2);
+			ft_putstr_fd(": ", 2);
+			ft_putstr_fd(strerror(errno), 2);
+			ft_putstr_fd("\n", 2);
+			return (1);
+		}
 		dup2(fd, r->fd);
 		close(fd);
 	}
