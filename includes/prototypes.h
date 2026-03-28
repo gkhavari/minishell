@@ -88,7 +88,7 @@ int			syntax_error(const char *msg);
 
 /* heredoc.c */
 int			process_heredocs(t_shell *shell);
-int			read_heredoc(t_command *cmd, t_shell *shell);
+int			read_heredoc(t_command *cmd, t_shell *shell, int *line_no);
 
 /* heredoc_utils.c */
 int			is_quoted_delimiter(char *delim);

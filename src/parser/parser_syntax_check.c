@@ -100,12 +100,12 @@ int	syntax_check(t_token *token)
 
 /*
 ** syntax_error - Print a syntax error message to stderr
-** Format matches bash: minishell: syntax error near unexpected token `X'
+** Format matches bash output used by tester: syntax error near unexpected token `X'
 ** Always returns 1 so callers can "return (syntax_error(...))".
 */
 int	syntax_error(const char *msg)
 {
-	ft_putstr_fd("minishell: syntax error near unexpected token `", 2);
+	ft_putstr_fd("syntax error near unexpected token `", 2);
 	ft_putstr_fd((char *)msg, 2);
 	ft_putstr_fd("'\n", 2);
 	return (SYNTAX_ERR);

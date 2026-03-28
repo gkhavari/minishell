@@ -99,6 +99,8 @@ char	*find_command_path(char *cmd, t_shell *shell)
 		path_env = "/usr/local/bin:/usr/bin:/bin:.";
 	if (!path_env)
 		return (NULL);
+	if (*path_env == '\0')
+		return (ft_strdup(cmd));
 	paths = ft_split(path_env, ':');
 	if (!paths)
 		return (NULL);

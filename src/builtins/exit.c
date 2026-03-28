@@ -12,57 +12,57 @@
 
 #include "minishell.h"
 
-/*
-** is_numeric_str - Check if string is a valid numeric exit argument.
-** Accepts optional single leading sign followed by one or more digits.
-** Returns 1 if valid (including overflow values), 0 otherwise.
-*/
-static int	is_numeric_str(char *str)
+static int	is_space_char(char c)
 {
-	int	i;
-
-	if (!str || !*str)
-		return (0);
-	i = 0;
-	if (str[i] == '-' || str[i] == '+')
-		i++;
-	if (!str[i])
-		return (0);
-	while (str[i])
-	{
-		if (!ft_isdigit(str[i]))
-			return (0);
-		i++;
-	}
-	return (1);
+	return (c == ' ' || (c >= '\t' && c <= '\r'));
 }
 
 /*
-** exit_mod256 - Compute exit code modulo 256 from numeric string.
-** Uses modular arithmetic at each step to avoid overflow entirely.
-** Handles negative values: (-n mod 256) = (256 - (n mod 256)) % 256.
+** parse_exit_value - Parse exit numeric arg like bash.
+** Allows leading/trailing whitespace, optional sign, and rejects overflow.
 */
-static int	exit_mod256(char *str)
+static int	parse_exit_value(char *str, long long *value)
 {
-	unsigned int	val;
-	int				neg;
-	int				i;
+	unsigned long long	acc;
+	unsigned long long	limit;
+	int					i;
+	int					sign;
 
-	val = 0;
-	neg = 0;
+	if (!str)
+		return (0);
 	i = 0;
-	if (str[i] == '-')
-		neg = 1;
-	if (str[i] == '-' || str[i] == '+')
+	while (str[i] && is_space_char(str[i]))
 		i++;
-	while (str[i])
+	sign = 1;
+	if (str[i] == '+' || str[i] == '-')
+		sign = 1 - (2 * (str[i++] == '-'));
+	if (!ft_isdigit(str[i]))
+		return (0);
+	acc = 0;
+	limit = (unsigned long long)LLONG_MAX;
+	if (sign < 0)
+		limit++;
+	while (ft_isdigit(str[i]))
 	{
-		val = (val * 10 + (unsigned int)(str[i] - '0')) % 256;
+		if (acc > (limit - (unsigned long long)(str[i] - '0')) / 10)
+			return (0);
+		acc = (acc * 10) + (unsigned long long)(str[i] - '0');
 		i++;
 	}
-	if (neg && val != 0)
-		return ((int)(256 - val));
-	return ((int)val);
+	while (str[i] && is_space_char(str[i]))
+		i++;
+	if (str[i] != '\0')
+		return (0);
+	if (sign < 0 && acc == (unsigned long long)LLONG_MAX + 1ULL)
+		*value = LLONG_MIN;
+	else
+		*value = (long long)(acc * (unsigned long long)sign);
+	return (1);
+}
+
+static int	exit_mod256(long long value)
+{
+	return ((unsigned char)value);
 }
 
 /*
@@ -82,11 +82,13 @@ static void	clean_exit(t_shell *shell, int code)
 */
 int	builtin_exit(char **args, t_shell *shell)
 {
+	long long	value;
+
 	if (isatty(STDIN_FILENO))
 		ft_putendl_fd("exit", STDERR_FILENO);
 	if (!args[1])
 		clean_exit(shell, shell->last_exit);
-	if (!is_numeric_str(args[1]))
+	if (!parse_exit_value(args[1], &value))
 	{
 		ft_putstr_fd("minishell: exit: ", 2);
 		ft_putstr_fd(args[1], 2);
@@ -98,6 +100,6 @@ int	builtin_exit(char **args, t_shell *shell)
 		ft_putendl_fd("minishell: exit: too many arguments", 2);
 		return (1);
 	}
-	clean_exit(shell, exit_mod256(args[1]));
+	clean_exit(shell, exit_mod256(value));
 	return (0);
 }

@@ -20,14 +20,14 @@ static void	print_export_entry(char *entry)
 	eq = ft_strchr(entry, '=');
 	if (!eq)
 	{
-		ft_putstr_fd("declare -x ", 1);
+		ft_putstr_fd("export ", 1);
 		ft_putstr_fd(entry, 1);
 		ft_putchar_fd('\n', 1);
 	}
 	else
 	{
 		key = ft_substr(entry, 0, eq - entry);
-		ft_putstr_fd("declare -x ", 1);
+		ft_putstr_fd("export ", 1);
 		ft_putstr_fd(key, 1);
 		ft_putstr_fd("=\"", 1);
 		ft_putstr_fd(eq + 1, 1);

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   continuation.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/06 00:40:08 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/06 00:40:10 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/28 03:18:02 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,8 @@ static char	*read_continuation_line(t_shell *shell, char quote_char)
 	return (with_newline);
 }
 
-static void	ensure_trailing_newline(t_shell *shell, char **s, size_t *old_len)
+static void	ensure_trailing_newline(t_shell *shell, 
+		char **s, size_t *old_len)
 {
 	char	*tmp;
 

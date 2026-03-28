@@ -5,12 +5,41 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/13 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/28 03:39:54 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+static void	print_redir_error(char *file, int err)
+{
+	char	*tmp;
+	char	*line;
+
+	tmp = ft_strjoin(file, ": ");
+	if (!tmp)
+	{
+		ft_putstr_fd(file, 2);
+		ft_putstr_fd(": ", 2);
+		ft_putstr_fd(strerror(err), 2);
+		ft_putstr_fd("\n", 2);
+		return ;
+	}
+	line = ft_strjoin(tmp, strerror(err));
+	free(tmp);
+	if (!line)
+	{
+		ft_putstr_fd(file, 2);
+		ft_putstr_fd(": ", 2);
+		ft_putstr_fd(strerror(err), 2);
+		ft_putstr_fd("\n", 2);
+		return ;
+	}
+	write(STDERR_FILENO, line, ft_strlen(line));
+	write(STDERR_FILENO, "\n", 1);
+	free(line);
+}
 
 /*
 ** apply_one_redir - Open one redirection and dup2 to stdin or stdout.
@@ -26,11 +55,7 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 		fd = open(r->file, O_RDONLY);
 		if (fd == -1)
 		{
-			ft_putstr_fd("minishell: ", 2);
-			ft_putstr_fd(r->file, 2);
-			ft_putstr_fd(": ", 2);
-			ft_putstr_fd(strerror(errno), 2);
-			ft_putstr_fd("\n", 2);
+			print_redir_error(r->file, errno);
 			return (1);
 		}
 		dup2(fd, STDIN_FILENO);
@@ -45,11 +70,7 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1)
 		{
-			ft_putstr_fd("minishell: ", 2);
-			ft_putstr_fd(r->file, 2);
-			ft_putstr_fd(": ", 2);
-			ft_putstr_fd(strerror(errno), 2);
-			ft_putstr_fd("\n", 2);
+			print_redir_error(r->file, errno);
 			return (1);
 		}
 		dup2(fd, r->fd);

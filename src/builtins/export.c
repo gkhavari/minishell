@@ -30,7 +30,7 @@ static int	export_no_value(t_shell *shell, char *arg)
 {
 	if (!is_valid_export_name(arg))
 	{
-		ft_putstr_fd("minishell: export: '", 2);
+		ft_putstr_fd("export: `", 2);
 		ft_putstr_fd(arg, 2);
 		ft_putendl_fd("': not a valid identifier", 2);
 		return (1);
@@ -85,7 +85,7 @@ static int	set_env_var(t_shell *shell, char *arg)
 		return (1);
 	if (!is_valid_export_name(key))
 	{
-		ft_putstr_fd("minishell: export: '", 2);
+		ft_putstr_fd("export: `", 2);
 		ft_putstr_fd(arg, 2);
 		ft_putendl_fd("': not a valid identifier", 2);
 		return (free(key), 1);

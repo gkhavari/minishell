@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:53 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/11/30 22:07:19 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/28 02:39:27 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,16 +44,19 @@ static int	is_valid_unset_name(char *name)
 static int	find_env_index(t_shell *shell, char *key)
 {
 	int		i;
-	int		len;
-	char	end;
+	int		key_len;
+	int		env_key_len;
 
-	len = ft_strlen(key);
+	key_len = ft_strlen(key);
 	i = 0;
 	while (shell->envp[i])
 	{
-		end = shell->envp[i][len];
-		if (ft_strncmp(shell->envp[i], key, len) == 0
-			&& (end == '=' || end == '\0'))
+		env_key_len = 0;
+		while (shell->envp[i][env_key_len]
+			&& shell->envp[i][env_key_len] != '=')
+			env_key_len++;
+		if (env_key_len == key_len
+			&& ft_strncmp(shell->envp[i], key, key_len) == 0)
 			return (i);
 		i++;
 	}
