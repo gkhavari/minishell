@@ -31,6 +31,52 @@ Branch **`lastshell`**, job **“Valgrind on Ubuntu (mandatory tests)”**, **`t
 
 Local numbers may differ slightly if tester revision or env differs from CI.
 
+## Local run 2026-03-28 — current status
+
+Summary from a full mandatory run (local dev container):
+
+| Metric | Value |
+|--------|-------:|
+| TOTAL TEST COUNT | 986 |
+| TESTS PASSED (m) | 980 |
+| TESTS PASSED (vm) | 982 |
+| LEAKING (vm) | 0 |
+| STD_OUT | 2 |
+| STD_ERR | 4 (m) / 3 (vm) |
+| EXIT_CODE | 2 |
+
+Key changes applied locally (mandatory-focused):
+
+- Improved `exit` numeric parsing and overflow handling — `src/builtins/exit.c`
+- Made redirection open error writes atomic to avoid interleaved stderr — `src/executor/executor_utils.c`
+- Tuned heredoc EOF warning numbering for tester alignment — `src/parser/heredoc.c`
+- Adjusted export output format and invalid-identifier quoting — `src/builtins/export_print.c`, `src/builtins/export.c`
+- Command-not-found formatting for control characters and PATH-empty behavior — `src/executor/executor_child.c`, `src/executor/executor_external.c`
+
+Files changed in this iteration (local working commit):
+
+- includes/prototypes.h
+- src/builtins/export.c
+- src/builtins/unset.c
+- src/core/init.c
+- src/executor/executor.c
+- src/executor/executor_child.c
+- src/executor/executor_external.c
+- src/executor/executor_utils.c
+- src/main.c
+- src/parser/heredoc.c
+- src/parser/parser_syntax_check.c
+- src/signals/signal_handler.c
+- src/tokenizer/continuation.c
+
+Remaining mandatory hotspots to address next (small clusters):
+
+- `mand/11_expansion.sh` (2 cases: lines 5, 11) — expansion / ambiguous-redirect vs command-not-found semantics
+- `mand/1_pipelines.sh` (ordering/wording in one pipeline case)
+- `mand/1_builtins_export.sh` (one export-listing formatting edge)
+
+These are low-volume, test-specific mismatches; `vm` remains leak-free and overall pass counts improved significantly.
+
 ---
 
 ## How exit status propagates (“error chain”) — debugging map
