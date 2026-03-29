@@ -13,7 +13,7 @@
 #include "minishell.h"
 
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
-			int *prev_fd, int start_fd);
+			int *prev_fd, int start_fd, int barrier_write_fd);
 void	release_pipeline_barrier(int write_fd, int count);
 
 /*
@@ -61,7 +61,7 @@ static int	has_pipeline_redirs(t_command *cmd)
 ** Returns the number of children forked.
 */
 static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
-		pid_t *last_pid, int start_fd)
+		pid_t *last_pid, int start_fd, int barrier_write_fd)
 {
 	int		prev_fd;
 	int		i;
@@ -72,7 +72,7 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 	*last_pid = -1;
 	while (cmd)
 	{
-		pid = run_pipe_step(cmd, shell, &prev_fd, start_fd);
+		pid = run_pipe_step(cmd, shell, &prev_fd, start_fd, barrier_write_fd);
 		if (pid < 0)
 			break ;
 		*last_pid = pid;
@@ -102,7 +102,8 @@ int	execute_pipeline(t_command *cmds, t_shell *shell)
 	if (!has_pipeline_redirs(cmds) && pipe(start_pipe) == -1)
 		start_pipe[1] = -1;
 	set_signals_ignore();
-	n = run_pipeline_loop(cmds, shell, &last_pid, start_pipe[0]);
+	n = run_pipeline_loop(cmds, shell, &last_pid, start_pipe[0],
+			start_pipe[1]);
 	release_pipeline_barrier(start_pipe[1], n);
 	if (start_pipe[0] != -1)
 		close(start_pipe[0]);

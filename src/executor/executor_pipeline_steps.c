@@ -12,10 +12,13 @@
 
 #include "minishell.h"
 
-static void	setup_child_fds(int prev_fd, int pipe_fd[3], int has_next)
+static void	setup_child_fds(int prev_fd, int pipe_fd[3], int has_next,
+		int barrier_write_fd)
 {
 	char	sync;
 
+	if (barrier_write_fd != -1)
+		close(barrier_write_fd);
 	if (pipe_fd[2] != -1)
 	{
 		read(pipe_fd[2], &sync, 1);
@@ -35,7 +38,7 @@ static void	setup_child_fds(int prev_fd, int pipe_fd[3], int has_next)
 }
 
 static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
-		int pipe_fd[3])
+		int pipe_fd[3], int barrier_write_fd)
 {
 	pid_t	pid;
 
@@ -45,7 +48,8 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 	if (pid == 0)
 	{
 		set_signals_default();
-		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL);
+		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL,
+			barrier_write_fd);
 		if (apply_redirections(cmd) != 0)
 			exit_child(shell, 1);
 		execute_in_child(cmd, shell);
@@ -54,7 +58,7 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 }
 
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
-		int *prev_fd, int start_fd)
+		int *prev_fd, int start_fd, int barrier_write_fd)
 {
 	int		pipe_fd[3];
 	pid_t	pid;
@@ -64,7 +68,7 @@ pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
 	pipe_fd[2] = start_fd;
 	if (cmd->next && pipe(pipe_fd) == -1)
 		return (-1);
-	pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd);
+	pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd, barrier_write_fd);
 	if (pid < 0)
 	{
 		if (cmd->next)
