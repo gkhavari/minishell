@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/21 17:25:24 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:35:01 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 18:44:54 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 18:44:56 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,72 +14,20 @@
 
 /**
  DESCRIPTION:
-* Wait for pipeline children and return the aggregate pipeline exit status.
+* Duplicate the current standard input and output file descriptors.
 
  BEHAVIOR:
-* Implements the convention where the pipeline's status reflects the last
-* command's exit. Waits for each PID and extracts the last command's exit
-* status or a signal-derived value. Defensively ensures the parent doesn't
-* proceed until children have terminated, preventing zombies and races.
+* Calls `dup` for `STDIN_FILENO` and `STDOUT_FILENO` and stores the
+* duplicates in the provided pointers. On failure closes any created
+* duplicates and returns non-zero.
 
  PARAMETERS:
-* pid_t *pids: Array of child PIDs for the pipeline.
-* int n: Number of PIDs/commands in the pipeline.
+* int *in: out-parameter to receive the duplicated stdin fd.
+* int *out: out-parameter to receive the duplicated stdout fd.
 
  RETURN:
-* Exit code of the last pipeline command, or signal-derived code.
+* `0` on success, non-zero on error.
 */
-int	wait_pipeline(pid_t *pids, int n)
-{
-	int	status;
-	int	last;
-	int	i;
-
-	last = 0;
-	i = 0;
-	while (i < n)
-	{
-		waitpid(pids[i], &status, 0);
-		if (i == n - 1)
-		{
-			if (WIFEXITED(status))
-				last = WEXITSTATUS(status);
-			else if (WIFSIGNALED(status))
-				last = 128 + WTERMSIG(status);
-		}
-		i++;
-	}
-	return (last);
-}
-
-/**
- DESCRIPTION:
-* Count commands in a pipeline list.
-
- BEHAVIOR:
-* Iterates the `t_command` list and returns the count. Used to allocate
-* PID arrays defensively, ensuring sufficient space and preventing buffer
-* overruns when collecting child PIDs.
-
- PARAMETERS:
-* t_command *cmd: Head of the command list.
-
- RETURN:
-* Number of commands in the pipeline.
-*/
-int	count_cmds(t_command *cmd)
-{
-	int	n;
-
-	n = 0;
-	while (cmd)
-	{
-		n++;
-		cmd = cmd->next;
-	}
-	return (n);
-}
-
 static int	backup_fds(int *in, int *out)
 {
 	*in = dup(STDIN_FILENO);
@@ -97,20 +45,99 @@ static int	backup_fds(int *in, int *out)
 
 /**
  DESCRIPTION:
-* Execute a single (non-pipeline) command, handling builtins and externals.
+* Execute a command struct that contains no argv (empty invocation).
 
  BEHAVIOR:
-* Backs up stdin/stdout, applies file redirections, and either executes a
-* builtin in the parent (allowing it to mutate shell state) or forks to
-* execute an external command. Always restores backups. Defensively handles
-* failures in `dup`/open/redirect to avoid leaking fd state.
+* If the command has redirections or a heredoc, temporarily applies
+* redirections with fd backups and restores them afterwards. This
+* keeps the parent process I/O state unchanged when the command is a
+* no-op apart from redirections.
+
+ PARAMETERS:
+* t_command *cmd: Command structure to process.
+* int *in: pointer to store stdin backup (used on restore).
+* int *out: pointer to store stdout backup (used on restore).
+
+ RETURN:
+* `0` on success, non-zero on failure applying redirections.
+*/
+static int	run_empty_command(t_command *cmd, int *in, int *out)
+{
+	int	need_restore;
+
+	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+	if (need_restore && backup_fds(in, out))
+		return (1);
+	if (need_restore && apply_redirections(cmd))
+	{
+		restore_fds(*in, *out);
+		return (1);
+	}
+	if (need_restore)
+		restore_fds(*in, *out);
+	return (0);
+}
+
+/**
+ DESCRIPTION:
+* Execute a builtin command in the parent process when appropriate.
+
+ BEHAVIOR:
+* For builtins that must execute in the parent (cd/export/unset/exit)
+* this function applies redirections in a safe manner (backup +
+* restore) before calling the builtin implementation. For other
+* builtins that require redirections but are not special-cased, it
+* falls back to running the external execution path.
 
  PARAMETERS:
 * t_command *cmd: Command to execute.
-* t_shell *shell: Shell runtime state.
+* t_shell *shell: Shell runtime used by builtin implementations.
+* int *in: fd backup for stdin.
+* int *out: fd backup for stdout.
 
  RETURN:
-* Exit/status code from the executed command.
+* Exit status returned by the executed builtin or external fallback.
+*/
+static int	run_builtin_command(t_command *cmd, t_shell *shell,
+	int *in, int *out)
+{
+	int	type;
+	int	need_restore;
+
+	type = get_builtin_type(cmd->argv[0]);
+	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+	if ((type != BUILTIN_CD && type != BUILTIN_EXPORT
+			&& type != BUILTIN_UNSET && type != BUILTIN_EXIT)
+		&& need_restore)
+		return (execute_external(cmd, shell));
+	if (need_restore && backup_fds(in, out))
+		return (1);
+	if (need_restore && apply_redirections(cmd))
+	{
+		restore_fds(*in, *out);
+		return (1);
+	}
+	if (need_restore)
+		restore_fds(*in, *out);
+	return (execute_builtin(cmd, shell));
+}
+
+/**
+ DESCRIPTION:
+* Execute a single command (non-pipeline) from the command list.
+
+ BEHAVIOR:
+* If the command is empty handles its redirections and returns. If
+* it's a builtin that must run in the parent it is executed directly
+* with any required redirections applied and restored. Otherwise an
+* external command is launched in a child process.
+
+ PARAMETERS:
+* t_command *cmd: The command to run.
+* t_shell *shell: Shell runtime providing environment and state.
+
+ RETURN:
+* The exit status of the executed command (0 on success, >0 on error).
 */
 int	execute_single_command(t_command *cmd, t_shell *shell)
 {
@@ -118,47 +145,28 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 	int	stdout_backup;
 	int	status;
 
-	if (backup_fds(&stdin_backup, &stdout_backup))
-		return (1);
-	shell->stdin_backup = stdin_backup;
-	shell->stdout_backup = stdout_backup;
-	if (apply_redirections(cmd))
-	{
-		restore_fds(stdin_backup, stdout_backup);
-		shell->stdin_backup = -1;
-		shell->stdout_backup = -1;
-		return (1);
-	}
 	if (!cmd->argv || !cmd->argv[0])
-	{
-		restore_fds(stdin_backup, stdout_backup);
-		shell->stdin_backup = -1;
-		shell->stdout_backup = -1;
-		return (0);
-	}
+		return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
 	if (cmd->is_builtin)
-		status = execute_builtin(cmd, shell);
-	else
-		status = execute_external(cmd, shell);
-	restore_fds(stdin_backup, stdout_backup);
-	shell->stdin_backup = -1;
-	shell->stdout_backup = -1;
+		return (run_builtin_command(cmd, shell, &stdin_backup, &stdout_backup));
+	status = execute_external(cmd, shell);
 	return (status);
 }
 
 /**
  DESCRIPTION:
-* Entry point to execute pending commands stored in the shell.
+* Entry point for executing the parsed command list on the shell.
 
  BEHAVIOR:
-* If there is a single command executes it directly (builtins in parent).
-* If multiple commands are present executes them as a pipeline.
+* If the shell has no commands returns 0. If there is a single
+* command runs it directly (preserving builtin semantics). If there
+* are multiple commands executes the full pipeline orchestration.
 
  PARAMETERS:
-* t_shell *shell: Shell runtime containing `commands`.
+* t_shell *shell: Shell runtime containing `commands` linked list.
 
  RETURN:
-* Aggregate exit status of executed command(s).
+* Exit status of the executed commands (last command for pipelines).
 */
 int	execute_commands(t_shell *shell)
 {

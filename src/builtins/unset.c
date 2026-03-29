@@ -63,15 +63,20 @@ static int	find_env_index(t_shell *shell, char *key)
 {
 	int		i;
 	int		len;
-	char	end;
+	int		env_key_len;
+	char	*eq;
 
 	len = ft_strlen(key);
 	i = 0;
 	while (shell->envp[i])
 	{
-		end = shell->envp[i][len];
-		if (ft_strncmp(shell->envp[i], key, len) == 0
-			&& (end == '=' || end == '\0'))
+		eq = ft_strchr(shell->envp[i], '=');
+		if (eq)
+			env_key_len = (int)(eq - shell->envp[i]);
+		else
+			env_key_len = ft_strlen(shell->envp[i]);
+		if (env_key_len == len
+			&& ft_strncmp(shell->envp[i], key, len) == 0)
 			return (i);
 		i++;
 	}

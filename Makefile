@@ -19,6 +19,7 @@ SRCS		=	$(SRC_DIR)/main.c
 
 # core
 SRCS		+=	$(SRC_DIR)/core/init.c
+SRCS		+=	$(SRC_DIR)/core/init_runtime.c
 
 # utils
 SRCS		+=	$(SRC_DIR)/utils/utils.c
@@ -56,7 +57,12 @@ SRCS        += $(SRC_DIR)/executor/executor.c \
 			   $(SRC_DIR)/executor/executor_utils.c \
 			   $(SRC_DIR)/executor/executor_external.c \
 			   $(SRC_DIR)/executor/executor_pipeline.c \
-			   $(SRC_DIR)/executor/executor_child.c
+			   $(SRC_DIR)/executor/executor_child.c \
+			   $(SRC_DIR)/executor/executor_child_exec.c \
+			   $(SRC_DIR)/executor/executor_child_format.c \
+			   $(SRC_DIR)/executor/executor_cmd_utils.c \
+			   $(SRC_DIR)/executor/executor_count.c \
+			   $(SRC_DIR)/executor/executor_pipeline_steps.c
 
 # builtins
 SRCS        += $(SRC_DIR)/builtins/cd.c \
@@ -67,6 +73,7 @@ SRCS        += $(SRC_DIR)/builtins/cd.c \
 			   $(SRC_DIR)/builtins/export_utils.c \
 			   $(SRC_DIR)/builtins/unset.c \
 			   $(SRC_DIR)/builtins/exit.c \
+			   $(SRC_DIR)/builtins/exit_utils.c \
 			   $(SRC_DIR)/builtins/export_print.c \
 			   $(SRC_DIR)/builtins/builtin_dispatcher.c
 

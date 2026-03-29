@@ -33,4 +33,8 @@
 # define EXIT_SYNTAX_ERROR 2
 # define EXIT_SIGINT 130
 
+/*INTERNAL TOKENS*/
+# define MSH_EMPTY_EXPAND_TOKEN "\001msh_empty"
+# define MSH_AMBIG_REDIR_PREFIX "\001msh_ambig:"
+
 #endif

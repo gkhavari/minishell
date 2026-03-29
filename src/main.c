@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 16:16:02 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 20:20:43 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,13 @@
  DESCRIPTION:
 * Run the full processing pipeline for the current input line.
 
+ BEHAVIOR:
+* Tokenizes and parses `shell->input` into commands, processes any
+* heredocs, and executes the resulting commands pipeline. On a
+* heredoc error sets `shell->last_exit` to 130 and aborts execution
+* for this input line.
+
+ PARAMETERS:
 * t_shell *shell: Shell runtime holding the input and parsed commands.
 
  RETURN:
@@ -109,7 +116,8 @@ static int	read_input(t_shell *shell)
 			ft_putstr_fd("exit\n", STDOUT_FILENO);
 		return (0);
 	}
-	if (check_signal_received(shell) && (!shell->input || shell->input[0] == '\0'))
+	if (check_signal_received(shell)
+		&& (!shell->input || shell->input[0] == '\0'))
 		return (free(shell->input), shell->input = NULL, -1);
 	return (1);
 }
@@ -154,6 +162,25 @@ static void	shell_loop(t_shell *shell)
 	}
 }
 
+/**
+ DESCRIPTION:
+* Program entry point and high-level lifecycle management.
+
+ BEHAVIOR:
+* Initializes the `t_shell` runtime from the environment, configures
+* signal handlers for interactive use, installs the `readline` event
+* hook when running on a TTY, runs the main REPL loop, and performs
+* final cleanup (readline history + freeing runtime state) before
+* returning the last command exit status to the caller.
+
+ PARAMETERS:
+* int argc: Argument count (unused).
+* char **argv: Argument vector (unused).
+* char **envp: Environment pointer array passed to the shell init.
+
+ RETURN:
+* Process exit code equivalent to `shell.last_exit`.
+*/
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;

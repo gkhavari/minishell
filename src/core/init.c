@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:55:26 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:30 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 20:22:17 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,34 +126,6 @@ static void	update_shlvl(t_shell *shell)
 		(append_export_env(shell, entry), free(entry));
 }
 
-void	normalize_child_shlvl(t_shell *shell)
-{
-	char	*shlvl_val;
-	char	*num_str;
-	char	*entry;
-	int		lvl;
-	int		idx;
-
-	shlvl_val = get_env_value(shell->envp, "SHLVL");
-	if (!shlvl_val)
-		return ;
-	lvl = ft_atoi(shlvl_val);
-	if (lvl > 0)
-		lvl--;
-	num_str = ft_itoa(lvl);
-	if (!num_str)
-		return ;
-	entry = ft_strjoin("SHLVL=", num_str);
-	free(num_str);
-	if (!entry)
-		return ;
-	idx = find_export_key_index(shell, "SHLVL", 5);
-	if (idx >= 0)
-		(free(shell->envp[idx]), (shell->envp[idx] = entry));
-	else
-		(append_export_env(shell, entry), free(entry));
-}
-
 /**
  DESCRIPTION:
 * Initialize the shell runtime structure from the provided environment.
@@ -188,12 +160,6 @@ void	init_shell(t_shell *shell, char **envp)
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		shell->cwd = ft_strdup("/");
-	shell->last_exit = 0;
-	shell->tokens = NULL;
-	shell->commands = NULL;
-	shell->input = NULL;
-	shell->stdin_backup = -1;
-	shell->stdout_backup = -1;
-	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
+	init_runtime_fields(shell);
 	update_shlvl(shell);
 }

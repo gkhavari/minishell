@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:25:57 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:19:53 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 20:54:52 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,4 +65,30 @@ void	free_args(t_arg *arg)
 		free(arg);
 		arg = tmp;
 	}
+}
+
+/**
+ DESCRIPTION:
+* Free a NULL-terminated array of strings.
+
+ BEHAVIOR:
+* Iterates the array, frees each element and then frees the array
+* pointer itself. Safe to call with NULL.
+
+ PARAMETERS:
+* char **array: NULL-terminated array to free.
+
+ RETURN:
+* None.
+*/
+void	free_array(char **arr)
+{
+	int	i;
+
+	if (!arr)
+		return ;
+	i = 0;
+	while (arr[i])
+		free(arr[i++]);
+	free(arr);
 }

@@ -5,59 +5,30 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/21 19:37:51 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:47:29 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/28 01:46:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
 /**
  DESCRIPTION:
-* Fork and execute an external command, returning its exit status.
+* Convert a raw `waitpid` status into a shell exit code.
 
  BEHAVIOR:
-* Forks; the child sets default signal handlers and runs
-* `execute_in_child`. The parent waits for the child, restores
-* interactive signal handling and returns the child's exit code or
-* a signal-derived code (128 + signal).
+* If the child was terminated by a signal prints a message for
+* `SIGQUIT` and returns 128 + signal number. If the child exited
+* normally returns its exit status. Otherwise returns 1.
 
  PARAMETERS:
-* t_command *cmd: Command node containing the argv for exec.
-* t_shell *shell: Shell runtime state.
+* int status: status value obtained from `waitpid`.
 
  RETURN:
-* Exit/status code from the child process, or `1` on failure.
-* On successful fork+exec returns the child's exit code; on fork failure
-* returns `1` after printing a diagnostic.
+* Normalized shell exit code derived from `status`.
 */
-int	execute_external(t_command *cmd, t_shell *shell)
+static int	get_child_status(int status)
 {
-	pid_t	pid;
-	int		status;
-
-	if (!cmd->argv || !cmd->argv[0])
-		return (0);
-	pid = fork();
-	if (pid < 0)
-		return (perror("minishell: fork"), 1);
-	if (pid == 0)
-	{
-		if (shell->stdin_backup != -1)
-		{
-			close(shell->stdin_backup);
-			shell->stdin_backup = -1;
-		}
-		if (shell->stdout_backup != -1)
-		{
-			close(shell->stdout_backup);
-			shell->stdout_backup = -1;
-		}
-		set_signals_default();
-		execute_in_child(cmd, shell);
-	}
-	set_signals_ignore();
-	waitpid(pid, &status, 0);
-	set_signals_interactive();
 	if (WIFSIGNALED(status))
 	{
 		if (WTERMSIG(status) == SIGQUIT)
@@ -71,124 +42,122 @@ int	execute_external(t_command *cmd, t_shell *shell)
 
 /**
  DESCRIPTION:
-* Internal helper used when searching PATH: set a fallback candidate.
+* Execute an external command by forking and execing the target.
 
  BEHAVIOR:
-* Stores `path` into `*fallback` and returns NULL for convenience.
+* Forks a child, sets default signals in the child, applies
+* redirections and runs the command via `execute_in_child`. The
+* parent waits and returns the child's normalized status.
 
  PARAMETERS:
-* char **fallback: Output pointer to store fallback path (takes ownership).
-* char *path: Path string to assign.
+* t_command *cmd: command to execute (argv, redirs).
+* t_shell *shell: runtime providing `envp` and helpers.
 
  RETURN:
-* Always returns NULL.
+* Exit status of the child process (normalized via get_child_status).
 */
-static char	*set_path_fallback(char **fallback, char *path)
+int	execute_external(t_command *cmd, t_shell *shell)
 {
-	*fallback = path;
-	return (NULL);
+	pid_t	pid;
+	int		status;
+
+	if (!cmd->argv || !cmd->argv[0])
+		return (0);
+	pid = fork();
+	if (pid < 0)
+		return (perror("minishell: fork"), 1);
+	if (pid == 0)
+	{
+		set_signals_default();
+		if (apply_redirections(cmd) != 0)
+			exit_child(shell, 1);
+		execute_in_child(cmd, shell);
+	}
+	set_signals_ignore();
+	waitpid(pid, &status, 0);
+	set_signals_interactive();
+	return (get_child_status(status));
 }
 
 /**
  DESCRIPTION:
-* Try to build and validate a full command path from `dir` + `cmd`.
+* Test whether a path points to a regular file.
 
  BEHAVIOR:
-* Constructs `dir/cmd`, checks for existence and execute permission.
-* If executable returns the full path; otherwise may record a
-* non-executable fallback path in `*fallback`.
+* Uses `stat` and checks `S_ISREG` on the resulting mode.
 
  PARAMETERS:
-* char *dir: Directory component from PATH.
-* char *cmd: Command name.
-* char **fallback: Pointer to fallback path storage.
+* char *path: file path to test.
 
  RETURN:
-* Newly allocated full path on success, NULL otherwise.
+* Non-zero if `path` is a regular file, zero otherwise.
 */
-static char	*try_candidate(char *dir, char *cmd, char **fallback)
+static int	is_regular_file(char *path)
 {
-	char		*tmp;
-	char		*full_path;
 	struct stat	sb;
 
-	tmp = ft_strjoin(dir, "/");
-	if (!tmp)
-		return (NULL);
-	full_path = ft_strjoin(tmp, cmd);
-	free(tmp);
-	if (!full_path)
-		return (NULL);
-	if (stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
-	{
-		if (access(full_path, X_OK) == 0)
-		{
-			if (*fallback)
-				free(*fallback);
-			return (full_path);
-		}
-		if (!*fallback)
-			return (set_path_fallback(fallback, full_path));
-	}
-	free(full_path);
-	return (NULL);
+	if (stat(path, &sb) != 0)
+		return (0);
+	return (S_ISREG(sb.st_mode));
 }
 
 /**
  DESCRIPTION:
-* Search for `cmd` in the supplied `paths` array, returning an executable
-* path or a fallback (non-executable) path if available.
+* Search for an executable `cmd` in the provided `paths` array.
 
  BEHAVIOR:
-* Iterates `paths`, calling `try_candidate` for each. Frees `paths` before
-* returning. Prefers an executable candidate and otherwise returns the
-* first non-executable fallback found.
+* Joins each path with `cmd` and returns the first match that is a
+* regular file. Frees the `paths` array before returning.
 
  PARAMETERS:
-* char **paths: NULL-terminated array of path directories.
-* char *cmd: Command name to search for.
+* char **paths: NULL-terminated array of directory paths.
+* char *cmd: command name to search for.
 
  RETURN:
-* Allocated path string on success, or NULL if not found.
+* Malloc'd full path on success, or NULL if not found.
 */
 static char	*search_in_path(char **paths, char *cmd)
 {
-	char	*fallback;
+	char	*tmp;
+	char	*full_path;
 	int		i;
-	char	*res;
 
 	i = 0;
-	fallback = NULL;
 	while (paths[i])
 	{
-		res = try_candidate(paths[i], cmd, &fallback);
-		if (res)
+		tmp = ft_strjoin(paths[i], "/");
+		if (!tmp)
+			break ;
+		full_path = ft_strjoin(tmp, cmd);
+		free(tmp);
+		if (!full_path)
+			break ;
+		if (is_regular_file(full_path))
 		{
 			free_array(paths);
-			return (res);
+			return (full_path);
 		}
+		free(full_path);
 		i++;
 	}
 	free_array(paths);
-	return (fallback);
+	return (NULL);
 }
 
 /**
  DESCRIPTION:
-* Resolve the filesystem path for `cmd` using `PATH` or direct path.
+* Resolve a command name to an executable path using the `PATH` var.
 
  BEHAVIOR:
-* If `cmd` contains a slash returns a duplicate of `cmd`. Otherwise reads
-* `PATH` from `shell->envp` (or a default when `had_path` is set) and
-* searches directories for an executable file matching `cmd`.
+* If `cmd` contains a slash returns a strdup of `cmd`. Otherwise
+* splits `PATH` and searches each directory for an executable file.
 
  PARAMETERS:
-* char *cmd: Command name to resolve.
-* t_shell *shell: Shell runtime providing envp and `had_path` flag.
+* char *cmd: command name or path.
+* t_shell *shell: runtime providing environment and `PATH`.
 
  RETURN:
-* Allocated path string for the command (caller must free), or NULL if not
-* found.
+* Malloc'd path string on success, or NULL on failure.
 */
 char	*find_command_path(char *cmd, t_shell *shell)
 {
@@ -204,6 +173,8 @@ char	*find_command_path(char *cmd, t_shell *shell)
 		path_env = "/usr/local/bin:/usr/bin:/bin:.";
 	if (!path_env)
 		return (NULL);
+	if (*path_env == '\0')
+		return (ft_strdup(cmd));
 	paths = ft_split(path_env, ':');
 	if (!paths)
 		return (NULL);
