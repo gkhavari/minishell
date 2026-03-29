@@ -12,6 +12,22 @@
 
 #include "minishell.h"
 
+/**
+ DESCRIPTION:
+* Print a redirection-related error message to STDERR.
+
+ BEHAVIOR:
+* Builds a "file: strerror(err)\n" message and writes it to
+* `STDERR_FILENO`. Attempts an allocated buffer first and falls
+* back to multiple writes on allocation failure.
+
+ PARAMETERS:
+* char *file: filename associated with the error.
+* int err: errno value describing the error.
+
+ RETURN:
+* None.
+*/
 static void	print_redir_error(char *file, int err)
 {
 	char	*line;
@@ -37,6 +53,24 @@ static void	print_redir_error(char *file, int err)
 	free(line);
 }
 
+/**
+ DESCRIPTION:
+* Apply an input redirection by opening the target file and dup2-ing
+* it onto `STDIN_FILENO`.
+
+ BEHAVIOR:
+* Opens the file read-only, on error prints a diagnostics and returns
+* non-zero. On success duplicates the fd to stdin, closes the
+* original and marks `*had_input`.
+
+ PARAMETERS:
+* t_redir *r: redirection descriptor.
+* int *had_input: out-parameter set to 1 if an input redirection was
+*   successfully applied.
+
+ RETURN:
+* 0 on success, non-zero on error.
+*/
 static int	apply_input_redir(t_redir *r, int *had_input)
 {
 	int	fd;
@@ -53,6 +87,21 @@ static int	apply_input_redir(t_redir *r, int *had_input)
 	return (0);
 }
 
+/**
+ DESCRIPTION:
+* Apply an output redirection by opening/truncating/creating the file
+* and dup2-ing it onto the requested fd.
+
+ BEHAVIOR:
+* Honors append vs truncate flags, reports errors via
+* `print_redir_error` and returns non-zero on failure.
+
+ PARAMETERS:
+* t_redir *r: redirection descriptor.
+
+ RETURN:
+* 0 on success, non-zero on error.
+*/
 static int	apply_output_redir(t_redir *r)
 {
 	int	fd;
@@ -71,10 +120,22 @@ static int	apply_output_redir(t_redir *r)
 	return (0);
 }
 
-/*
-** apply_one_redir - Open one redirection and dup2 to stdin or stdout.
-** Sets *had_input if it's an input redirect.
-** Returns 0 on success, 1 on error.
+/**
+ DESCRIPTION:
+* Apply a single redirection entry from the command's redirection list.
+
+ BEHAVIOR:
+* Detects ambiguous heredoc-placeholder filenames and prints an
+* appropriate message. Dispatches to input or output helper for the
+* actual file operations.
+
+ PARAMETERS:
+* t_redir *r: redirection entry to apply.
+* int *had_input: pointer indicating if an input redirection was
+*   applied earlier in the list.
+
+ RETURN:
+* 0 on success, non-zero on error.
 */
 static int	apply_one_redir(t_redir *r, int *had_input)
 {
@@ -93,10 +154,20 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 	return (apply_output_redir(r));
 }
 
-/*
-** apply_redirections - Apply all redirections in their original order.
-** Processes cmd->redirs list in order, stopping on first failure.
-** Applies heredoc only if no input file redirection exists.
+/**
+ DESCRIPTION:
+* Apply all redirections for the given command in the original order.
+
+ BEHAVIOR:
+* Iterates `cmd->redirs` and applies each entry. If an input file
+* redirection is applied, any pending heredoc is ignored. Stops on
+* first error and returns non-zero.
+
+ PARAMETERS:
+* t_command *cmd: command whose redirections should be applied.
+
+ RETURN:
+* 0 on success, non-zero on the first redirection error.
 */
 int	apply_redirections(t_command *cmd)
 {

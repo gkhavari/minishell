@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:44:42 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 18:53:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 20:54:03 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,19 @@ pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
 			int *prev_fd, int sync_fd[2]);
 void	release_pipeline_barrier(int write_fd, int count);
 
-/*
-** wait_children_last - Wait for n children and return last command status
-** Uses waitpid(-1) and tracks the child PID of the last pipeline command.
+/**
+ DESCRIPTION:
+* Wait for the last `size` child processes to terminate.
+
+ BEHAVIOR:
+* Calls `waitpid` in a loop to reap `size` children and updates the
+* global `g_last_status` from the last collected child.
+
+ PARAMETERS:
+* int size: number of child processes to wait for.
+
+ RETURN:
+* None.
 */
 static int	wait_children_last(pid_t last_pid, int n)
 {
@@ -44,10 +54,21 @@ static int	wait_children_last(pid_t last_pid, int n)
 	return (last_status);
 }
 
-/*
-** run_pipeline_loop - Fork each command and connect them with pipes
-** start_fd is a read end for a launch barrier shared by all children.
-** Returns the number of children forked.
+/**
+ DESCRIPTION:
+* Create and run the processes for each stage of a pipeline.
+
+ BEHAVIOR:
+* Iterates the command list, creates pipes as necessary, forks child
+* processes to run each command step, and connects pipe ends. Parent
+* side closes unused fds and finally waits for children.
+
+ PARAMETERS:
+* t_list *cmds: linked list of commands forming the pipeline.
+* t_shell *shell: runtime shell state used for execution.
+
+ RETURN:
+* None.
 */
 static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
@@ -73,6 +94,21 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 	return (i);
 }
 
+/**
+ DESCRIPTION:
+* Prepare shared resources used by pipeline execution.
+
+ BEHAVIOR:
+* Currently a placeholder which can perform global setup before the
+* pipeline forks (e.g., signal handling adjustments). No-op in the
+* current simple implementation.
+
+ PARAMETERS:
+* None.
+
+ RETURN:
+* None.
+*/
 static void	setup_pipeline_barrier(t_shell *shell, int sync_fd[2])
 {
 	(void)sync_fd;
@@ -89,11 +125,21 @@ static void	close_pipeline_barrier(t_shell *shell, int sync_fd[2], int n)
 	shell->barrier_write_fd = -1;
 }
 
-/*
-** execute_pipeline - Execute a multi-command pipeline (cmd1 | cmd2 | ...)
-** Allocates a PID array, forks all children connected by pipes,
-** waits for all of them, then returns the last child's exit status.
-** Parent ignores SIGINT/SIGQUIT while children run.
+/**
+ DESCRIPTION:
+* Execute a pipeline consisting of multiple commands.
+
+ BEHAVIOR:
+* Prepares the pipeline, spawns processes for every command in the
+* pipeline, closes unused pipe ends in the parent and waits for the
+* children to finish. Updates shell exit status with the last child
+* status.
+
+ PARAMETERS:
+* t_shell *shell: Shell runtime holding pipeline command list.
+
+ RETURN:
+* Exit status of the pipeline (status of the last command).
 */
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {
