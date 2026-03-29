@@ -6,18 +6,30 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:55:26 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 18:38:32 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 19:53:34 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /*
-** build_prompt - Create the shell prompt string
-** Format: "USER@minishell:CWD$ "
-** Falls back to defaults if user or cwd are not set.
-** Returns: newly allocated prompt string, or NULL on malloc failure.
+** process_input - Run lexer/parser/heredoc/executor for one input line
+** This isolates the front-end pipeline from the REPL loop in main.c.
 */
+void	process_input(t_shell *shell)
+{
+	tokenize_input(shell);
+	parse_input(shell);
+	if (!shell->commands)
+		return ;
+	if (process_heredocs(shell))
+	{
+		shell->last_exit = 130;
+		return ;
+	}
+	shell->last_exit = execute_commands(shell);
+}
+
 char	*get_env_value(char **envp, const char *key)
 {
 	int		i;
@@ -34,6 +46,12 @@ char	*get_env_value(char **envp, const char *key)
 	return (NULL);
 }
 
+/*
+** build_prompt - Create the shell prompt string
+** Format: "USER@minishell:CWD$ "
+** Falls back to defaults if user or cwd are not set.
+** Returns: newly allocated prompt string, or NULL on malloc failure.
+*/
 char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;

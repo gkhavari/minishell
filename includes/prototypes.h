@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 18:38:33 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 19:55:18 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,7 @@
 char		*build_prompt(t_shell *shell);
 void		init_shell(t_shell *shell, char **envp);
 void		init_runtime_fields(t_shell *shell);
-
-/* frontend.c */
-void		process_frontend(t_shell *shell);
+void		process_input(t_shell *shell);
 
 /* utils.c */
 char		*get_env_value(char **envp, const char *key);

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/28 02:42:07 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 19:55:29 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,7 @@ static void	shell_loop(t_shell *shell)
 			continue ;
 		syntax_err = 0;
 		if (shell->input[0])
-			process_frontend(shell);
+			process_input(shell);
 		if (!shell->commands && shell->last_exit == 2)
 			syntax_err = 1;
 		reset_shell(shell);
