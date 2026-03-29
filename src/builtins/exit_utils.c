@@ -1,35 +1,31 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_child.c                                   :+:      :+:    :+:   */
+/*   exit_utils.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:34:11 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 17:37:57 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 20:10:00 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 20:18:38 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void	exit_child(t_shell *shell, int status)
+int	parse_exit_value(char *str, long long *value)
 {
-	free_all(shell);
-	rl_clear_history();
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-	exit(status);
+	char	*end;
+
+	if (!str || !*str)
+		return (0);
+	errno = 0;
+	*value = strtoll(str, &end, 10);
+	if (errno == ERANGE || *end != '\0')
+		return (0);
+	return (1);
 }
 
-void	free_array(char **arr)
+int	exit_mod256_from_ll(long long value)
 {
-	int	i;
-
-	if (!arr)
-		return ;
-	i = 0;
-	while (arr[i])
-		free(arr[i++]);
-	free(arr);
+	return ((unsigned char)value);
 }

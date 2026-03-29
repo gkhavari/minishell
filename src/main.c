@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 16:16:02 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 20:20:43 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,7 +109,8 @@ static int	read_input(t_shell *shell)
 			ft_putstr_fd("exit\n", STDOUT_FILENO);
 		return (0);
 	}
-	if (check_signal_received(shell) && (!shell->input || shell->input[0] == '\0'))
+	if (check_signal_received(shell)
+		&& (!shell->input || shell->input[0] == '\0'))
 		return (free(shell->input), shell->input = NULL, -1);
 	return (1);
 }

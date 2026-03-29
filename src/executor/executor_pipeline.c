@@ -5,183 +5,113 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/21 17:24:52 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:28:09 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 18:44:42 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 18:53:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Configure pipe file descriptors for a pipeline child process.
+pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
+			int *prev_fd, int sync_fd[2]);
+void	release_pipeline_barrier(int write_fd, int count);
 
- BEHAVIOR:
-* If `prev_fd` != -1 duplicates it to stdin. If `has_next` is true
-* duplicates the current pipe's write end to stdout. Closes fds when done.
-
- PARAMETERS:
-* int prev_fd: Read end of the previous pipe or -1 for first command.
-* int pipe_fd[2]: Current pipe fds produced by `pipe()`.
-* int has_next: Non-zero when this command is not the last in pipeline.
+/*
+** wait_children_last - Wait for n children and return last command status
+** Uses waitpid(-1) and tracks the child PID of the last pipeline command.
 */
-static void	setup_child_pipes(int prev_fd, int pipe_fd[2], int has_next)
+static int	wait_children_last(pid_t last_pid, int n)
 {
-	if (prev_fd != -1)
-	{
-		if (dup2(prev_fd, STDIN_FILENO) == -1)
-			return (close(prev_fd), perror("minishell"), exit(1));
-		close(prev_fd);
-	}
-	if (has_next)
-	{
-		close(pipe_fd[0]);
-		if (dup2(pipe_fd[1], STDOUT_FILENO) == -1)
-			return (close(pipe_fd[1]), perror("minishell"), exit(1));
-		close(pipe_fd[1]);
-	}
-}
-
-/**
- DESCRIPTION:
-* Fork and prepare a pipeline child for execution.
-
- BEHAVIOR:
-* In the child: reset signals to defaults, configure pipes, apply
-* redirections and execute the command (does not return). Parent
-* receives the child's PID or -1 on fork error.
-
- PARAMETERS:
-* t_command *cmd: Command node to execute.
-* t_shell *shell: Shell runtime passed to the child.
-* int prev_fd: Read-end fd from previous stage or -1.
-* int pipe_fd[2]: Current pipe fds for connecting to next stage.
-
- RETURN:
-* Child PID in the parent, or -1 on fork failure.
-*/
-static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
-	int pipe_fd[2])
-{
+	int		status;
+	int		last_status;
+	int		i;
 	pid_t	pid;
 
-	pid = fork();
-	if (pid < 0)
-		return (perror("minishell"), -1);
-	if (pid == 0)
+	last_status = 1;
+	i = 0;
+	while (i < n)
 	{
-		set_signals_default();
-		setup_child_pipes(prev_fd, pipe_fd, cmd->next != NULL);
-		if (apply_redirections(cmd) != 0)
-			exit(1);
-		execute_in_child(cmd, shell);
-	}
-	return (pid);
-}
-
-/**
- DESCRIPTION:
-* Handle one step of the pipeline: create pipes and fork a child.
-
- BEHAVIOR:
-* Creates a pipe when the command is not the last, forks the child via
-* `fork_pipeline_cmd`, closes/forwards fds in the parent and updates
-* `prev_fd` to feed the next command. Returns 1 on success.
-
- PARAMETERS:
-* t_command *cmd: Current command node.
-* t_shell *shell: Shell runtime.
-* int *prev_fd: Pointer to the current previous read-end fd.
-* pid_t *pid: Output parameter to receive the forked child's PID.
-
- RETURN:
-* `1` on success, `0` on failure.
-*/
-static int	handle_pipe_step(t_command *cmd, t_shell *shell, int *prev_fd,
-	pid_t *pid)
-{
-	int	pipe_fd[2];
-
-	pipe_fd[0] = -1;
-	pipe_fd[1] = -1;
-	if (cmd->next && pipe(pipe_fd) == -1)
-	{
-		if (*prev_fd != -1)
-			close(*prev_fd);
-		return (0);
-	}
-	*pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd);
-	if (*pid < 0)
-	{
-		if (cmd->next)
+		pid = waitpid(-1, &status, 0);
+		if (pid == last_pid)
 		{
-			close(pipe_fd[0]);
-			close(pipe_fd[1]);
+			if (WIFEXITED(status))
+				last_status = WEXITSTATUS(status);
+			else if (WIFSIGNALED(status))
+				last_status = 128 + WTERMSIG(status);
 		}
-		if (*prev_fd != -1)
-			close(*prev_fd);
-		*prev_fd = -1;
-		return (0);
+		i++;
 	}
-	if (*prev_fd != -1)
-		close(*prev_fd);
-	if (cmd->next)
-	{
-		close(pipe_fd[1]);
-		*prev_fd = pipe_fd[0];
-	}
-	return (1);
+	return (last_status);
 }
 
-static int	run_pipeline_loop(t_command *cmd, t_shell *shell, pid_t *pids)
+/*
+** run_pipeline_loop - Fork each command and connect them with pipes
+** start_fd is a read end for a launch barrier shared by all children.
+** Returns the number of children forked.
+*/
+static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
+		pid_t *last_pid, int sync_fd[2])
 {
-	int	prev_fd;
-	int	i;
+	int		prev_fd;
+	int		i;
+	pid_t	pid;
 
 	prev_fd = -1;
 	i = 0;
+	*last_pid = -1;
 	while (cmd)
 	{
-		if (!handle_pipe_step(cmd, shell, &prev_fd, &pids[i]))
+		pid = run_pipe_step(cmd, shell, &prev_fd, sync_fd);
+		if (pid < 0)
 			break ;
+		*last_pid = pid;
 		cmd = cmd->next;
 		i++;
 	}
+	if (prev_fd != -1)
+		close(prev_fd);
 	return (i);
 }
 
-/**
- DESCRIPTION:
-* Drive the pipeline creation loop: fork each command and collect PIDs.
+static void	setup_pipeline_barrier(t_shell *shell, int sync_fd[2])
+{
+	(void)sync_fd;
+	shell->barrier_write_fd = -1;
+}
 
- BEHAVIOR:
-* Iterates the command list, calling `handle_pipe_step` to create pipes
-* and fork each child. Closes/forwards file descriptors as required and
-* fills `pids` with the returned child PIDs. Returns the number of
-* forked children.
+static void	close_pipeline_barrier(t_shell *shell, int sync_fd[2], int n)
+{
+	release_pipeline_barrier(-1, n);
+	if (sync_fd[0] != -1)
+		close(sync_fd[0]);
+	if (sync_fd[1] != -1)
+		close(sync_fd[1]);
+	shell->barrier_write_fd = -1;
+}
 
- PARAMETERS:
-* t_command *cmd: Head of the pipeline command list.
-* t_shell *shell: Shell runtime passed to children.
-* pid_t *pids: Pre-allocated array to store child PIDs.
-
- RETURN:
-* Number of children forked (could be less on failure).
+/*
+** execute_pipeline - Execute a multi-command pipeline (cmd1 | cmd2 | ...)
+** Allocates a PID array, forks all children connected by pipes,
+** waits for all of them, then returns the last child's exit status.
+** Parent ignores SIGINT/SIGQUIT while children run.
 */
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {
-	pid_t	*pids;
-	int		n;
+	pid_t	last_pid;
+	int		sync_fd[2];
 	int		result;
+	int		n;
 
-	n = count_cmds(cmds);
-	pids = malloc(sizeof(pid_t) * n);
-	if (!pids)
-		return (1);
+	sync_fd[0] = -1;
+	sync_fd[1] = -1;
+	shell->barrier_write_fd = -1;
+	setup_pipeline_barrier(shell, sync_fd);
 	set_signals_ignore();
-	n = run_pipeline_loop(cmds, shell, pids);
-	result = wait_pipeline(pids, n);
-	free(pids);
+	n = run_pipeline_loop(cmds, shell, &last_pid, sync_fd);
+	close_pipeline_barrier(shell, sync_fd, n);
+	result = 1;
+	if (n > 0)
+		result = wait_children_last(last_pid, n);
 	set_signals_interactive();
 	return (result);
 }

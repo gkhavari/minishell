@@ -84,6 +84,7 @@ typedef struct s_shell
 	char				*cwd;
 	int					last_exit;
 	int					had_path;
+	int					barrier_write_fd;
 	t_token				*tokens;
 	t_command			*commands;	
 	char				*input;
