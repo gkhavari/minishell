@@ -122,7 +122,7 @@ fclean: clean
 
 re: fclean all
 
-debug: CFLAGS += $(DEBUG_FLAGS)
+debug: CFLAGS += -g
 debug: re
 
 .PHONY: all clean fclean re debug
