@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/06 20:01:07 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:18:23 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 14:27:40 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -198,8 +198,8 @@ appended to this buffer.
 BEHAVIOR:
 * Checks if the current character is `~` and if it's the start of a word
 	(i.e. `*word` is NULL). If not, returns `0`.
-* Ensures the character following `~` is a valid separator (`/`, space,
-	tab, operator, or end-of-string). If not, treats `~` literally and returns `0`.
+* Ensures the character following `~` is a valid separator (`/`, space, tab, 
+	operator, or end-of-string). If not, treats `~` literally and returns `0`.
 * Retrieves the `HOME` value from `shell->envp` and appends it (or an empty
 	string when unset) via `append_expansion_unquoted`.
 * Advances `*i` past the `~` and returns `1` on success.

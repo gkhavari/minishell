@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:26:19 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:41:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 14:29:28 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,20 +91,3 @@ int	is_quoted_delimiter(char *delim)
 		return (1);
 	return (0);
 }
-
-/**
- DESCRIPTION:
-* Check whether a heredoc delimiter is quoted.
-
- BEHAVIOR:
-* A delimiter is considered quoted when it begins and ends with matching
-* single or double quotes and has length >= 2. Quoted delimiters suppress
-* expansion in heredoc processing.
-
- PARAMETERS:
-* char *delim: The delimiter string to inspect.
-
- RETURN:
-* `1` if the delimiter is quoted, otherwise `0`.
-*/
-

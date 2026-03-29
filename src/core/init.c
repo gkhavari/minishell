@@ -192,6 +192,8 @@ void	init_shell(t_shell *shell, char **envp)
 	shell->tokens = NULL;
 	shell->commands = NULL;
 	shell->input = NULL;
+	shell->stdin_backup = -1;
+	shell->stdout_backup = -1;
 	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
 	update_shlvl(shell);
 }

@@ -42,6 +42,16 @@ int	execute_external(t_command *cmd, t_shell *shell)
 		return (perror("minishell: fork"), 1);
 	if (pid == 0)
 	{
+		if (shell->stdin_backup != -1)
+		{
+			close(shell->stdin_backup);
+			shell->stdin_backup = -1;
+		}
+		if (shell->stdout_backup != -1)
+		{
+			close(shell->stdout_backup);
+			shell->stdout_backup = -1;
+		}
 		set_signals_default();
 		execute_in_child(cmd, shell);
 	}

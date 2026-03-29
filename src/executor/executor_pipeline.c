@@ -29,13 +29,15 @@ static void	setup_child_pipes(int prev_fd, int pipe_fd[2], int has_next)
 {
 	if (prev_fd != -1)
 	{
-		dup2(prev_fd, STDIN_FILENO);
+		if (dup2(prev_fd, STDIN_FILENO) == -1)
+			return (close(prev_fd), perror("minishell"), exit(1));
 		close(prev_fd);
 	}
 	if (has_next)
 	{
 		close(pipe_fd[0]);
-		dup2(pipe_fd[1], STDOUT_FILENO);
+		if (dup2(pipe_fd[1], STDOUT_FILENO) == -1)
+			return (close(pipe_fd[1]), perror("minishell"), exit(1));
 		close(pipe_fd[1]);
 	}
 }
@@ -109,6 +111,18 @@ static int	handle_pipe_step(t_command *cmd, t_shell *shell, int *prev_fd,
 		return (0);
 	}
 	*pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd);
+	if (*pid < 0)
+	{
+		if (cmd->next)
+		{
+			close(pipe_fd[0]);
+			close(pipe_fd[1]);
+		}
+		if (*prev_fd != -1)
+			close(*prev_fd);
+		*prev_fd = -1;
+		return (0);
+	}
 	if (*prev_fd != -1)
 		close(*prev_fd);
 	if (cmd->next)

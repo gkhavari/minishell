@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 17:25:12 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:42:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 13:57:22 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,8 +37,9 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 	{
 		fd = open(r->file, O_RDONLY);
 		if (fd == -1)
-			return (perror("minishell"), 1);
-		dup2(fd, STDIN_FILENO);
+			return (perror(r->file), 1);
+		if (dup2(fd, STDIN_FILENO) == -1)
+			return (close(fd), perror(r->file), 1);
 		close(fd);
 		*had_input = 1;
 	}
@@ -49,8 +50,9 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 		else
 			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (fd == -1)
-			return (perror("minishell"), 1);
-		dup2(fd, r->fd);
+			return (perror(r->file), 1);
+		if (dup2(fd, r->fd) == -1)
+			return (close(fd), perror(r->file), 1);
 		close(fd);
 	}
 	return (0);
@@ -84,9 +86,11 @@ int	apply_redirections(t_command *cmd)
 			return (1);
 		r = r->next;
 	}
-	if (cmd->heredoc_fd != -1 && !had_input)
+	if (cmd->heredoc_fd != -1)
 	{
-		dup2(cmd->heredoc_fd, STDIN_FILENO);
+		if (!had_input && dup2(cmd->heredoc_fd, STDIN_FILENO) == -1)
+			return (close(cmd->heredoc_fd), cmd->heredoc_fd = -1,
+				perror("minishell"), 1);
 		close(cmd->heredoc_fd);
 		cmd->heredoc_fd = -1;
 	}

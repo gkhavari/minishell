@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:00:39 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:19:38 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 13:55:46 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,7 +132,7 @@ int	syntax_check(t_token *token)
 */
 int	syntax_error(const char *msg)
 {
-	ft_putstr_fd("minishell: syntax error near unexpected token '", 2);
+	ft_putstr_fd("syntax error near unexpected token `", 2);
 	ft_putstr_fd((char *)msg, 2);
 	ft_putstr_fd("'\n", 2);
 	return (SYNTAX_ERR);

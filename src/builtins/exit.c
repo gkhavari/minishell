@@ -99,6 +99,18 @@ static int	exit_mod256(char *str)
 */
 static void	clean_exit(t_shell *shell, int code)
 {
+	if (shell->stdin_backup != -1)
+	{
+		dup2(shell->stdin_backup, STDIN_FILENO);
+		close(shell->stdin_backup);
+		shell->stdin_backup = -1;
+	}
+	if (shell->stdout_backup != -1)
+	{
+		dup2(shell->stdout_backup, STDOUT_FILENO);
+		close(shell->stdout_backup);
+		shell->stdout_backup = -1;
+	}
 	rl_clear_history();
 	free_all(shell);
 	exit(code);

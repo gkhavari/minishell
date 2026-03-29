@@ -120,14 +120,20 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 
 	if (backup_fds(&stdin_backup, &stdout_backup))
 		return (1);
+	shell->stdin_backup = stdin_backup;
+	shell->stdout_backup = stdout_backup;
 	if (apply_redirections(cmd))
 	{
 		restore_fds(stdin_backup, stdout_backup);
+		shell->stdin_backup = -1;
+		shell->stdout_backup = -1;
 		return (1);
 	}
 	if (!cmd->argv || !cmd->argv[0])
 	{
 		restore_fds(stdin_backup, stdout_backup);
+		shell->stdin_backup = -1;
+		shell->stdout_backup = -1;
 		return (0);
 	}
 	if (cmd->is_builtin)
@@ -135,6 +141,8 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 	else
 		status = execute_external(cmd, shell);
 	restore_fds(stdin_backup, stdout_backup);
+	shell->stdin_backup = -1;
+	shell->stdout_backup = -1;
 	return (status);
 }
 
