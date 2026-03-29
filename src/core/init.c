@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:55:26 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/28 14:25:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 13:54:13 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,6 +105,7 @@ void	init_shell(t_shell *shell, char **envp)
 	if (!shell->cwd)
 		shell->cwd = ft_strdup("/");
 	shell->last_exit = 0;
+	shell->barrier_write_fd = -1;
 	shell->tokens = NULL;
 	shell->commands = NULL;
 	shell->input = NULL;

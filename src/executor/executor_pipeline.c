@@ -101,6 +101,7 @@ int	execute_pipeline(t_command *cmds, t_shell *shell)
 	start_pipe[1] = -1;
 	if (!has_pipeline_redirs(cmds) && pipe(start_pipe) == -1)
 		start_pipe[1] = -1;
+	shell->barrier_write_fd = start_pipe[1];
 	set_signals_ignore();
 	n = run_pipeline_loop(cmds, shell, &last_pid, start_pipe[0],
 			start_pipe[1]);
@@ -109,6 +110,7 @@ int	execute_pipeline(t_command *cmds, t_shell *shell)
 		close(start_pipe[0]);
 	if (start_pipe[1] != -1)
 		close(start_pipe[1]);
+	shell->barrier_write_fd = -1;
 	result = 1;
 	if (n > 0)
 		result = wait_children_last(last_pid, n);

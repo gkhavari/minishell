@@ -48,8 +48,10 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 	if (pid == 0)
 	{
 		set_signals_default();
-		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL,
-			barrier_write_fd);
+
+		if (shell->barrier_write_fd != -1)
+			close(shell->barrier_write_fd);
+		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL);
 		if (apply_redirections(cmd) != 0)
 			exit_child(shell, 1);
 		execute_in_child(cmd, shell);
