@@ -16,9 +16,13 @@
 # include <stdlib.h>
 # include <unistd.h>
 
+# ifndef BUFFER_SIZE
+#  define BUFFER_SIZE 42
+# endif
+
 char	*get_next_line(int fd);
 size_t	ft_strlen(const char *str);
-char	*ft_substr(char *str, size_t start, size_t end);
+char	*ft_substr(char const *s, unsigned int start, size_t len);
 char	*ft_strjoin(char const *str1, char const *str2);
 char	*ft_strchr(const char *str, int c);
 void	*ft_calloc(size_t nmemb, size_t size);

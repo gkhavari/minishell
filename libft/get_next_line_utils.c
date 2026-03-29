@@ -43,16 +43,16 @@ size_t	ft_strlen(const char *str)
 	return (len);
 }
 
-char	*ft_substr(char *str, size_t start, size_t len)
+char	*ft_substr(char const *s, unsigned int start, size_t len)
 {
 	char	*sub;
 	size_t	len_str;
 	size_t	len_sub;
 	size_t	i;
 
-	if (str == NULL)
+	if (s == NULL)
 		return (NULL);
-	len_str = ft_strlen(str);
+	len_str = ft_strlen(s);
 	if (start >= len_str)
 		return (ft_strjoin("", ""));
 	if (len_str - start > len)
@@ -65,7 +65,7 @@ char	*ft_substr(char *str, size_t start, size_t len)
 	i = 0;
 	while (i < len_sub)
 	{
-		sub[i] = str[start + i];
+		sub[i] = s[start + i];
 		i++;
 	}
 	return (sub);
