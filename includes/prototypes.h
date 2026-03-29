@@ -66,7 +66,7 @@ char		*expand_var(t_shell *shell, size_t *i);
 /* expansion_utils.c */
 void		append_expansion_quoted(char **word, const char *exp);
 void		append_expansion_unquoted(t_shell *shell, char **word,
-				const char *exp, size_t *i);
+				const char *exp);
 
 /* continuation.c */
 int			append_continuation(t_shell *shell, char **s, t_state state);

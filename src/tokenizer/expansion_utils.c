@@ -72,14 +72,14 @@ void	append_expansion_quoted(char **word, const char *exp)
  * None.
 */
 void	append_expansion_unquoted(t_shell *shell, char **word,
-		const char *exp, size_t *j)
+		const char *exp)
 {
 	size_t	i;
 
 	i = 0;
 	if (exp == NULL)
 		return ;
-	if (exp[0] == '\0' && *word == NULL && *j == 0)
+	if (exp[0] == '\0' && *word == NULL)
 		add_token(&shell->tokens, new_token(shell, WORD, (char *) &exp[0]));
 	while (exp[i])
 	{
