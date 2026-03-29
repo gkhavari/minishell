@@ -90,7 +90,7 @@ all: $(NAME)
 
 # Build minishell
 $(NAME): $(LIBFT) $(OBJ_DIR) $(OBJS)
-	@$(CC) $(CFLAGS) $(OBJS) -g $(LIBFT) $(RLFLAGS) -o $(NAME)
+	@$(CC) $(CFLAGS) $(OBJS) $(LIBFT) $(RLFLAGS) -o $(NAME)
 	@echo "minishell built"
 
 # Build libft
