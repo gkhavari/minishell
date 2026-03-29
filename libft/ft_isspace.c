@@ -1,33 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit_utils.c                                       :+:      :+:    :+:   */
+/*   ft_isspace.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/29 20:10:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 22:42:56 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 22:40:00 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 22:44:09 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "minishell.h"
+#include "libft.h"
 
-int	parse_exit_value(char *str, long long *value)
+int	ft_isspace(int c)
 {
-	char	*end;
-
-	if (!str || !*str)
-		return (0);
-	errno = 0;
-	*value = strtoll(str, &end, 10);
-	while (*end && ft_isspace((unsigned char)*end))
-		end++;
-	if (errno == ERANGE || *end != '\0')
-		return (0);
-	return (1);
-}
-
-int	exit_mod256_from_ll(long long value)
-{
-	return ((unsigned char)value);
+    return (c == ' ' || (c >= '\t' && c <= '\r'));
 }

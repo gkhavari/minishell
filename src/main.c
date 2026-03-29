@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 20:20:43 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 22:43:50 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -195,5 +195,8 @@ int	main(int argc, char **argv, char **envp)
 	shell_loop(&shell);
 	rl_clear_history();
 	free_all(&shell);
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
 	return (shell.last_exit);
 }
