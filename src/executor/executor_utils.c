@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 18:53:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 21:10:58 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -182,9 +182,10 @@ int	apply_redirections(t_command *cmd)
 			return (1);
 		r = r->next;
 	}
-	if (cmd->heredoc_fd != -1 && !had_input)
+	if (cmd->heredoc_fd != -1)
 	{
-		dup2(cmd->heredoc_fd, STDIN_FILENO);
+		if (!had_input)
+			dup2(cmd->heredoc_fd, STDIN_FILENO);
 		close(cmd->heredoc_fd);
 		cmd->heredoc_fd = -1;
 	}

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:44:54 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 18:44:56 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 21:10:56 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,15 +101,10 @@ static int	run_empty_command(t_command *cmd, int *in, int *out)
 static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	int *in, int *out)
 {
-	int	type;
+	int	status;
 	int	need_restore;
 
-	type = get_builtin_type(cmd->argv[0]);
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-	if ((type != BUILTIN_CD && type != BUILTIN_EXPORT
-			&& type != BUILTIN_UNSET && type != BUILTIN_EXIT)
-		&& need_restore)
-		return (execute_external(cmd, shell));
 	if (need_restore && backup_fds(in, out))
 		return (1);
 	if (need_restore && apply_redirections(cmd))
@@ -117,9 +112,10 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 		restore_fds(*in, *out);
 		return (1);
 	}
+	status = execute_builtin(cmd, shell);
 	if (need_restore)
 		restore_fds(*in, *out);
-	return (execute_builtin(cmd, shell));
+	return (status);
 }
 
 /**
