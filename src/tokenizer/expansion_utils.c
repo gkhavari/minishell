@@ -79,7 +79,8 @@ void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 	i = 0;
 	if (exp == NULL)
 		return ;
-	if (exp[0] == '\0')
+	if (exp[0] == '\0' && *word == NULL)
+
 		add_token(tokens, new_token(shell, WORD, (char *) &exp[0]));
 	while (exp[i])
 	{
