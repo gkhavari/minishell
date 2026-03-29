@@ -100,7 +100,8 @@ int	syntax_check(t_token *token)
 
 /*
 ** syntax_error - Print a syntax error message to stderr
-** Format matches bash output used by tester: syntax error near unexpected token `X'
+** Format matches bash output used by tester:
+** syntax error near unexpected token `X'
 ** Always returns 1 so callers can "return (syntax_error(...))".
 */
 int	syntax_error(const char *msg)

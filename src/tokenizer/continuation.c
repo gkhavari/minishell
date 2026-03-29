@@ -52,7 +52,7 @@ static char	*read_continuation_line(t_shell *shell, char quote_char)
 	return (with_newline);
 }
 
-static void	ensure_trailing_newline(t_shell *shell, 
+static void	ensure_trailing_newline(t_shell *shell,
 		char **s, size_t *old_len)
 {
 	char	*tmp;

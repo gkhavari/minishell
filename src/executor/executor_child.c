@@ -52,7 +52,8 @@ static int	needs_dollar_quote(char *cmd_name)
 	i = 0;
 	while (cmd_name && cmd_name[i])
 	{
-		if ((unsigned char)cmd_name[i] < 32 || (unsigned char)cmd_name[i] == 127)
+		if ((unsigned char)cmd_name[i] < 32
+			|| (unsigned char)cmd_name[i] == 127)
 			return (1);
 		i++;
 	}

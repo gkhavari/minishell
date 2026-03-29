@@ -77,6 +77,7 @@ SRCS        += $(SRC_DIR)/builtins/cd.c \
 			   $(SRC_DIR)/builtins/export_utils.c \
 			   $(SRC_DIR)/builtins/unset.c \
 			   $(SRC_DIR)/builtins/exit.c \
+			   $(SRC_DIR)/builtins/exit_utils.c \
 			   $(SRC_DIR)/builtins/export_print.c \
 			   $(SRC_DIR)/builtins/builtin_dispatcher.c
 

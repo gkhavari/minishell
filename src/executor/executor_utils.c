@@ -48,7 +48,7 @@ static void	print_redir_error(char *file, int err)
 */
 static int	apply_one_redir(t_redir *r, int *had_input)
 {
-	int	fd;
+	int		fd;
 	size_t	prefix_len;
 
 	prefix_len = ft_strlen(MSH_AMBIG_REDIR_PREFIX);

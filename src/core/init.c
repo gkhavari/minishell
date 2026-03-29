@@ -86,6 +86,18 @@ static void	update_shlvl(t_shell *shell)
 		(append_export_env(shell, entry), free(entry));
 }
 
+static void	init_runtime_fields(t_shell *shell)
+{
+	shell->last_exit = 0;
+	shell->barrier_write_fd = -1;
+	shell->tokens = NULL;
+	shell->commands = NULL;
+	shell->input = NULL;
+	shell->word_quoted = 0;
+	shell->heredoc_mode = 0;
+	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
+}
+
 void	init_shell(t_shell *shell, char **envp)
 {
 	char	*user;
@@ -104,12 +116,7 @@ void	init_shell(t_shell *shell, char **envp)
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		shell->cwd = ft_strdup("/");
-	shell->last_exit = 0;
-	shell->barrier_write_fd = -1;
-	shell->tokens = NULL;
-	shell->commands = NULL;
-	shell->input = NULL;
-	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
+	init_runtime_fields(shell);
 	if (isatty(STDIN_FILENO))
 		update_shlvl(shell);
 }

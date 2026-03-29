@@ -35,17 +35,19 @@ void		flush_word(t_shell *shell, char **word, t_token **token);
 void		add_token(t_token **head, t_token *new);
 t_token		*new_token(t_shell *shell, t_tokentype type, char *value);
 void		append_char(t_shell *shell, char **dst, char c);
-void		mark_word_quoted(void);
-void		set_heredoc_mode(int mode);
-int			is_heredoc_mode(void);
+void		mark_word_quoted(t_shell *shell);
+void		set_heredoc_mode(t_shell *shell, int mode);
+int			is_heredoc_mode(t_shell *shell);
 
 /* tokenizer_handlers.c */
 int			handle_end_of_string(t_shell *shell, t_state *state);
-int			handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state);
-int			process_quote(char c, t_state *state);
+int			handle_backslash(t_shell *shell, size_t *i,
+				char **word, t_state *state);
+int			process_quote(t_shell *shell, char c, t_state *state);
 int			handle_operator(t_shell *shell, size_t *i, char **word);
 int			handle_whitespace(t_shell *shell, size_t *i, char **word);
-void		process_normal_char(t_shell *shell, char c, size_t *i, char **word);
+void		process_normal_char(t_shell *shell, char c, size_t *i,
+				char **word);
 
 /* tokenizer_quotes.c */
 int			handle_single_quote(t_shell *shell, size_t *i,
@@ -139,6 +141,7 @@ int			builtin_echo(char **args, t_shell *shell);
 int			builtin_export(char **args, t_shell *shell);
 int			builtin_unset(char **args, t_shell *shell);
 int			builtin_exit(char **args, t_shell *shell);
+int			parse_exit_value(char *str, long long *value);
 
 /* export_utils.c */
 int			is_valid_export_name(char *name);

@@ -88,6 +88,8 @@ typedef struct s_shell
 	t_token		*tokens;
 	t_command	*commands;
 	char		*input;
+	int			word_quoted;
+	int			heredoc_mode;
 }	t_shell;
 
 #endif
