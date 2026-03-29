@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 17:37:56 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 18:53:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,30 +14,26 @@
 
 static void	print_redir_error(char *file, int err)
 {
-	char	*tmp;
 	char	*line;
+	char	*msg;
+	size_t	len;
 
-	tmp = ft_strjoin(file, ": ");
-	if (!tmp)
-	{
-		ft_putstr_fd(file, 2);
-		ft_putstr_fd(": ", 2);
-		ft_putstr_fd(strerror(err), 2);
-		ft_putstr_fd("\n", 2);
-		return ;
-	}
-	line = ft_strjoin(tmp, strerror(err));
-	free(tmp);
+	msg = strerror(err);
+	len = ft_strlen(file) + ft_strlen(msg) + 4;
+	line = malloc(len);
 	if (!line)
 	{
 		ft_putstr_fd(file, 2);
 		ft_putstr_fd(": ", 2);
-		ft_putstr_fd(strerror(err), 2);
+		ft_putstr_fd(msg, 2);
 		ft_putstr_fd("\n", 2);
 		return ;
 	}
+	ft_strlcpy(line, file, len);
+	ft_strlcat(line, ": ", len);
+	ft_strlcat(line, msg, len);
+	ft_strlcat(line, "\n", len);
 	write(STDERR_FILENO, line, ft_strlen(line));
-	write(STDERR_FILENO, "\n", 1);
 	free(line);
 }
 
