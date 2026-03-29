@@ -92,11 +92,13 @@ static void	append_redir(t_command *cmd, char *file, int fd, int append)
  RETURN:
 * None.
 */
-static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
+static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word, int quoted)
 {
 	t_arg	*new;
 	t_arg	*tmp;
 
+	if (!word || (!*word && !quoted))
+		return ;
 	new = msh_calloc(shell, 1, sizeof(t_arg));
 	new->value = ft_strdup(word);
 	new->next = NULL;
@@ -136,7 +138,7 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
 	if (token->type == WORD)
 	{
-		add_word_to_cmd(shell, cmd, token->value);
+		add_word_to_cmd(shell, cmd, token->value, token->quoted);
 		return (1);
 	}
 	if (token->type == HEREDOC)

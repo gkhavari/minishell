@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:44:42 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 20:54:03 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 21:35:24 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,6 +85,8 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 		pid = run_pipe_step(cmd, shell, &prev_fd, sync_fd);
 		if (pid < 0)
 			break ;
+		if (shell->barrier_write_fd != -1)
+			write(shell->barrier_write_fd, "x", 1);
 		*last_pid = pid;
 		cmd = cmd->next;
 		i++;
@@ -111,13 +113,19 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 */
 static void	setup_pipeline_barrier(t_shell *shell, int sync_fd[2])
 {
-	(void)sync_fd;
-	shell->barrier_write_fd = -1;
+	if (pipe(sync_fd) == -1)
+	{
+		sync_fd[0] = -1;
+		sync_fd[1] = -1;
+		shell->barrier_write_fd = -1;
+		return ;
+	}
+	shell->barrier_write_fd = sync_fd[1];
 }
 
 static void	close_pipeline_barrier(t_shell *shell, int sync_fd[2], int n)
 {
-	release_pipeline_barrier(-1, n);
+	release_pipeline_barrier(shell->barrier_write_fd, n);
 	if (sync_fd[0] != -1)
 		close(sync_fd[0]);
 	if (sync_fd[1] != -1)

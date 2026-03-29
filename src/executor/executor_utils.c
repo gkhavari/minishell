@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 18:53:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 21:43:51 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,20 +171,28 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 */
 int	apply_redirections(t_command *cmd)
 {
-	t_redir	*r;
-	int		had_input;
+	t_redir		*r;
+	int			had_input;
 
 	had_input = 0;
 	r = cmd->redirs;
 	while (r)
 	{
 		if (apply_one_redir(r, &had_input))
+		{
+			if (cmd->heredoc_fd != -1)
+			{
+				close(cmd->heredoc_fd);
+				cmd->heredoc_fd = -1;
+			}
 			return (1);
+		}
 		r = r->next;
 	}
-	if (cmd->heredoc_fd != -1 && !had_input)
+	if (cmd->heredoc_fd != -1)
 	{
-		dup2(cmd->heredoc_fd, STDIN_FILENO);
+		if (!had_input)
+			dup2(cmd->heredoc_fd, STDIN_FILENO);
 		close(cmd->heredoc_fd);
 		cmd->heredoc_fd = -1;
 	}
