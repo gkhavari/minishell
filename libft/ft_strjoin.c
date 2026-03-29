@@ -66,30 +66,3 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	joined[len1 + len2] = '\0';
 	return (joined);
 }
-/*
-#include <stdio.h>
-
-typedef struct TestCase {
-	char str1[1024];
-	char str2[1024];
-} TestCase;
-
-int main(void)
-{
-	TestCase test_cases[] = {
-		{.str1 = "Lorem ip", .str2 = "sum"},
-		{.str1 = "", .str2 = "Lorem ipsum"},
-		{.str1 = "Lorem ipsum", .str2 = ""},
-		{.str1 = "", .str2 = ""}
-	};
-	size_t num_of_tests = sizeof(test_cases) / sizeof(test_cases[0]);
-	size_t i = 0;
-	while (i < num_of_tests)
-	{
-		printf("String 1:         %s\n", test_cases[i].str1);
-		printf("String 2:         %s\n", test_cases[i].str2);
-		printf("joined string:    %s\n\n", ft_strjoin(test_cases[i].str1, \
-		test_cases[i].str2));
-		i++;
-	}
-}*/

@@ -18,23 +18,3 @@ int	ft_toupper(int c)
 		c = c - 32;
 	return (c);
 }
-/*
-#include <stdio.h>
-#include <ctype.h>
-int	main(void)
-{
-	int i = 0;
-	while (i < 127)
-	{
-		if (ft_toupper(i) != toupper(i))
-		{
-			printf("ft_toupper: failed on %d\n", i);
-			printf("my function gives %d, expected %d\n", 
-			ft_toupper(i), toupper(i));
-			return (1);
-		}
-		i++;
-	}
-	printf("ft_toupper: ok\n");
-	return (0);
-}*/
