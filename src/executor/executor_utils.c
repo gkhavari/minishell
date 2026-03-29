@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/28 03:39:54 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 17:37:56 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,40 @@ static void	print_redir_error(char *file, int err)
 	free(line);
 }
 
+static int	apply_input_redir(t_redir *r, int *had_input)
+{
+	int	fd;
+
+	fd = open(r->file, O_RDONLY);
+	if (fd == -1)
+	{
+		print_redir_error(r->file, errno);
+		return (1);
+	}
+	dup2(fd, STDIN_FILENO);
+	close(fd);
+	*had_input = 1;
+	return (0);
+}
+
+static int	apply_output_redir(t_redir *r)
+{
+	int	fd;
+
+	if (r->append)
+		fd = open(r->file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+	else
+		fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd == -1)
+	{
+		print_redir_error(r->file, errno);
+		return (1);
+	}
+	dup2(fd, r->fd);
+	close(fd);
+	return (0);
+}
+
 /*
 ** apply_one_redir - Open one redirection and dup2 to stdin or stdout.
 ** Sets *had_input if it's an input redirect.
@@ -48,7 +82,6 @@ static void	print_redir_error(char *file, int err)
 */
 static int	apply_one_redir(t_redir *r, int *had_input)
 {
-	int		fd;
 	size_t	prefix_len;
 
 	prefix_len = ft_strlen(MSH_AMBIG_REDIR_PREFIX);
@@ -60,32 +93,8 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 		return (1);
 	}
 	if (r->fd == STDIN_FILENO)
-	{
-		fd = open(r->file, O_RDONLY);
-		if (fd == -1)
-		{
-			print_redir_error(r->file, errno);
-			return (1);
-		}
-		dup2(fd, STDIN_FILENO);
-		close(fd);
-		*had_input = 1;
-	}
-	else
-	{
-		if (r->append)
-			fd = open(r->file, O_WRONLY | O_CREAT | O_APPEND, 0644);
-		else
-			fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-		if (fd == -1)
-		{
-			print_redir_error(r->file, errno);
-			return (1);
-		}
-		dup2(fd, r->fd);
-		close(fd);
-	}
-	return (0);
+		return (apply_input_redir(r, had_input));
+	return (apply_output_redir(r));
 }
 
 /*
@@ -113,37 +122,4 @@ int	apply_redirections(t_command *cmd)
 		cmd->heredoc_fd = -1;
 	}
 	return (0);
-}
-
-void	restore_fds(int stdin_backup, int stdout_backup)
-{
-	dup2(stdin_backup, STDIN_FILENO);
-	dup2(stdout_backup, STDOUT_FILENO);
-	close(stdin_backup);
-	close(stdout_backup);
-}
-
-int	execute_builtin(t_command *cmd, t_shell *shell)
-{
-	return (run_builtin(cmd->argv, shell));
-}
-
-void	set_underscore(t_shell *shell, char *path)
-{
-	char	*entry;
-	int		idx;
-
-	if (!path)
-		return ;
-	entry = ft_strjoin("_=", path);
-	if (!entry)
-		return ;
-	idx = find_export_key_index(shell, "_", 1);
-	if (idx >= 0)
-	{
-		free(shell->envp[idx]);
-		shell->envp[idx] = entry;
-	}
-	else
-		(append_export_env(shell, entry), free(entry));
 }

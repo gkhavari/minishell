@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 14:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 18:43:53 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 18:43:57 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,11 +35,11 @@ static void	print_export_entry(char *entry)
 
 	eq = ft_strchr(entry, '=');
 	if (!eq)
-		return (ft_putstr_fd("declare -x ", 1), ft_putstr_fd(entry, 1),
+		return (ft_putstr_fd("export ", 1), ft_putstr_fd(entry, 1),
 			ft_putchar_fd('\n', 1));
 	key = ft_substr(entry, 0, eq - entry);
 	out = NULL;
-	ft_putstr_fd("declare -x ", 1);
+	ft_putstr_fd("export ", 1);
 	ft_putstr_fd(key, 1);
 	ft_putstr_fd("=\"", 1);
 	if (ft_strcmp(key, "SHLVL") == 0)

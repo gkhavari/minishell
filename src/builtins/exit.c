@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                            :+:      :+:    :+:   */
+/*   exit.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:32 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 17:48:07 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,14 +37,14 @@ static int	check_exit_value(char **args, long long *value)
 		ft_putstr_fd("minishell: exit: ", 2);
 		ft_putstr_fd(args[1], 2);
 		ft_putendl_fd(": numeric argument required", 2);
-		return (0);
+		return (2);
 	}
 	if (args[2])
 	{
 		ft_putendl_fd("minishell: exit: too many arguments", 2);
-		return (0);
+		return (1);
 	}
-	return (1);
+	return (0);
 }
 
 /*
@@ -60,7 +60,10 @@ int	builtin_exit(char **args, t_shell *shell)
 		ft_putendl_fd("exit", STDERR_FILENO);
 	if (!args[1])
 		clean_exit(shell, shell->last_exit);
-	if (!check_exit_value(args, &value))
+	shell->last_exit = check_exit_value(args, &value);
+	if (shell->last_exit == 1)
+		return (1);
+	if (shell->last_exit == 2)
 		clean_exit(shell, 2);
 	clean_exit(shell, exit_mod256(value));
 	return (0);

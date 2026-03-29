@@ -92,4 +92,12 @@ typedef struct s_shell
 	int			heredoc_mode;
 }	t_shell;
 
+typedef struct s_heredoc_ctx
+{
+	t_command	*cmd;
+	t_shell		*shell;
+	int			pipe_fd[2];
+	int			expand;
+}	t_heredoc_ctx;
+
 #endif

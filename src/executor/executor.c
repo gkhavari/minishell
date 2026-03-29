@@ -5,56 +5,12 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/28 02:50:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/28 02:50:13 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 18:44:54 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 18:44:56 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-/*
-** wait_pipeline - Wait for all pipeline children and get last exit status
-** Bash convention: pipeline exit status = exit status of the LAST command.
-*/
-int	wait_pipeline(pid_t *pids, int n)
-{
-	int	status;
-	int	last;
-	int	i;
-
-	last = 0;
-	i = 0;
-	while (i < n)
-	{
-		waitpid(pids[i], &status, 0);
-		if (i == n - 1)
-		{
-			if (WIFEXITED(status))
-				last = WEXITSTATUS(status);
-			else if (WIFSIGNALED(status))
-				last = 128 + WTERMSIG(status);
-		}
-		i++;
-	}
-	return (last);
-}
-
-/*
-** count_cmds - Count the number of commands in a pipeline
-** Used by execute_pipeline to allocate the PID array.
-*/
-int	count_cmds(t_command *cmd)
-{
-	int	n;
-
-	n = 0;
-	while (cmd)
-	{
-		n++;
-		cmd = cmd->next;
-	}
-	return (n);
-}
 
 static int	backup_fds(int *in, int *out)
 {
@@ -71,15 +27,45 @@ static int	backup_fds(int *in, int *out)
 	return (0);
 }
 
-static int	must_run_builtin_in_parent(t_command *cmd)
+static int	run_empty_command(t_command *cmd, int *in, int *out)
 {
-	t_builtin	type;
+	int	need_restore;
+
+	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+	if (need_restore && backup_fds(in, out))
+		return (1);
+	if (need_restore && apply_redirections(cmd))
+	{
+		restore_fds(*in, *out);
+		return (1);
+	}
+	if (need_restore)
+		restore_fds(*in, *out);
+	return (0);
+}
+
+static int	run_builtin_command(t_command *cmd, t_shell *shell,
+		int *in, int *out)
+{
+	int	type;
+	int	need_restore;
 
 	type = get_builtin_type(cmd->argv[0]);
-	if (type == BUILTIN_CD || type == BUILTIN_EXPORT
-		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT)
+	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+	if ((type != BUILTIN_CD && type != BUILTIN_EXPORT
+			&& type != BUILTIN_UNSET && type != BUILTIN_EXIT)
+		&& need_restore)
+		return (execute_external(cmd, shell));
+	if (need_restore && backup_fds(in, out))
 		return (1);
-	return (0);
+	if (need_restore && apply_redirections(cmd))
+	{
+		restore_fds(*in, *out);
+		return (1);
+	}
+	if (need_restore)
+		restore_fds(*in, *out);
+	return (execute_builtin(cmd, shell));
 }
 
 /*
@@ -93,42 +79,12 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 	int	stdin_backup;
 	int	stdout_backup;
 	int	status;
-	int	need_restore;
 
 	if (!cmd->argv || !cmd->argv[0])
-	{
-		need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-		if (need_restore && backup_fds(&stdin_backup, &stdout_backup))
-			return (1);
-		if (need_restore && apply_redirections(cmd))
-		{
-			restore_fds(stdin_backup, stdout_backup);
-			return (1);
-		}
-		if (need_restore)
-			restore_fds(stdin_backup, stdout_backup);
-		return (0);
-	}
+		return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
 	if (cmd->is_builtin)
-	{
-		if (!must_run_builtin_in_parent(cmd)
-			&& (cmd->redirs != NULL || cmd->heredoc_fd != -1))
-			return (execute_external(cmd, shell));
-		need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-		if (need_restore && backup_fds(&stdin_backup, &stdout_backup))
-			return (1);
-		if (need_restore && apply_redirections(cmd))
-		{
-			restore_fds(stdin_backup, stdout_backup);
-			return (1);
-		}
-		status = execute_builtin(cmd, shell);
-		if (need_restore)
-			restore_fds(stdin_backup, stdout_backup);
-		return (status);
-	}
-	else
-		status = execute_external(cmd, shell);
+		return (run_builtin_command(cmd, shell, &stdin_backup, &stdout_backup));
+	status = execute_external(cmd, shell);
 	return (status);
 }
 

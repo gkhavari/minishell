@@ -1,19 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_pipeline.c                               :+:      :+:    :+:   */
+/*   executor_pipeline.c                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 18:44:42 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 18:44:44 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
-			int *prev_fd, int start_fd, int barrier_write_fd);
+			int *prev_fd, int sync_fd[2]);
 void	release_pipeline_barrier(int write_fd, int count);
 
 /*
@@ -44,24 +44,13 @@ static int	wait_children_last(pid_t last_pid, int n)
 	return (last_status);
 }
 
-static int	has_pipeline_redirs(t_command *cmd)
-{
-	while (cmd)
-	{
-		if (cmd->redirs)
-			return (1);
-		cmd = cmd->next;
-	}
-	return (0);
-}
-
 /*
 ** run_pipeline_loop - Fork each command and connect them with pipes
 ** start_fd is a read end for a launch barrier shared by all children.
 ** Returns the number of children forked.
 */
 static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
-		pid_t *last_pid, int start_fd, int barrier_write_fd)
+		pid_t *last_pid, int sync_fd[2])
 {
 	int		prev_fd;
 	int		i;
@@ -72,7 +61,7 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 	*last_pid = -1;
 	while (cmd)
 	{
-		pid = run_pipe_step(cmd, shell, &prev_fd, start_fd, barrier_write_fd);
+		pid = run_pipe_step(cmd, shell, &prev_fd, sync_fd);
 		if (pid < 0)
 			break ;
 		*last_pid = pid;
@@ -93,23 +82,20 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {
 	pid_t	last_pid;
-	int		start_pipe[2];
+	int		sync_fd[2];
 	int		result;
 	int		n;
 
-	start_pipe[0] = -1;
-	start_pipe[1] = -1;
-	if (!has_pipeline_redirs(cmds) && pipe(start_pipe) == -1)
-		start_pipe[1] = -1;
-	shell->barrier_write_fd = start_pipe[1];
+	sync_fd[0] = -1;
+	sync_fd[1] = -1;
+	shell->barrier_write_fd = -1;
 	set_signals_ignore();
-	n = run_pipeline_loop(cmds, shell, &last_pid, start_pipe[0],
-			start_pipe[1]);
-	release_pipeline_barrier(start_pipe[1], n);
-	if (start_pipe[0] != -1)
-		close(start_pipe[0]);
-	if (start_pipe[1] != -1)
-		close(start_pipe[1]);
+	n = run_pipeline_loop(cmds, shell, &last_pid, sync_fd);
+	release_pipeline_barrier(-1, n);
+	if (sync_fd[0] != -1)
+		close(sync_fd[0]);
+	if (sync_fd[1] != -1)
+		close(sync_fd[1]);
 	shell->barrier_write_fd = -1;
 	result = 1;
 	if (n > 0)

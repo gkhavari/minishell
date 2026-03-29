@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_pipeline_steps.c                         :+:      :+:    :+:   */
+/*   executor_pipeline_steps.c                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/28 15:57:00 by thanh-ng         #+#    #+#             */
-/*   Updated: 2026/03/28 15:57:00 by thanh-ng        ###   ########.fr       */
+/*   Created: 2026/03/29 17:39:42 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 17:39:44 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ static void	setup_child_fds(int prev_fd, int pipe_fd[3], int has_next,
 }
 
 static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
-		int pipe_fd[3], int barrier_write_fd)
+		int pipe_fd[3])
 {
 	pid_t	pid;
 
@@ -48,10 +48,10 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 	if (pid == 0)
 	{
 		set_signals_default();
-
 		if (shell->barrier_write_fd != -1)
 			close(shell->barrier_write_fd);
-		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL, barrier_write_fd);
+		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL,
+			shell->barrier_write_fd);
 		if (apply_redirections(cmd) != 0)
 			exit_child(shell, 1);
 		execute_in_child(cmd, shell);
@@ -60,17 +60,17 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 }
 
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
-		int *prev_fd, int start_fd, int barrier_write_fd)
+		int *prev_fd, int sync_fd[2])
 {
 	int		pipe_fd[3];
 	pid_t	pid;
 
 	pipe_fd[0] = -1;
 	pipe_fd[1] = -1;
-	pipe_fd[2] = start_fd;
+	pipe_fd[2] = sync_fd[0];
 	if (cmd->next && pipe(pipe_fd) == -1)
 		return (-1);
-	pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd, barrier_write_fd);
+	pid = fork_pipeline_cmd(cmd, shell, *prev_fd, pipe_fd);
 	if (pid < 0)
 	{
 		if (cmd->next)

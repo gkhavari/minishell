@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 14:58:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 14:58:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 18:43:42 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,11 +27,9 @@ static void	parse_exit_init(char *str, int *i, int *sign, int *valid)
 	*valid = ft_isdigit(str[*i]);
 }
 
-static int	parse_exit_accumulate(char *str, int *i, unsigned long long *acc)
+static int	parse_exit_accumulate(char *str, int *i,
+		unsigned long long *acc, unsigned long long limit)
 {
-	unsigned long long	limit;
-
-	limit = (unsigned long long)LLONG_MAX;
 	while (ft_isdigit(str[*i]))
 	{
 		if (*acc > (limit - (unsigned long long)(str[*i] - '0')) / 10)
@@ -42,14 +40,11 @@ static int	parse_exit_accumulate(char *str, int *i, unsigned long long *acc)
 	return (1);
 }
 
-static int	parse_exit_finalize(char *str, int i, int sign,
-		unsigned long long *data)
+static int	parse_exit_finalize(char *str, int i)
 {
 	while (str[i] && is_space_char(str[i]))
 		i++;
 	if (str[i] != '\0')
-		return (0);
-	if (sign < 0 && *data == (unsigned long long)LLONG_MAX + 1ULL)
 		return (0);
 	return (1);
 }
@@ -57,6 +52,7 @@ static int	parse_exit_finalize(char *str, int i, int sign,
 int	parse_exit_value(char *str, long long *value)
 {
 	unsigned long long	acc;
+	unsigned long long	limit;
 	int					i;
 	int					sign;
 	int					valid;
@@ -68,9 +64,10 @@ int	parse_exit_value(char *str, long long *value)
 	if (!valid)
 		return (0);
 	acc = 0;
-	if (!parse_exit_accumulate(str, &i, &acc))
+	limit = (unsigned long long)LLONG_MAX + (sign < 0);
+	if (!parse_exit_accumulate(str, &i, &acc, limit))
 		return (0);
-	if (!parse_exit_finalize(str, i, sign, &acc))
+	if (!parse_exit_finalize(str, i))
 		return (0);
 	if (sign < 0 && acc == (unsigned long long)LLONG_MAX + 1ULL)
 		*value = LLONG_MIN;

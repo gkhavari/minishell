@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:55:26 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 13:54:13 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 18:38:32 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,18 +84,6 @@ static void	update_shlvl(t_shell *shell)
 		(free(shell->envp[idx]), (shell->envp[idx] = entry));
 	else
 		(append_export_env(shell, entry), free(entry));
-}
-
-static void	init_runtime_fields(t_shell *shell)
-{
-	shell->last_exit = 0;
-	shell->barrier_write_fd = -1;
-	shell->tokens = NULL;
-	shell->commands = NULL;
-	shell->input = NULL;
-	shell->word_quoted = 0;
-	shell->heredoc_mode = 0;
-	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
 }
 
 void	init_shell(t_shell *shell, char **envp)

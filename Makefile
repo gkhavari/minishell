@@ -27,6 +27,7 @@ SRCS		=	$(SRC_DIR)/main.c
 
 # core
 SRCS		+=	$(SRC_DIR)/core/init.c
+SRCS		+=	$(SRC_DIR)/core/init_runtime.c
 SRCS		+=	$(SRC_DIR)/core/frontend.c
 
 # utils
@@ -58,14 +59,19 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/add_token_to_cmd.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
+				$(SRC_DIR)/parser/heredoc_warning.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \
+			   $(SRC_DIR)/executor/executor_count.c \
 			   $(SRC_DIR)/executor/executor_utils.c \
+			   $(SRC_DIR)/executor/executor_cmd_utils.c \
 			   $(SRC_DIR)/executor/executor_external.c \
 			   $(SRC_DIR)/executor/executor_pipeline.c \
 			   $(SRC_DIR)/executor/executor_pipeline_steps.c \
+			   $(SRC_DIR)/executor/executor_child_format.c \
+			   $(SRC_DIR)/executor/executor_child_exec.c \
 			   $(SRC_DIR)/executor/executor_child.c
 
 # builtins
