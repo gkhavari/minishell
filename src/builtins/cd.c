@@ -6,13 +6,11 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:16 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/12/08 15:18:58 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 19:30:23 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-#include <errno.h>
-#include <string.h>
 
 static char	*get_cd_target(char **args, t_shell *shell, int *print)
 {
