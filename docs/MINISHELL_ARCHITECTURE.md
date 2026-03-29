@@ -42,14 +42,14 @@ Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed 
 | Directory | Purpose |
 |-----------|---------|
 | `src/` | `main.c` only — REPL loop, read_input, process_input |
-| `src/core/` | Shell initialization: `init.c` (init_shell, build_prompt, get_env_value) |
+| `src/core/` | Shell initialization: `init.c` (init_shell, build_prompt, get_env_value), `init_runtime.c` (runtime field init) |
 | `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
 | `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
-| `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc |
-| `src/executor/` | Execution: executor.c, executor_utils, external, pipeline, child |
-| `src/builtins/` | Builtin commands and dispatcher |
+| `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc, heredoc_utils, heredoc_warning |
+| `src/executor/` | Execution: executor.c, executor_utils, executor_external, executor_pipeline, executor_pipeline_steps, executor_child, executor_child_exec, executor_child_format, executor_count, executor_cmd_utils |
+| `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
 
 ```mermaid
 graph TB
@@ -58,6 +58,7 @@ graph TB
     end
     subgraph core
         init[core/init.c]
+        init_rt[core/init_runtime.c]
     end
     subgraph utils
         utils_file[utils/utils.c]
@@ -89,13 +90,19 @@ graph TB
         argv_build[argv_build.c]
         heredoc[heredoc.c]
         heredoc_utils[heredoc_utils.c]
+        heredoc_warn[heredoc_warning.c]
     end
     subgraph Executor
         exec[executor.c]
         exec_utils[executor_utils.c]
         exec_external[executor_external.c]
         exec_pipeline[executor_pipeline.c]
+        exec_pipe_steps[executor_pipeline_steps.c]
         exec_child[executor_child.c]
+        exec_child_exec[executor_child_exec.c]
+        exec_child_fmt[executor_child_format.c]
+        exec_count[executor_count.c]
+        exec_cmd_utils[executor_cmd_utils.c]
     end
     subgraph Builtins
         dispatcher[builtin_dispatcher.c]
@@ -108,8 +115,10 @@ graph TB
         export_print[export_print.c]
         unset[unset.c]
         exit[exit.c]
+        exit_utils[exit_utils.c]
     end
     main --> init
+    init --> init_rt
     main --> utils_file
     main --> tok
     main --> parser
@@ -118,9 +127,14 @@ graph TB
     parser --> exec
     exec --> dispatcher
     exec --> exec_utils
+    exec --> exec_cmd_utils
     exec --> exec_external
     exec --> exec_pipeline
+    exec_pipeline --> exec_pipe_steps
+    exec_pipeline --> exec_count
     exec --> exec_child
+    exec_child --> exec_child_exec
+    exec_child_exec --> exec_child_fmt
     dispatcher --> echo
     dispatcher --> cd
     dispatcher --> pwd
@@ -128,6 +142,7 @@ graph TB
     dispatcher --> export
     dispatcher --> unset
     dispatcher --> exit
+    exit --> exit_utils
 ```
 
 ### 0.4 Pipeline: Input → Execution (real flow)
@@ -210,8 +225,14 @@ init_shell(t_shell *shell, char **envp)
 ├── 5. shell->last_exit = 0; shell->tokens/commands/input = NULL
 ├── 6. shell->had_path = (PATH was present in env at startup) — used in PATH resolution
 ├── 7. update_shlvl(shell) — increments or sets SHLVL in envp (bash-like nesting)
+├── 8. init_runtime_fields(shell) — sets barrier_write_fd=-1, word_quoted=0, heredoc_mode=0
 └── Signal handlers are set in main() after init: set_signals_interactive()
 ```
+
+**Shell struct fields** (see `includes/structs.h`): In addition to the core fields above, `t_shell` includes three internal flags:
+- **`barrier_write_fd`**: Write FD for the pipeline launch barrier (or -1 if not active). Used to synchronize child startup in pipelines to reduce stderr ordering variance.
+- **`word_quoted`**: Internal tokenizer flag — marks the current word as containing quoted content.
+- **`heredoc_mode`**: Internal tokenizer flag — suppresses `$` expansion inside heredoc delimiter parsing.
 
 See [BEHAVIOR.md](BEHAVIOR.md) for runtime semantics. For **42 tester–related fixes** (token list, USER, PATH, export/unset, etc.), see [42_tester_failures.md](42_tester_failures.md).
 
@@ -263,12 +284,13 @@ flowchart TD
 ```c
 typedef enum e_tokentype
 {
-    WORD,       /* Commands, arguments, filenames */
-    PIPE,       /* | */
-    REDIR_IN,   /* < */
-    REDIR_OUT,  /* > */
-    APPEND,     /* >> */
-    HEREDOC     /* << */
+    WORD,          /* Commands, arguments, filenames */
+    PIPE,          /* | */
+    REDIR_IN,      /* < */
+    REDIR_OUT,     /* > */
+    APPEND,        /* >> */
+    HEREDOC,       /* << */
+    REDIR_ERR_OUT  /* 2> (redirect stderr to file) */
 }   t_tokentype;
 ```
 
@@ -288,6 +310,7 @@ State: NORMAL
         ├── > → Check next char
         │       ├── > → Emit APPEND
         │       └── else → Emit REDIR_OUT
+        ├── 2> → Emit REDIR_ERR_OUT (stderr redirect)
         └── Other → Accumulate into WORD
 
 State: SINGLE_QUOTED (')
@@ -672,7 +695,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/executor.c` (`execute_commands`), `executor/executor_utils.c` (redirections, `execute_builtin`), `executor/executor_external.c`, `executor/executor_pipeline.c`, `executor/executor_child.c`.
+**Implementation:** `executor/executor.c` (`execute_commands`), `executor/executor_utils.c` (redirections), `executor/executor_cmd_utils.c` (`execute_builtin`, `restore_fds`, `set_underscore`), `executor/executor_external.c`, `executor/executor_pipeline.c` + `executor_pipeline_steps.c` (pipeline orchestration), `executor/executor_child.c` + `executor_child_exec.c` + `executor_child_format.c` (child process), `executor/executor_count.c` (`wait_pipeline`, `count_cmds`).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -853,26 +876,32 @@ void execute_pipeline(t_command *cmds, t_shell *shell)
 }
 ```
 
-### 7.6 Command Execution (In Child) — actual: `executor_child.c` `execute_in_child()`
+### 7.6 Command Execution (In Child) — actual: `executor_child_exec.c` `execute_in_child()`
 
 ```c
-/* executor_child.c */
+/* executor_child_exec.c */
 void execute_in_child(t_command *cmd, t_shell *shell)
 {
     char *path;
 
     if (cmd->is_builtin)
-        exit(run_builtin(cmd->argv, shell));
+        run_builtin_child(cmd, shell);  /* exit(run_builtin(...)) */
     if (!cmd->argv || !cmd->argv[0])
-        exit(0);
+        exit_child(shell, 0);
     path = find_command_path(cmd->argv[0], shell);  /* executor_external.c */
     if (!path)
-        cmd_not_found(cmd->argv[0]);   /* stderr + exit(127) */
-    check_is_dir(cmd->argv[0], path);  /* exit(126) if directory */
+        cmd_not_found(shell, cmd->argv[0]);   /* stderr + exit(127) */
+    check_is_dir(shell, cmd->argv[0], path);  /* exit(126) if directory */
     execve(path, cmd->argv, shell->envp);
-    handle_exec_error(cmd->argv[0], path);
+    handle_exec_error(shell, cmd->argv[0], path);
 }
 ```
+
+**Supporting files:**
+- **`executor_child.c`**: `exit_child(shell, status)` — clean child exit (frees all, closes FDs); `free_array(arr)`.
+- **`executor_child_format.c`**: `write_err3(prefix, name, msg)` — write 3-part error to stderr; `format_cmd_name_for_error(name)` — escapes special chars for display.
+- **`executor_count.c`**: `wait_pipeline(pids, n)` — wait for all pipeline children; `count_cmds(cmd)` — count commands in linked list.
+- **`executor_cmd_utils.c`**: `restore_fds()`, `execute_builtin()`, `set_underscore()` — shared helpers extracted from executor_utils.
 
 ### 7.7 Path Resolution
 
@@ -1223,10 +1252,13 @@ Phase 5: Pipes & Heredoc
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
 └── [x] Signal handling in children (wait_pipeline, exit codes 128+N)
 
-Phase 6: Polish
+Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)
 ├── [x] Memory cleanup (free/free_shell.c, free/free_runtime.c, reset_shell)
 ├── [x] Edge case handling (hardening tests pass)
+├── [x] Executor refactored: child_exec, child_format, pipeline_steps, count, cmd_utils extracted
+├── [x] Exit utils extracted: parse_exit_value in exit_utils.c
+├── [x] Pipeline barrier for stderr ordering (barrier_write_fd in t_shell)
 └── [ ] Norminette / 42 compliance (project-specific)
 ```
 
