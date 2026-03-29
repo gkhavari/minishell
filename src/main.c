@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:18:07 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 16:16:02 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,6 @@
  DESCRIPTION:
 * Run the full processing pipeline for the current input line.
 
- BEHAVIOR:
-* Tokenizes input, parses commands, processes heredocs and executes
-* the resulting commands. Sets `shell->last_exit` and returns early
-* on errors or signals.
-
- PARAMETERS:
 * t_shell *shell: Shell runtime holding the input and parsed commands.
 
  RETURN:
@@ -115,7 +109,7 @@ static int	read_input(t_shell *shell)
 			ft_putstr_fd("exit\n", STDOUT_FILENO);
 		return (0);
 	}
-	if (check_signal_received(shell))
+	if (check_signal_received(shell) && (!shell->input || shell->input[0] == '\0'))
 		return (free(shell->input), shell->input = NULL, -1);
 	return (1);
 }
@@ -144,6 +138,7 @@ static void	shell_loop(t_shell *shell)
 	{
 		check_signal_received(shell);
 		status = read_input(shell);
+		(void)shell;
 		if (status == 0)
 			break ;
 		if (status == -1)

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 14:10:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:38:39 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 16:09:19 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ int	readline_event_hook(void)
 {
 	if (g_signum == SIGINT)
 	{
-		g_signum = 0;
+		g_signum = SIGINT + 1;
 		rl_on_new_line();
 		rl_redisplay();
 	}
@@ -60,7 +60,7 @@ int	readline_event_hook(void)
 */
 int	check_signal_received(t_shell *shell)
 {
-	if (g_signum == SIGINT)
+	if (g_signum == SIGINT || g_signum == SIGINT + 1)
 	{
 		shell->last_exit = EXIT_SIGINT;
 		g_signum = 0;
