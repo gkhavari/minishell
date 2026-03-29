@@ -30,7 +30,7 @@ RETURN VALUE:
 t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 {
 	t_token	*token;
-	char *temp;
+	char	*temp;
 
 	token = msh_calloc(shell, 1, sizeof(*token));
 	token->type = type;

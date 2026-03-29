@@ -71,23 +71,22 @@ void	append_expansion_quoted(char **word, const char *exp)
  RETURN:
  * None.
 */
-void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
-		t_token **tokens)
+void	append_expansion_unquoted(t_shell *shell, char **word,
+		const char *exp, size_t *j)
 {
 	size_t	i;
 
 	i = 0;
 	if (exp == NULL)
 		return ;
-	if (exp[0] == '\0' && *word == NULL)
-
-		add_token(tokens, new_token(shell, WORD, (char *) &exp[0]));
+	if (exp[0] == '\0' && *word == NULL && *j == 0)
+		add_token(&shell->tokens, new_token(shell, WORD, (char *) &exp[0]));
 	while (exp[i])
 	{
 		if (exp[i] == ' ' || exp[i] == '\t')
 		{
 			if (*word)
-				flush_word(shell, word, tokens);
+				flush_word(shell, word, &shell->tokens);
 			while (exp[i] == ' ' || exp[i] == '\t')
 				i++;
 		}
