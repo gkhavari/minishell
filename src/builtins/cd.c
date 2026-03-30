@@ -6,31 +6,12 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:16 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:46 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/29 19:30:23 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Determine the directory target for the `cd` command.
-
- BEHAVIOR:
-* Handles the following cases:
-* - No argument or `--`: use the `HOME` environment variable.
-* - `-`: use the `OLDPWD` environment variable and set `*print`.
-* - Otherwise: return the provided argument as the target.
-* On missing `HOME`/`OLDPWD`, prints an error and returns NULL.
-
- PARAMETERS:
-* char **args: Argument vector passed to `cd`.
-* t_shell *shell: Shell state used to read environment variables.
-* int *print: Output flag set to 1 when `OLDPWD` should be printed.
-
- RETURN:
-* Allocated string with the target path, or NULL on error.
-*/
 static char	*get_cd_target(char **args, t_shell *shell, int *print)
 {
 	char	*target;
@@ -56,23 +37,6 @@ static char	*get_cd_target(char **args, t_shell *shell, int *print)
 	return (args[1]);
 }
 
-/**
- DESCRIPTION:
-* Set or replace an environment entry `key=value` in the shell's envp.
-
- BEHAVIOR:
-* Builds the `key=value` string and either replaces an existing entry
-* (when found) or appends a new entry to the environment array.
-* Returns non-zero on allocation failure.
-
- PARAMETERS:
-* t_shell *shell: Shell state with `envp` to modify.
-* char *key: Environment variable key (without `=`).
-* char *value: Value to assign to the key.
-
- RETURN:
-* `0` on success, non-zero on failure.
-*/
 static int	set_env_entry(t_shell *shell, char *key, char *value)
 {
 	char	*entry;
@@ -101,22 +65,6 @@ static int	set_env_entry(t_shell *shell, char *key, char *value)
 	return (0);
 }
 
-/**
- DESCRIPTION:
-* Update `shell` runtime with the new current working directory.
-
- BEHAVIOR:
-* Calls `getcwd` to obtain the current working directory, updates the
-* `PWD` and `OLDPWD` environment entries, and replaces `shell->cwd`.
-* Frees any previous `shell->cwd` and returns non-zero on error.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime to update.
-* char *old_pwd: Previous working directory string or NULL.
-
- RETURN:
-* `0` on success, non-zero on failure.
-*/
 static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 {
 	char	*cwd;
@@ -133,21 +81,6 @@ static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 	return (0);
 }
 
-/**
- DESCRIPTION:
-* Change the process working directory to `target`, reporting errors.
-
- BEHAVIOR:
-* Calls `chdir(target)` and on failure prints an error message including
-* the `target` and `strerror(errno)`. Frees `old_pwd` on error.
-
- PARAMETERS:
-* char *target: Path to change directory to.
-* char *old_pwd: Previously allocated old PWD string; freed on error.
-
- RETURN:
-* `0` on success, `1` on failure.
-*/
 static int	do_chdir(char *target, char *old_pwd)
 {
 	if (chdir(target) == -1)
@@ -162,22 +95,6 @@ static int	do_chdir(char *target, char *old_pwd)
 	return (0);
 }
 
-/**
- DESCRIPTION:
-* `cd` builtin implementation.
-
- BEHAVIOR:
-* Validates arguments (rejects >1 non-option argument), determines target
-* directory (handling `HOME`, `OLDPWD` and `-`), attempts to change
-* directory, updates shell state and prints `OLDPWD` when requested.
-
- PARAMETERS:
-* char **args: Argument vector for `cd`.
-* t_shell *shell: Shell runtime used to update `cwd` and envp.
-
- RETURN:
-* `0` on success, non-zero on error.
-*/
 int	builtin_cd(char **args, t_shell *shell)
 {
 	char	*target;

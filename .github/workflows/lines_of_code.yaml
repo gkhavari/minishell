@@ -3,6 +3,8 @@ name: Lines of Code
 
 on :
   push:
+    branches:
+      - main
 env:
   ID            : lines_of_code
   LABEL         : 'lines of code'

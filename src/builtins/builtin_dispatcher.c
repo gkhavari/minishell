@@ -6,27 +6,12 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 21:30:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:37 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/08 16:55:20 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Determine the builtin type for a given command name.
-
- BEHAVIOR:
-* Compares the provided command string against known builtin names
-* and returns the corresponding `t_builtin` enum value. If `cmd` is
-* NULL or does not match any builtin, `NOT_BUILTIN` is returned.
-
- PARAMETERS:
-* char *cmd: The command name to check. May be NULL.
-
- RETURN:
-* `t_builtin` enum value identifying the builtin type or `NOT_BUILTIN`.
-*/
 t_builtin	get_builtin_type(char *cmd)
 {
 	if (!cmd)
@@ -53,23 +38,6 @@ int	is_builtin(char *cmd)
 	return (get_builtin_type(cmd) != NOT_BUILTIN);
 }
 
-/**
- DESCRIPTION:
-* Execute a builtin command identified by `argv[0]`.
-
- BEHAVIOR:
-* Determines the builtin type for `argv[0]` and dispatches to the
-* corresponding builtin implementation, forwarding `argv` and `shell`.
-* If `argv` is NULL or empty, returns a non-zero error code.
-
- PARAMETERS:
-* char **argv: Argument vector for the command. `argv[0]` is the command.
-* t_shell *shell: Shell runtime state used by builtins.
-
- RETURN:
-* Exit/status code from the executed builtin, or `1` if no builtin
-* was executed or on error.
-*/
 int	run_builtin(char **argv, t_shell *shell)
 {
 	t_builtin	type;

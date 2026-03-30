@@ -14,16 +14,10 @@
 
 void	restore_fds(int stdin_backup, int stdout_backup)
 {
-	if (stdin_backup >= 0)
-	{
-		dup2(stdin_backup, STDIN_FILENO);
-		close(stdin_backup);
-	}
-	if (stdout_backup >= 0)
-	{
-		dup2(stdout_backup, STDOUT_FILENO);
-		close(stdout_backup);
-	}
+	dup2(stdin_backup, STDIN_FILENO);
+	dup2(stdout_backup, STDOUT_FILENO);
+	close(stdin_backup);
+	close(stdout_backup);
 }
 
 int	execute_builtin(t_command *cmd, t_shell *shell)

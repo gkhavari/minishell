@@ -6,27 +6,32 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/07 17:01:14 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:30:30 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/30 20:50:11 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
 /**
- * DESCRIPTION:
- * Handle a character when inside a single-quoted string ('...'). In single
- * quotes all characters are treated literally and no variable expansion
- * occurs.
- *
- * PARAMETERS:
- * t_shell *shell: Shell runtime containing the input string.
- * size_t *i: Pointer to the current index in the input string.
- * char **word: Pointer to the current word buffer being built.
- * t_state *state: Pointer to the current tokenizer state; this function acts
- *  only when state == ST_SQUOTE.
- *
- * BEHAVIOR:
- * Returns 1 if the character was handled (appended literally), 0 otherwise.
- */
+ DESCRIPTION:
+* Handles a character in the input when the character is inside a single-quoted 
+	string ('...'). In single quotes, all characters are treated literally—no 
+	variable expansion occurs.
+
+PARAMETERS:
+* t_shell *shell: Pointer to the shell structure, containing the input string.
+* size_t *i: Pointer to the current index in the input string.
+* char **word: Pointer to the current word buffer being built.
+* t_state *state Pointer to the current state. This function only acts
+	if the state is ST_SQUOTE.
+
+BEHAVIOR:
+* Checks if the current state is ST_SQUOTE.
+* If not, returns 0 to indicate it did not handle the character.
+* If inside single quotes, appends the current character to the word buffer 
+	using process_normal_char().
+* Returns 1 to indicate the character was handled.
+ **/
 int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
@@ -36,26 +41,33 @@ int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 }
 
 /**
- * DESCRIPTION:
- * Handle a character when inside a double-quoted string. Double quotes allow
- * variable expansion and certain escape sequences while preserving most
- * characters literally.
- *
- * PARAMETERS:
- * t_shell *shell: Shell runtime containing the input string.
- * size_t *i: Pointer to the current index in the input string.
- * char **word: Pointer to the current word buffer being built.
- * t_state *state: Pointer to the current tokenizer state; this function acts
- *  only when state == ST_DQUOTE.
- *
- * BEHAVIOR:
- * If the current character is `$` and expansion is permitted, call
- * `expand_var()` and append the result via `append_expansion_quoted()`.
- * If the current character is an escaped `$` append a literal `$` and
- * advance the input index accordingly.
- * Otherwise append the character literally via `process_normal_char()`.
- * Returns 1 if the character was handled, 0 otherwise.
- */
+ DESCRIPTION:
+* Handles a character in the input when the character is inside a double-quoted
+	string ("..."). Unlike single quotes, double quotes allow variable expansion
+	($VAR) and escape sequences.
+
+PARAMETERS:
+* t_shell *shell: Pointer to the shell structure, containing the input string.
+* size_t *i: Pointer to the current index in the input string.
+* char **word: Pointer to the current word buffer being built.
+* t_state *state: Pointer to the current state. This function only acts
+	if the state is ST_DQUOTE.
+
+BEHAVIOR:
+* Checks if the state is in ST_DQUOTE.
+* If not, returns 0 to indicate it did not handle the character.
+* If the current character is $:
+** Calls expand_var() to get the variable’s value.
+** Appends the expansion to the word using append_expansion_quoted().
+** Frees the temporary expansion buffer.
+** Returns 1 to indicate the character was handled.
+* If the current character is \$ (escaped $):
+** Appends a literal $ to the word buffer.
+** Advances the index by 2 to skip the escape sequence.
+** Returns 1 to indicate the character was handled.
+* Otherwise, appends the character literally via process_normal_char().
+* Returns 1 to indicate the character was handled.
+ **/
 int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	char	*expanded;
@@ -63,10 +75,14 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 	if (*state != ST_DQUOTE)
 		return (0);
 	if (shell->input[*i] == '$' && !is_heredoc_mode(shell)
-		&& shell->input[*i + 1] != '"'
-		&& shell->input[*i + 1] != '\'')
+		&& shell->input[*i + 1] != '"' && shell->input[*i + 1] != '\'')
 	{
 		expanded = expand_var(shell, i);
+		if (!expanded)
+		{
+			shell->last_exit = 1;
+			return (1);
+		}
 		append_expansion_quoted(word, expanded);
 		free(expanded);
 		return (1);

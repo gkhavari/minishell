@@ -1,30 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   parser_syntax_check.c                              :+:      :+:    :+:   */
+/*   parser_syntax_check.c                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:00:39 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 13:55:46 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Return the printable string for a token type.
-
- BEHAVIOR:
-* Maps `t_tokentype` values to their user-visible string used in
-* syntax error messages (e.g., `|`, `<`, `>`, `>>`, `<<`, or `newline`).
-
- PARAMETERS:
-* t_tokentype type: Token type to convert.
-
- RETURN:
-* Constant string representing the token for error messages.
+/*
+** get_token_str - Return the printable string for a token type
+** Used in syntax error messages to show which token was unexpected.
 */
 static const char	*get_token_str(t_tokentype type)
 {
@@ -41,19 +31,10 @@ static const char	*get_token_str(t_tokentype type)
 	return ("newline");
 }
 
-/**
- DESCRIPTION:
-* Validate that a redirection token is followed by a `WORD` token.
-
- BEHAVIOR:
-* If the next token is missing reports a `newline` syntax error. If the
-* next token is another operator reports that operator via `syntax_error`.
-
- PARAMETERS:
-* t_token *token: Token node pointing at a redirection operator.
-
- RETURN:
-* `0` on success, non-zero (SYNTAX_ERR) on syntax error.
+/*
+** check_redir_syntax - Validate that a redirection is followed by a WORD
+** If the next token is missing, error is "newline".
+** If the next token is an operator, error shows that operator.
 */
 static int	check_redir_syntax(t_token *token)
 {
@@ -64,16 +45,6 @@ static int	check_redir_syntax(t_token *token)
 	return (0);
 }
 
-/**
- DESCRIPTION:
-* Determine whether a token type represents a redirection operator.
-
- PARAMETERS:
-* t_tokentype type: Token type to test.
-
- RETURN:
-* `1` if `type` is a redirection operator, otherwise `0`.
-*/
 static int	is_redirection(t_tokentype type)
 {
 	return (type == REDIR_IN || type == REDIR_OUT
@@ -81,20 +52,31 @@ static int	is_redirection(t_tokentype type)
 }
 
 /**
- DESCRIPTION:
-* Check the token list for syntax errors.
+ * DESCRIPTION:
+* Checks the token list for syntax errors.
+* It checks for invalid pipe placement (e.g., starting or ending with a pipe,
+	or two consecutive pipes) and improper redirection usage (redirection not
+	followed by a WORD token).
 
- BEHAVIOR:
-* Validates pipe placement (no leading/trailing/consecutive pipes) and
-* ensures redirection operators are followed by a `WORD` token. On error
-* calls `syntax_error` and returns `SYNTAX_ERR`.
+PARAMETERS:
+* token: Pointer to the first token in the lexed token list.
 
- PARAMETERS:
-* t_token *token: Head of the token linked list; may be NULL.
+RETURNS:
+* SYNTAX_OK if the syntax is valid.
+* SYNTAX_ERR if a syntax error is found (returned from syntax_error()).
 
- RETURN:
-* `SYNTAX_OK` when valid, `SYNTAX_ERR` on error.
-*/
+VALIDATION RULES:
+* empty input is valid
+* pipe rules:
+	* no leading pipes
+	* no trailing pipes
+	* no consecutive pipes
+* redirections must be followed by a WORD token
+
+BEHAVOIR:
+* When an error is detected, the function calls syntax_error() with the 
+	appropriate message.
+ **/
 int	syntax_check(t_token *token)
 {
 	if (!token)
@@ -116,19 +98,11 @@ int	syntax_check(t_token *token)
 	return (SYNTAX_OK);
 }
 
-/**
- DESCRIPTION:
-* Print a syntax error message to stderr.
-
- BEHAVIOR:
-* Prints: "minishell: syntax error near unexpected token `X'" where `X`
-* is the provided message. Designed to be returned directly by callers.
-
- PARAMETERS:
-* const char *msg: Message/ token string to include in the error.
-
- RETURN:
-* `SYNTAX_ERR` (1) so callers can `return (syntax_error(...))`.
+/*
+** syntax_error - Print a syntax error message to stderr
+** Format matches bash output used by tester:
+** syntax error near unexpected token `X'
+** Always returns 1 so callers can "return (syntax_error(...))".
 */
 int	syntax_error(const char *msg)
 {

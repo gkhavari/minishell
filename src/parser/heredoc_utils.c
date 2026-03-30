@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/21 17:26:19 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 14:29:28 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/08 14:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,23 +37,6 @@ static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
 	return (ft_strdup(val));
 }
 
-/**
- DESCRIPTION:
-* Expand variables inside a heredoc line.
-
- BEHAVIOR:
-* Walks the input `line`, replacing occurrences of `$NAME` or `$?` with
-* their corresponding environment value or last exit code. Handles only
-* variables allowed in heredoc context and appends characters to the
-* result using shell-safe helpers.
-
- PARAMETERS:
-* char *line: Input heredoc line to expand.
-* t_shell *shell: Shell runtime providing `envp` and `last_exit`.
-
- RETURN:
-* Newly allocated expanded string (caller must free).
-*/
 char	*expand_heredoc_line(char *line, t_shell *shell)
 {
 	char	*result;

@@ -12,21 +12,6 @@
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Convert a raw `waitpid` status into a shell exit code.
-
- BEHAVIOR:
-* If the child was terminated by a signal prints a message for
-* `SIGQUIT` and returns 128 + signal number. If the child exited
-* normally returns its exit status. Otherwise returns 1.
-
- PARAMETERS:
-* int status: status value obtained from `waitpid`.
-
- RETURN:
-* Normalized shell exit code derived from `status`.
-*/
 static int	get_child_status(int status)
 {
 	if (WIFSIGNALED(status))
@@ -40,22 +25,6 @@ static int	get_child_status(int status)
 	return (1);
 }
 
-/**
- DESCRIPTION:
-* Execute an external command by forking and execing the target.
-
- BEHAVIOR:
-* Forks a child, sets default signals in the child, applies
-* redirections and runs the command via `execute_in_child`. The
-* parent waits and returns the child's normalized status.
-
- PARAMETERS:
-* t_command *cmd: command to execute (argv, redirs).
-* t_shell *shell: runtime providing `envp` and helpers.
-
- RETURN:
-* Exit status of the child process (normalized via get_child_status).
-*/
 int	execute_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
@@ -79,19 +48,6 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	return (get_child_status(status));
 }
 
-/**
- DESCRIPTION:
-* Test whether a path points to a regular file.
-
- BEHAVIOR:
-* Uses `stat` and checks `S_ISREG` on the resulting mode.
-
- PARAMETERS:
-* char *path: file path to test.
-
- RETURN:
-* Non-zero if `path` is a regular file, zero otherwise.
-*/
 static int	is_regular_file(char *path)
 {
 	struct stat	sb;
@@ -101,21 +57,6 @@ static int	is_regular_file(char *path)
 	return (S_ISREG(sb.st_mode));
 }
 
-/**
- DESCRIPTION:
-* Search for an executable `cmd` in the provided `paths` array.
-
- BEHAVIOR:
-* Joins each path with `cmd` and returns the first match that is a
-* regular file. Frees the `paths` array before returning.
-
- PARAMETERS:
-* char **paths: NULL-terminated array of directory paths.
-* char *cmd: command name to search for.
-
- RETURN:
-* Malloc'd full path on success, or NULL if not found.
-*/
 static char	*search_in_path(char **paths, char *cmd)
 {
 	char	*tmp;
@@ -144,21 +85,6 @@ static char	*search_in_path(char **paths, char *cmd)
 	return (NULL);
 }
 
-/**
- DESCRIPTION:
-* Resolve a command name to an executable path using the `PATH` var.
-
- BEHAVIOR:
-* If `cmd` contains a slash returns a strdup of `cmd`. Otherwise
-* splits `PATH` and searches each directory for an executable file.
-
- PARAMETERS:
-* char *cmd: command name or path.
-* t_shell *shell: runtime providing environment and `PATH`.
-
- RETURN:
-* Malloc'd path string on success, or NULL on failure.
-*/
 char	*find_command_path(char *cmd, t_shell *shell)
 {
 	char	*path_env;

@@ -3,26 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   free_runtime.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 22:50:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:19:46 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Free a NULL-terminated argv array and its strings.
-
- BEHAVIOR:
-* Frees each string in `argv` then frees the array itself. No-op if
-* `argv` is NULL.
-
- PARAMETERS:
-* char **argv: Argument vector to free; may be NULL.
-*/
 static void	free_argv(char **argv)
 {
 	int	i;
@@ -38,16 +27,6 @@ static void	free_argv(char **argv)
 	free(argv);
 }
 
-/**
- DESCRIPTION:
-* Free a linked list of output redirection descriptors.
-
- BEHAVIOR:
-* Iterates the redirection list, frees each `file` string and the node.
-
- PARAMETERS:
-* t_redir *r: Head of the redirection list; may be NULL.
-*/
 static void	free_out_redirs(t_redir *r)
 {
 	t_redir	*tmp;
@@ -61,17 +40,6 @@ static void	free_out_redirs(t_redir *r)
 	}
 }
 
-/**
- DESCRIPTION:
-* Free a linked list of commands, including their sub-structures.
-
- BEHAVIOR:
-* For each `t_command` closes heredoc fd (if open), frees args, argv,
-* output redirections, heredoc delimiter and the command node itself.
-
- PARAMETERS:
-* t_command *cmd: Head of the command list to free; may be NULL.
-*/
 void	free_commands(t_command *cmd)
 {
 	t_command	*tmp;

@@ -6,56 +6,16 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 22:43:50 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/30 20:03:25 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Run the full processing pipeline for the current input line.
-
- BEHAVIOR:
-* Tokenizes and parses `shell->input` into commands, processes any
-* heredocs, and executes the resulting commands pipeline. On a
-* heredoc error sets `shell->last_exit` to 130 and aborts execution
-* for this input line.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime holding the input and parsed commands.
-
- RETURN:
-* None.
-*/
-static void	process_input(t_shell *shell)
-{
-	tokenize_input(shell);
-	parse_input(shell);
-	if (!shell->commands)
-		return ;
-	if (process_heredocs(shell))
-	{
-		shell->last_exit = 130;
-		return ;
-	}
-	shell->last_exit = execute_commands(shell);
-}
-
-/**
- DESCRIPTION:
-* Read a line from stdin when not operating interactively.
-
- BEHAVIOR:
-* Reads bytes until a newline or EOF, appending characters into a
-* dynamically allocated buffer. Returns NULL on EOF when no data was
-* read, otherwise returns the allocated line (without the newline).
-
- PARAMETERS:
-* t_shell *shell: Shell runtime used by `append_char` helper.
-
- RETURN:
-* Allocated line string on success, or NULL on EOF/error.
+/*
+** read_input - Display prompt and read one line of user input.
+** Returns 1 on success, 0 on EOF (Ctrl+D), -1 on signal.
+** When stdin is not a TTY (e.g. tester) uses read_line_stdin.
 */
 static char	*read_line_stdin(t_shell *shell)
 {
@@ -81,21 +41,6 @@ static char	*read_line_stdin(t_shell *shell)
 	}
 }
 
-/**
- DESCRIPTION:
-* Read one line of input and store it in `shell->input`.
-
- BEHAVIOR:
-* If stdin is a TTY builds and displays a prompt then uses
-* `readline`; otherwise reads from stdin directly. Handles EOF and
-* signal conditions and normalizes return values for the caller.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime where `input` will be stored.
-
- RETURN:
-* `1` on successful read, `0` on EOF, `-1` when interrupted by a signal.
-*/
 static int	read_input(t_shell *shell)
 {
 	char	*prompt;
@@ -116,26 +61,16 @@ static int	read_input(t_shell *shell)
 			ft_putstr_fd("exit\n", STDOUT_FILENO);
 		return (0);
 	}
-	if (check_signal_received(shell)
-		&& (!shell->input || shell->input[0] == '\0'))
+	if (check_signal_received(shell))
 		return (free(shell->input), shell->input = NULL, -1);
 	return (1);
 }
 
-/**
- DESCRIPTION:
-* Main read–eval–print loop for the shell.
-
- BEHAVIOR:
-* Repeatedly checks signals, reads input, processes the input
-* (tokenize/parse/execute), and resets transient runtime state.
-* Exits on EOF or on non-interactive syntax errors.
-
- PARAMETERS:
-* t_shell *shell: Initialized shell runtime.
-
- RETURN:
-* None.
+/*
+** shell_loop - Main REPL loop following architecture doc
+** 1. Check signals  2. Build prompt  3. Read input
+** 4. Check signals again  5. Process (lex/parse/expand/execute)
+** 6. Cleanup
 */
 static void	shell_loop(t_shell *shell)
 {
@@ -146,7 +81,6 @@ static void	shell_loop(t_shell *shell)
 	{
 		check_signal_received(shell);
 		status = read_input(shell);
-		(void)shell;
 		if (status == 0)
 			break ;
 		if (status == -1)
@@ -162,25 +96,6 @@ static void	shell_loop(t_shell *shell)
 	}
 }
 
-/**
- DESCRIPTION:
-* Program entry point and high-level lifecycle management.
-
- BEHAVIOR:
-* Initializes the `t_shell` runtime from the environment, configures
-* signal handlers for interactive use, installs the `readline` event
-* hook when running on a TTY, runs the main REPL loop, and performs
-* final cleanup (readline history + freeing runtime state) before
-* returning the last command exit status to the caller.
-
- PARAMETERS:
-* int argc: Argument count (unused).
-* char **argv: Argument vector (unused).
-* char **envp: Environment pointer array passed to the shell init.
-
- RETURN:
-* Process exit code equivalent to `shell.last_exit`.
-*/
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;

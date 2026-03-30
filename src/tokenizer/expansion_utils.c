@@ -3,32 +3,77 @@
 /*                                                        :::      ::::::::   */
 /*   expansion_utils.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/07 17:09:05 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:18:15 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/07 17:09:12 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+static int	is_word_boundary(char c)
+{
+	if (c == '\0' || c == ' ' || c == '\t')
+		return (1);
+	return (is_op_char(c));
+}
+
+static int	is_redir_target(t_shell *shell, char *word)
+{
+	t_token	*last;
+
+	if (word)
+		return (0);
+	last = shell->tokens;
+	while (last && last->next)
+		last = last->next;
+	if (!last)
+		return (0);
+	return (last->type == REDIR_IN || last->type == REDIR_OUT
+		|| last->type == APPEND || last->type == HEREDOC
+	);
+}
+
+int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
+		size_t end, char **word)
+{
+	char	*raw;
+	char	*value;
+
+	if (*word || !is_word_boundary(shell->input[end]))
+		return (0);
+	if (!is_redir_target(shell, *word))
+		return (add_token(&shell->tokens,
+				new_token(shell, WORD, MSH_EMPTY_EXPAND_TOKEN)), 1);
+	raw = ft_strndup(shell->input + start, end - start);
+	if (!raw)
+		return (1);
+	value = ft_strjoin(MSH_AMBIG_REDIR_PREFIX, raw);
+	free(raw);
+	if (!value)
+		return (1);
+	add_token(&shell->tokens, new_token(shell, WORD, value));
+	free(value);
+	return (1);
+}
+
 /**
  DESCRIPTION:
-* Append a quoted expansion string to a word buffer.
+* Appends a string exp to an existing word buffer *word
 
  BEHAVIOR:
-* Computes the current length of `*word` and the length of `exp`,
-* reallocates `*word` to hold the new combined contents, copies `exp`
-* to the end of the buffer and ensures the result is NUL-terminated.
-* Exits on allocation failure.
+* Calculates the current length of *word and the length of exp.
+* Reallocates *word to accommodate the new string.
+* Copies exp to the end of *word.
+* Ensures the final string is null-terminated.
 
  PARAMETERS:
-* char **word: Pointer to the current word buffer; may be NULL.
-* const char *exp: Expansion string to append; may be NULL.
- 
- RETURN:
- * None. On allocation failure the process exits with code 1.
-*/
+* char **word: Pointer to the current word buffer. Can be NULL if no content
+	has been added yet. The buffer will be reallocated to append exp.
+* const char *exp: The string to append. Can be NULL, in which case 
+	the function does nothing.
+**/
 void	append_expansion_quoted(char **word, const char *exp)
 {
 	size_t	len_word;
@@ -51,42 +96,39 @@ void	append_expansion_quoted(char **word, const char *exp)
 
 /**
  DESCRIPTION:
-* Append an unquoted expansion string to the current word buffer,
-* splitting on whitespace into separate tokens as required.
+ * Appends a string exp to a word buffer *word while splitting the content
+ 	on whitespace
 
- BEHAVIOR:
-* Iterates each character of `exp`. When whitespace is encountered the
-* current word (if any) is flushed to the token list and consecutive
-* whitespace is skipped. Non-whitespace characters are appended to
-* `*word`. Continues until the entire expansion is processed.
+ BEHAVOIR:
+ * Iterates through each character of exp.
+ * If a whitespace character is found:
+ ** Flushes the current word to the token list (if any).
+ ** Skips over consecutive whitespace.
+ * If a non-whitespace character is found:
+ ** Appends it to *word.
+ * Continues until the entire expansion is processed.
 
  PARAMETERS:
-* t_shell *shell: Shell runtime used for allocations and token flushes.
-* char **word: Pointer to the current word buffer being constructed; may be
-  NULL.
-* const char *exp: The string to append. If NULL, the function does nothing.
-* t_token **tokens: Pointer to the head of the token list; flushed words are
-  appended here.
-
- RETURN:
- * None.
-*/
-void	append_expansion_unquoted(t_shell *shell, char **word,
-		const char *exp)
+ * char **word: Pointer to the current word buffer being constructed.
+ 	Can be NULL.
+ * const char *exp: The string to append. If NULL, the function does nothing.
+ * t_token **tokens: Pointer to the head of the token list. Complete words are 
+ 	flushed to this list when whitespace is encountered.
+ */
+void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
+		t_token **tokens)
 {
 	size_t	i;
 
 	i = 0;
 	if (exp == NULL)
 		return ;
-	if (exp[0] == '\0' && *word == NULL)
-		add_token(&shell->tokens, new_token(shell, WORD, (char *) &exp[0]));
 	while (exp[i])
 	{
 		if (exp[i] == ' ' || exp[i] == '\t')
 		{
 			if (*word)
-				flush_word(shell, word, &shell->tokens);
+				flush_word(shell, word, tokens);
 			while (exp[i] == ' ' || exp[i] == '\t')
 				i++;
 		}

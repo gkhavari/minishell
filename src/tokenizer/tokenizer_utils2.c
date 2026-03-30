@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:18:50 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/08 14:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,19 +30,10 @@ RETURN VALUE:
 t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 {
 	t_token	*token;
-	char	*temp;
 
 	token = msh_calloc(shell, 1, sizeof(*token));
 	token->type = type;
-	temp = ft_strdup(value);
-	token->value = temp;
-	if (!token->value)
-	{
-		perror("minishell");
-		free(value);
-		free_all(shell);
-		exit(EXIT_FAILURE);
-	}
+	token->value = ft_strdup(value);
 	token->next = NULL;
 	return (token);
 }

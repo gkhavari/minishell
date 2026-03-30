@@ -6,26 +6,12 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/06 00:40:08 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:22:35 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/28 03:18:02 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Read a line from `stdin` when not running interactively.
-
- BEHAVIOR:
-* Uses `fgets` into a fixed buffer and returns a freshly allocated copy
-* (without altering the buffer). Returns NULL on EOF or error.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime used for allocation.
-
- RETURN:
-* Allocated string on success or NULL on EOF/error.
-*/
 static char	*read_stdin_line(t_shell *shell)
 {
 	char	buf[4096];
@@ -40,22 +26,6 @@ static char	*read_stdin_line(t_shell *shell)
 	return (result);
 }
 
-/**
- DESCRIPTION:
-* Read a continuation line from the user when a quoted string is unterminated.
-
- BEHAVIOR:
-* If `stdin` is not a TTY reads a line from stdin. Otherwise prompts with
-* a quote prompt and uses `readline`. Returns a newly allocated string
-* which always ends with a trailing newline.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime for allocation and readline use.
-* char quote_char: The quote character that opened the continuation.
-
- RETURN:
-* Allocated string with trailing newline, or NULL if user cancelled/EOF.
-*/
 static char	*read_continuation_line(t_shell *shell, char quote_char)
 {
 	char	*line;
@@ -82,20 +52,8 @@ static char	*read_continuation_line(t_shell *shell, char quote_char)
 	return (with_newline);
 }
 
-/**
- DESCRIPTION:
-* Ensure the given string ends with a newline, reallocating when needed.
-
- BEHAVIOR:
-* If `*s` does not end with '\n' allocates a new buffer with an extra
-* byte, appends '\n' and replaces `*s`. Updates `*old_len` accordingly.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime for allocation.
-* char **s: Pointer to the string to ensure trailing newline on.
-* size_t *old_len: Pointer to current length of `*s`, updated if changed.
-*/
-static void	ensure_trailing_newline(t_shell *shell, char **s, size_t *old_len)
+static void	ensure_trailing_newline(t_shell *shell,
+		char **s, size_t *old_len)
 {
 	char	*tmp;
 
@@ -110,19 +68,6 @@ static void	ensure_trailing_newline(t_shell *shell, char **s, size_t *old_len)
 	(*old_len)++;
 }
 
-/**
- DESCRIPTION:
-* Append the continuation fragment `cont` to the current input string `*s`.
-
- BEHAVIOR:
-* Allocates a new buffer large enough to hold `*s` + `cont`, copies both
-* parts, NUL-terminates, frees the old `*s` and assigns the new buffer.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime for allocation.
-* char **s: Pointer to the current input buffer to be extended.
-* char *cont: Continuation string to append (may contain a trailing '\n').
-*/
 static void	append_to_input(t_shell *shell, char **s, char *cont)
 {
 	char	*new_input;

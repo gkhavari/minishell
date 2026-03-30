@@ -6,11 +6,11 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - main
+      - evaluation
 env:
   HOME: /home/runner
-  # Allow overriding the tester repository via repository secret `TESTER_REPO`.
-  # Default points to LeaYeh's tester; set a repo secret to use your own tester fork.
-  TESTER_REPO: https://github.com/LeaYeh/42_minishell_tester.git
   TESTER_DIR: /home/runner/42_minishell_tester
   SCRIPTS_DIR: /home/runner/scripts
 
@@ -47,8 +47,7 @@ jobs:
       test_matrix: ${{ steps.prep_matrix.outputs.TEST_MATRIX }}
     steps:
       - name: Clone tester repository
-        run: |
-          git clone "${{ secrets.TESTER_REPO != '' && secrets.TESTER_REPO || env.TESTER_REPO }}" "${{ env.TESTER_DIR }}"
+        run: git clone https://github.com/LeaYeh/42_minishell_tester.git ${{ env.TESTER_DIR }}
       - name: Prepare matrix
         id: prep_matrix
         run: |

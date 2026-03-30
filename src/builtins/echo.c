@@ -6,25 +6,16 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:22 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:20:51 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/11/30 20:29:23 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Check whether the argument is a valid `-n` flag for `echo`.
-
- BEHAVIOR:
-* Examines the provided string: it must begin with a '-' followed by one
-* or more 'n' characters and nothing else to be treated as the `-n` flag.
-
- PARAMETERS:
-* char *arg: Argument string to inspect.
-
- RETURN:
-* `1` if `arg` matches the `-n` pattern, otherwise `0`.
+/*
+** check_n_flag - Check if arg is a valid -n flag (e.g. -n, -nnn)
+** @arg: argument string to check
+** Return: 1 if valid -n flag, 0 otherwise
 */
 static int	check_n_flag(char *arg)
 {
@@ -40,18 +31,10 @@ static int	check_n_flag(char *arg)
 	return (0);
 }
 
-/**
- DESCRIPTION:
-* Print an array of strings separated by single spaces starting at index.
-
- BEHAVIOR:
-* Iterates `args` beginning at `start`, writing each argument to stdout
-* separated by a single space. No trailing space is printed after the
-* final argument.
-
- PARAMETERS:
-* char **args: Null-terminated array of argument strings.
-* int start: Index in `args` where printing should begin.
+/*
+** print_args - Print arguments separated by spaces
+** @args: array of arguments
+** @start: index to start printing from
 */
 static void	print_args(char **args, int start)
 {
@@ -67,20 +50,11 @@ static void	print_args(char **args, int start)
 	}
 }
 
-/**
- DESCRIPTION:
-* Implementation of the `echo` builtin.
-
- BEHAVIOR:
-* Supports multiple `-n` flags (e.g. `-n`, `-nn`) to suppress the trailing
-* newline. Prints remaining arguments separated by spaces to stdout.
-
- PARAMETERS:
-* char **args: Argument vector where `args[0]` is "echo".
-* t_shell *shell: Shell state (unused by this builtin).
-
- RETURN:
-* Exit status `0` on success.
+/*
+** builtin_echo - Implement echo builtin with -n flag support
+** @args: command arguments (args[0] = "echo")
+** @shell: shell state (unused)
+** Return: 0 always (echo never fails)
 */
 int	builtin_echo(char **args, t_shell *shell)
 {

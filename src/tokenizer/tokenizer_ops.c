@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokenizer_ops.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/05 23:13:19 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/21 22:18:36 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2025/12/05 23:13:21 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,19 +14,15 @@
 
 /**
  DESCRIPTION:
-* Return whether `c` may start an operator token (`|`, `<`, `>`).
-
- BEHAVIOR:
-* Performs a fast character check. Used defensively to avoid invoking
-* operator parsing on ordinary characters, preventing misclassification
-* of input and avoiding unnecessary allocation work.
+ * Checks whether a character is the beginning of a shell operator token (| < >)
 
  PARAMETERS:
-* char c: The character to inspect.
+ * c: the char to check
 
- RETURN:
-* `1` if `c` is an operator character, `0` otherwise.
-*/
+ RETURN VALUE:
+ * 1 if c is an operator character
+ * 0 if not
+**/
 int	is_op_char(char c)
 {
 	return (c == '|' || c == '<' || c == '>');
@@ -34,24 +30,20 @@ int	is_op_char(char c)
 
 /**
  DESCRIPTION:
-* Parse an operator token at `s` and append it to `*list` when found.
-
- BEHAVIOR:
-* Recognizes single- and double-character operators (`|`, `<<`, `>>`, `<`,
-* `>|`, `>`). Creates and appends the corresponding token. Returns the
-* operator width (1 or 2) so the caller can advance the input index.
-* Defensively avoids creating tokens for non-operator sequences.
+ * Parses an operator token starting at position s.
+ * This function identifies single and double character operators 
+ 	and produces the appropriate token.
+ * Supperted operators: | << >> < >
 
  PARAMETERS:
-* t_shell *shell: Shell runtime used for allocations.
-* const char *s: Pointer to the input at the operator start.
-* t_token **list: Pointer to token list head where the new token will be
-  appended.
+ * s: Pointer to the input string at the operator position.
+ * list: Pointer to the token list where the created operator token 
+ 	will be appended.
 
- RETURN:
-* `1` or `2` indicating the number of characters consumed, or `0` when no
-  operator was recognized.
-*/
+ RETURN VALUE:
+ * 1 or 2: number of characters that form the operator.
+ * 0: no operator found
+ **/
 size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 {
 	if (s[0] == '|')

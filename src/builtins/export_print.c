@@ -5,67 +5,53 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:10:30 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 22:47:29 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/29 18:43:53 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/29 18:43:57 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/**
- DESCRIPTION:
-* Print a single `export` entry in `declare -x` format.
+static void	print_escaped_value(char *value)
+{
+	int	i;
 
- BEHAVIOR:
-* If the entry contains no '=' prints `declare -x key`.
-* If the entry contains a value prints `declare -x key="value"`.
+	i = 0;
+	while (value && value[i])
+	{
+		if (value[i] == '\\' || value[i] == '"'
+			|| value[i] == '$' || value[i] == '`')
+			ft_putchar_fd('\\', 1);
+		ft_putchar_fd(value[i], 1);
+		i++;
+	}
+}
 
- PARAMETERS:
-* char *entry: Environment entry string, either `key` or `key=value`.
- 
- RETURN:
- * None.
-*/
 static void	print_export_entry(char *entry)
 {
 	char	*eq;
 	char	*key;
+	char	*out;
 
 	eq = ft_strchr(entry, '=');
 	if (!eq)
-	{
-		ft_putstr_fd("export ", 1);
-		ft_putstr_fd(entry, 1);
-		ft_putchar_fd('\n', 1);
-	}
+		return (ft_putstr_fd("export ", 1), ft_putstr_fd(entry, 1),
+			ft_putchar_fd('\n', 1));
+	key = ft_substr(entry, 0, eq - entry);
+	out = NULL;
+	ft_putstr_fd("export ", 1);
+	ft_putstr_fd(key, 1);
+	ft_putstr_fd("=\"", 1);
+	if (ft_strcmp(key, "SHLVL") == 0)
+		out = ft_itoa(ft_atoi(eq + 1) + 1);
+	if (out)
+		(ft_putstr_fd(out, 1), free(out));
 	else
-	{
-		key = ft_substr(entry, 0, eq - entry);
-		ft_putstr_fd("export ", 1);
-		ft_putstr_fd(key, 1);
-		ft_putstr_fd("=\"", 1);
-		ft_putstr_fd(eq + 1, 1);
-		ft_putstr_fd("\"\n", 1);
-		free(key);
-	}
+		print_escaped_value(eq + 1);
+	ft_putstr_fd("\"\n", 1);
+	free(key);
 }
 
-/**
- DESCRIPTION:
-* Compare two environment entries by their keys for sorting.
-
- BEHAVIOR:
-* Compares the key portion (up to '=' or end) of both strings. If keys
-* compare equal up to the shorter length, the shorter key is considered
-* smaller.
-
- PARAMETERS:
-* char *a: First environment entry.
-* char *b: Second environment entry.
-
- RETURN:
-* Negative, zero or positive integer like `strcmp` indicating order.
-*/
 static int	cmp_env_keys(char *a, char *b)
 {
 	size_t	la;
@@ -87,21 +73,6 @@ static int	cmp_env_keys(char *a, char *b)
 	return ((int)(la - lb));
 }
 
-/**
- DESCRIPTION:
-* Sort an array of environment entry strings in-place.
-
- BEHAVIOR:
-* Performs a simple bubble-like sort using `cmp_env_keys` to compare
-* entries. The array is expected to have `count` valid entries.
-
- PARAMETERS:
-* char **sorted: Array of strings to sort.
-* int count: Number of entries in the array.
- 
- RETURN:
- * None.
-*/
 static void	sort_env(char **sorted, int count)
 {
 	int		i;
@@ -120,21 +91,6 @@ static void	sort_env(char **sorted, int count)
 	}
 }
 
-/**
- DESCRIPTION:
-* Print the shell environment sorted in `declare -x` format.
-
- BEHAVIOR:
-* Duplicates `shell->envp`, sorts the copy and prints each entry
-* in `declare -x` form. Entries beginning with `_` are skipped when
-* they contain only `_` or `_=`.
-
- PARAMETERS:
-* t_shell *shell: Shell runtime containing `envp` to print.
-
- RETURN:
-* `0` on success, non-zero on allocation failure.
-*/
 int	print_sorted_env(t_shell *shell)
 {
 	int		count;
