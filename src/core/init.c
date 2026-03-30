@@ -160,6 +160,8 @@ void	init_shell(t_shell *shell, char **envp)
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
 		shell->cwd = ft_strdup("/");
+	if (find_export_key_index(shell, "OLDPWD", 6) < 0)
+		append_export_env(shell, "OLDPWD");
 	init_runtime_fields(shell);
 	update_shlvl(shell);
 }
