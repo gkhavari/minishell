@@ -176,7 +176,7 @@ The tester feeds input non-interactively via stdin, so the shell uses `read_line
 | `cat < file` (file exists) | file contents | none | 0 |
 | `cat < nonexistent` | (none) | `nonexistent: No such file or directory` | 1 |
 | `echo a > f1 > f2` | (none) | none | 0 (f1 created empty, f2 gets `a`) |
-| `echo err 2> file` | (none to stdout) | none | 0 (stderr content in `file`) |
+| `echo err 2> file` | (none to stdout) | none | 0 (stdout `err 2` written to `file`) |
 | `echo hi > /dev/full` | (none) | error message | 1 |
 
 **How it works:**
@@ -185,7 +185,10 @@ The tester feeds input non-interactively via stdin, so the shell uses `read_line
 - `apply_redirections()` iterates the list left to right, calling `open()` + `dup2()` for each.
 - `>` opens with `O_WRONLY | O_CREAT | O_TRUNC`, `>>` with `O_APPEND`.
 - `<` opens with `O_RDONLY` and dup2's to `STDIN_FILENO`.
-- `2>` opens for write and dup2's to `STDERR_FILENO`.
+- Numeric fd redirections (e.g., `2>`) are not recognized as a single operator by
+	the tokenizer in this minishell. They are tokenized as a `WORD` containing the
+	digit (e.g. `2`) followed by a `REDIR_OUT` token (`>`). As a result, `2>` is
+	not treated as an stderr redirection by the parser/executor.
 - Multiple output redirects: all files are created/truncated, but only the last one receives output (last `dup2` wins).
 - Ambiguous redirects (empty expansion like `$UNSET > $EMPTY`) are detected by a prefix marker and produce "ambiguous redirect" errors.
 

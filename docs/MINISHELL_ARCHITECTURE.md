@@ -108,7 +108,9 @@ Scans `shell->input` character-by-character, producing a linked list of `t_token
 | `REDIR_OUT` | `>` | `> output.txt` |
 | `APPEND` | `>>` | `>> log.txt` |
 | `HEREDOC` | `<<` | `<< EOF` |
-| `REDIR_ERR_OUT` | `2>` | `2> errors.txt` |
+# Note: numeric fd redirections like `2>` are not supported by this minishell.
+# They are tokenized as a `WORD` containing the digit (e.g. `2`) followed by a
+# `REDIR_OUT` token (`>`), so `2>file` is parsed as `WORD("2")` + `REDIR_OUT`.
 
 ### 4.2 State Machine
 
@@ -117,7 +119,9 @@ ST_NORMAL:
   ' -> enter ST_SQUOTE (no expansion, literal until closing ')
   " -> enter ST_DQUOTE (expand $VAR/$?, literal otherwise until ")
   | < > -> emit operator token
-  2> -> emit REDIR_ERR_OUT
+  Numeric fd forms like `2>` are not recognized as a single operator; they are
+  tokenized as a `WORD` (the digit) followed by the `>` operator, so `2>file`
+  becomes `WORD("2")` then `REDIR_OUT` (`>`).
   whitespace -> flush current word
   $ -> expand variable
   ~ -> expand to HOME (at word start)

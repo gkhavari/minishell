@@ -12,9 +12,15 @@ All types in `includes/structs.h`. Design principle: one type per pipeline stage
 
 ### 1.1 Enums
 
-**`t_tokentype`** — `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC`, `REDIR_ERR_OUT`
+**`t_tokentype`** — `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC`
 
 Drives parser decisions: WORD -> argument/filename; PIPE -> new command; REDIR_* -> open file.
+
+Note: numeric file-descriptor redirections (e.g. `2>`) are not supported by this
+minishell. Such forms are tokenized as a separate `WORD` containing the digit
+(for example `2`) followed by a `REDIR_OUT` token (`>`). Consequently,
+`echo hi 2>file` is parsed as the argument `2` and an output redirection `>` to
+`file` (stdout redirected), not as an stderr redirection.
 
 **`t_state`** — `ST_NORMAL`, `ST_SQUOTE`, `ST_DQUOTE`
 
@@ -66,7 +72,7 @@ typedef struct s_redir {
 
 | Field | Why |
 |-------|-----|
-| `file` | For `<` `>` `>>` `2>`. Heredoc uses `t_command.heredoc_delim` |
+| `file` | For `<` `>` and `>>`. Heredoc uses `t_command.heredoc_delim` |
 | `fd` | Supports stdin, stdout, AND stderr redirection with one struct |
 | `append` | `>>` uses O_APPEND; `>` uses O_TRUNC |
 | `next` | Applied left-to-right; last wins per stream |
@@ -329,8 +335,7 @@ Grouped by source file. Static helpers are included for completeness.
 | **builtins/unset.c** | `unset_one_arg(arg, shell)` | yes | Unset single var |
 | **builtins/exit.c** | `builtin_exit(args, shell)` | | Exit with status |
 | **builtins/exit.c** | `clean_exit(shell, code)` | yes | Cleanup and exit process |
-| **builtins/exit_utils.c** | `parse_exit_value(str, value)` | | Parse exit code string to long long |
-| **builtins/exit_utils.c** | `exit_mod256_from_ll(value)` | | Convert long long to unsigned char |
+| **builtins/exit.c** | `parse_exit_value(str, value)` | | Parse exit code string to long long |
 
 ### 2.8 Signals & Free
 

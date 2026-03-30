@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 17:46:47 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/30 15:47:34 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,7 +138,6 @@ int			builtin_export(char **args, t_shell *shell);
 int			builtin_unset(char **args, t_shell *shell);
 int			builtin_exit(char **args, t_shell *shell);
 int			parse_exit_value(char *str, long long *value);
-int			exit_mod256_from_ll(long long value);
 
 /* export_utils.c */
 int			is_valid_export_name(char *name);

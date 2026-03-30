@@ -6,11 +6,26 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:32 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 20:13:05 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/30 15:46:41 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+int	parse_exit_value(char *str, long long *value)
+{
+	char	*end;
+
+	if (!str || !*str)
+		return (0);
+	errno = 0;
+	*value = strtoll(str, &end, 10);
+	while (*end && ft_isspace((unsigned char)*end))
+		end++;
+	if (errno == ERANGE || *end != '\0')
+		return (0);
+	return (1);
+}
 
 /**
  DESCRIPTION:
@@ -82,6 +97,6 @@ int	builtin_exit(char **args, t_shell *shell)
 		ft_putendl_fd("minishell: exit: too many arguments", 2);
 		return (1);
 	}
-	clean_exit(shell, exit_mod256_from_ll(value));
+	clean_exit(shell, (unsigned char)value);
 	return (0);
 }
