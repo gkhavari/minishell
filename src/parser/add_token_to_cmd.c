@@ -92,7 +92,8 @@ static void	append_redir(t_command *cmd, char *file, int fd, int append)
  RETURN:
 * None.
 */
-static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word, int quoted)
+static void	add_word_to_cmd(t_shell *shell, t_command *cmd,
+	char *word, int quoted)
 {
 	t_arg	*new;
 	t_arg	*tmp;
