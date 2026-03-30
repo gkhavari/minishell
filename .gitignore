@@ -52,7 +52,6 @@ test_report.md
 # Test outfiles
 outfile*
 outfiles/
-
 # IDE & Misc
 .vscode/
 minishellv*.pdf

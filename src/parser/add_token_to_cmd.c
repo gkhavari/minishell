@@ -24,27 +24,40 @@ static int	is_empty_expand_token(char *value)
 ** Frees any previous delimiter (handles multiple heredocs per command).
 ** The actual heredoc reading happens later in process_heredocs().
 */
-static void	handle_heredoc_token(t_command *cmd, t_token *token)
+static int	handle_heredoc_token(t_command *cmd, t_token *token)
 {
+	char	*new_delim;
+
+	if (!token->next || !token->next->value)
+		return (FAILURE);
+	new_delim = ft_strdup(token->next->value);
+	if (!new_delim)
+		return (FAILURE);
 	if (cmd->heredoc_delim)
 		free(cmd->heredoc_delim);
-	cmd->heredoc_delim = ft_strdup(token->next->value);
+	cmd->heredoc_delim = new_delim;
 	cmd->heredoc_quoted = token->next->quoted;
+	return (SUCCESS);
 }
 
 /*
 ** append_redir - Append a redirection node to cmd->redirs (ordered list).
 ** is_input=1 for <, is_input=0 for > or >>. append=1 for >>.
 */
-static void	append_redir(t_command *cmd, char *file, int fd, int append)
+static int	append_redir(t_command *cmd, char *file, int fd, int append)
 {
 	t_redir	*r;
 	t_redir	*tmp;
 
 	r = malloc(sizeof(t_redir));
 	if (!r)
-		return ;
+		return (FAILURE);
 	r->file = ft_strdup(file);
+	if (!r->file)
+	{
+		free(r);
+		return (FAILURE);
+	}
 	r->fd = fd;
 	r->append = append;
 	r->next = NULL;
@@ -57,18 +70,27 @@ static void	append_redir(t_command *cmd, char *file, int fd, int append)
 			tmp = tmp->next;
 		tmp->next = r;
 	}
+	return (SUCCESS);
 }
 
 /**
  * Appends a new argument to the command's argument list.
  */
-static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
+static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 {
 	t_arg	*new;
 	t_arg	*tmp;
 
-	new = msh_calloc(shell, 1, sizeof(t_arg));
+	(void)shell;
+	new = malloc(sizeof(t_arg));
+	if (!new)
+		return (FAILURE);
 	new->value = ft_strdup(word);
+	if (!new->value)
+	{
+		free(new);
+		return (FAILURE);
+	}
 	new->next = NULL;
 	if (!cmd->args)
 		cmd->args = new;
@@ -79,6 +101,7 @@ static void	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 			tmp = tmp->next;
 		tmp->next = new;
 	}
+	return (SUCCESS);
 }
 
 /*
@@ -94,21 +117,36 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 	{
 		if (is_empty_expand_token(token->value))
 			return (1);
-		add_word_to_cmd(shell, cmd, token->value);
+		if (add_word_to_cmd(shell, cmd, token->value) == FAILURE)
+			return (FAILURE);
 		return (1);
 	}
 	if (token->type == HEREDOC)
 	{
-		handle_heredoc_token(cmd, token);
+		if (handle_heredoc_token(cmd, token) == FAILURE)
+			return (FAILURE);
 		return (2);
 	}
+	if (!token->next || !token->next->value)
+		return (FAILURE);
 	if (token->type == REDIR_IN)
-		append_redir(cmd, token->next->value, STDIN_FILENO, 0);
+	{
+		if (append_redir(cmd, token->next->value, STDIN_FILENO, 0) == FAILURE)
+			return (FAILURE);
+		return (2);
+	}
 	else if (token->type == REDIR_OUT)
-		append_redir(cmd, token->next->value, STDOUT_FILENO, 0);
+	{
+		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 0) == FAILURE)
+			return (FAILURE);
+		return (2);
+	}
 	else if (token->type == APPEND)
-		append_redir(cmd, token->next->value, STDOUT_FILENO, 1);
+	{
+		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 1) == FAILURE)
+			return (FAILURE);
+		return (2);
+	}
 	else
 		return (1);
-	return (2);
 }

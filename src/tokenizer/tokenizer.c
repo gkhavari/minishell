@@ -18,7 +18,11 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 	if (process_quote(shell, shell->input[*i], state))
 	{
 		if (!*word)
+		{
 			*word = ft_strdup("");
+			if (!*word)
+				shell->last_exit = 1;
+		}
 		(*i)++;
 		return (1);
 	}

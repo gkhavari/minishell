@@ -21,7 +21,7 @@ static char	*read_heredoc_line(t_shell *shell)
 	char	c;
 	int		ret;
 
-	if (isatty(STDIN_FILENO))
+	if (isatty(STDIN_FILENO) == 1)
 		return (readline("> "));
 	line = ft_strdup("");
 	if (!line)
@@ -31,13 +31,14 @@ static char	*read_heredoc_line(t_shell *shell)
 		ret = read(STDIN_FILENO, &c, 1);
 		if (ret <= 0)
 		{
-			if (ft_strlen(line) == 0)
+			if (!line || ft_strlen(line) == 0)
 				return (free(line), NULL);
 			return (line);
 		}
 		if (c == '\n')
 			return (line);
-		append_char(shell, &line, c);
+		if (append_char(shell, &line, c) == FAILURE)
+			return (NULL);
 	}
 }
 

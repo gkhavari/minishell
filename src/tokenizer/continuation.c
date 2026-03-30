@@ -34,7 +34,7 @@ static char	*read_continuation_line(t_shell *shell, char quote_char)
 	size_t	len;
 	char	*with_newline;
 
-	if (!isatty(STDIN_FILENO))
+	if (isatty(STDIN_FILENO) != 1)
 		return (read_stdin_line(shell));
 	tmp[0] = quote_char;
 	tmp[1] = '\0';

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/30 20:21:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/30 20:44:43 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 00:31:49 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,10 +27,7 @@ static int	is_simple_not_found_cmd(t_command *cmd, t_shell *shell)
 		return (0);
 	path = find_command_path(cmd->argv[0], shell);
 	if (path)
-	{
-		free(path);
 		return (0);
-	}
 	return (1);
 }
 

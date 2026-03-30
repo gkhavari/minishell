@@ -12,6 +12,17 @@
 
 #include "minishell.h"
 
+static void	cleanup_partial_argv(char **argv, size_t count)
+{
+	while (count > 0)
+	{
+		count--;
+		free(argv[count]);
+		argv[count] = NULL;
+	}
+	free(argv);
+}
+
 /**
  DESCRIPTION:
 * Completes the setup of each command in a linked list of t_command structures.
@@ -27,17 +38,19 @@ BEHAVIOR:
 * Calls finalize_argv(cmd) to construct cmd->argv.
 * Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
 **/
-void	finalize_all_commands(t_shell *shell, t_command *cmd)
+int	finalize_all_commands(t_shell *shell, t_command *cmd)
 {
 	while (cmd)
 	{
-		finalize_argv(shell, cmd);
+		if (finalize_argv(shell, cmd) == FAILURE)
+			return (FAILURE);
 		cmd->is_builtin = is_builtin(cmd->argv[0]);
 		if (cmd->is_builtin && cmd->argv[1]
 			&& ft_strcmp(cmd->argv[0], "env") == 0)
 			cmd->is_builtin = 0;
 		cmd = cmd->next;
 	}
+	return (SUCCESS);
 }
 
 /**
@@ -65,12 +78,13 @@ argv[1] = second argument
 argv[count-1] = last argument  
 argv[count] = NULL  
 **/
-void	finalize_argv(t_shell *shell, t_command *cmd)
+int	finalize_argv(t_shell *shell, t_command *cmd)
 {
 	t_arg	*tmp;
 	size_t	count;
 	size_t	i;
 
+	(void)shell;
 	tmp = cmd->args;
 	count = 0;
 	while (tmp)
@@ -78,14 +92,23 @@ void	finalize_argv(t_shell *shell, t_command *cmd)
 		count++;
 		tmp = tmp->next;
 	}
-	cmd->argv = msh_calloc(shell, count + 1, sizeof(char *));
+	cmd->argv = ft_calloc(count + 1, sizeof(char *));
+	if (!cmd->argv)
+		return (FAILURE);
 	tmp = cmd->args;
 	i = 0;
 	while (i < count)
 	{
 		cmd->argv[i] = ft_strdup(tmp->value);
+		if (!cmd->argv[i])
+		{
+			cleanup_partial_argv(cmd->argv, i);
+			cmd->argv = NULL;
+			return (FAILURE);
+		}
 		tmp = tmp->next;
 		i++;
 	}
 	cmd->argv[count] = NULL;
+	return (SUCCESS);
 }

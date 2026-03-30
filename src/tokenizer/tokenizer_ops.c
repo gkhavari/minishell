@@ -46,17 +46,56 @@ int	is_op_char(char c)
  **/
 size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 {
+	t_token		*tok;
+	t_tokentype	type;
+	char		*value;
+	size_t		len;
+
+	len = 0;
+	value = NULL;
+	type = WORD;
 	if (s[0] == '|')
-		return (add_token(list, new_token(shell, PIPE, "|")), 1);
-	if (s[0] == '<' && s[1] == '<')
-		return (add_token(list, new_token(shell, HEREDOC, "<<")), 2);
-	if (s[0] == '>' && s[1] == '>')
-		return (add_token(list, new_token(shell, APPEND, ">>")), 2);
-	if (s[0] == '<')
-		return (add_token(list, new_token(shell, REDIR_IN, "<")), 1);
-	if (s[0] == '>' && s[1] == '|')
-		return (add_token(list, new_token(shell, REDIR_OUT, ">")), 2);
-	if (s[0] == '>')
-		return (add_token(list, new_token(shell, REDIR_OUT, ">")), 1);
-	return (0);
+	{
+		type = PIPE;
+		value = "|";
+		len = 1;
+	}
+	else if (s[0] == '<' && s[1] == '<')
+	{
+		type = HEREDOC;
+		value = "<<";
+		len = 2;
+	}
+	else if (s[0] == '>' && s[1] == '>')
+	{
+		type = APPEND;
+		value = ">>";
+		len = 2;
+	}
+	else if (s[0] == '<')
+	{
+		type = REDIR_IN;
+		value = "<";
+		len = 1;
+	}
+	else if (s[0] == '>' && s[1] == '|')
+	{
+		type = REDIR_OUT;
+		value = ">";
+		len = 2;
+	}
+	else if (s[0] == '>')
+	{
+		type = REDIR_OUT;
+		value = ">";
+		len = 1;
+	}
+	if (len == 0)
+		return (0);
+	tok = new_token(shell, type, value);
+	if (!tok)
+		shell->last_exit = 1;
+	else
+		add_token(list, tok);
+	return (len);
 }

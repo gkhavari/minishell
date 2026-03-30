@@ -89,7 +89,11 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 	}
 	if (shell->input[*i] == '\\' && shell->input[*i + 1] == '$')
 	{
-		append_char(shell, word, '$');
+		if (append_char(shell, word, '$') == FAILURE)
+		{
+			*i += 2;
+			return (1);
+		}
 		*i += 2;
 		return (1);
 	}

@@ -31,9 +31,18 @@ t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 {
 	t_token	*token;
 
-	token = msh_calloc(shell, 1, sizeof(*token));
+	(void)shell;
+	token = malloc(sizeof(*token));
+	if (!token)
+		return (NULL);
 	token->type = type;
 	token->value = ft_strdup(value);
+	if (!token->value)
+	{
+		free(token);
+		return (NULL);
+	}
+	token->quoted = 0;
 	token->next = NULL;
 	return (token);
 }
@@ -69,8 +78,13 @@ void	add_token(t_token **head, t_token *new)
  * Calls append_char(word, c) to append the character to the word buffer.
  * Increments *i to move to the next character in the input.
  **/
-void	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
+int	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
 {
-	append_char(shell, word, c);
+	if (append_char(shell, word, c) == FAILURE)
+	{
+		(*i)++;
+		return (FAILURE);
+	}
 	(*i)++;
+	return (SUCCESS);
 }

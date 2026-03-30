@@ -32,15 +32,12 @@ void	set_underscore(t_shell *shell, char *path)
 
 	if (!path)
 		return ;
+	idx = find_export_key_index(shell, "_", 1);
+	if (idx < 0)
+		return ;
 	entry = ft_strjoin("_=", path);
 	if (!entry)
 		return ;
-	idx = find_export_key_index(shell, "_", 1);
-	if (idx >= 0)
-	{
-		free(shell->envp[idx]);
-		shell->envp[idx] = entry;
-	}
-	else
-		(append_export_env(shell, entry), free(entry));
+	free(shell->envp[idx]);
+	shell->envp[idx] = entry;
 }

@@ -24,43 +24,40 @@ static t_command	*new_command(t_shell *shell)
 {
 	t_command	*cmd;
 
-	cmd = msh_calloc(shell, 1, sizeof(t_command));
+	cmd = ft_calloc(1, sizeof(t_command));
+	if (!cmd)
+	{
+		shell->last_exit = 1;
+		return (NULL);
+	}
 	if (cmd)
 		cmd->heredoc_fd = -1;
 	return (cmd);
 }
 
-/**
- * DESCRIPTION:
- * Adds tokens to a given command until a PIPE or the end of the list is reached.
- * Uses add_token_to_command() to process tokens.
- *
- * PARAMETERS:
- * shell - Pointer to the shell state used during token processing.
- * cmd   - Pointer to the command structure being filled.
- * token - Pointer to the first token to process.
- *
- * RETURN:
- * Pointer to the next unprocessed token after consumption, 
- * or NULL if an error occurs.
- */
-static t_token	*consume_command_tokens(t_shell *shell, t_command *cmd,
-	t_token *token)
+static int	parse_token_step(t_shell *shell, t_command **cmd,
+		t_token **token, t_command *head)
 {
 	int	consumed;
 
-	consumed = add_token_to_command(shell, cmd, token);
-	if (consumed == FAILURE)
+	if ((*token)->type == PIPE)
 	{
-		free_commands(cmd);
-		return (NULL);
+		(*cmd)->next = new_command(shell);
+		if (!(*cmd)->next)
+			return (free_commands(head), FAILURE);
+		*cmd = (*cmd)->next;
+		*token = (*token)->next;
+		return (SUCCESS);
 	}
-	while (consumed > 0 && token)
+	consumed = add_token_to_command(shell, *cmd, *token);
+	if (consumed == FAILURE)
+		return (free_commands(head), FAILURE);
+	while (consumed > 0 && *token)
 	{
-		token = token->next;
+		*token = (*token)->next;
 		consumed--;
 	}
-	return (token);
+	return (SUCCESS);
 }
 
 static t_command	*parse_tokens(t_shell *shell, t_token *token)
@@ -69,17 +66,13 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 	t_command	*cmd;
 
 	head = new_command(shell);
+	if (!head)
+		return (NULL);
 	cmd = head;
 	while (token)
 	{
-		if (token->type == PIPE)
-		{
-			cmd->next = new_command(shell);
-			cmd = cmd->next;
-			token = token->next;
-		}
-		else
-			token = consume_command_tokens(shell, cmd, token);
+		if (parse_token_step(shell, &cmd, &token, head) == FAILURE)
+			return (NULL);
 	}
 	return (head);
 }
@@ -114,7 +107,17 @@ void	parse_input(t_shell *shell)
 		return ;
 	}
 	shell->commands = parse_tokens(shell, shell->tokens);
-	finalize_all_commands(shell, shell->commands);
+	if (!shell->commands)
+	{
+		shell->last_exit = 1;
+		return ;
+	}
+	if (finalize_all_commands(shell, shell->commands) == FAILURE)
+	{
+		free_commands(shell->commands);
+		shell->commands = NULL;
+		shell->last_exit = 1;
+	}
 }
 
 /*

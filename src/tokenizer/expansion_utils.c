@@ -78,6 +78,7 @@ void	append_expansion_quoted(char **word, const char *exp)
 {
 	size_t	len_word;
 	size_t	len_exp;
+	char	*tmp;
 
 	if (*word)
 		len_word = ft_strlen(*word);
@@ -87,9 +88,10 @@ void	append_expansion_quoted(char **word, const char *exp)
 		len_exp = ft_strlen(exp);
 	else
 		len_exp = 0;
-	*word = ft_realloc(*word, len_word + len_exp + 1);
-	if (!*word)
-		exit(1);
+	tmp = ft_realloc(*word, len_word + len_exp + 1);
+	if (!tmp)
+		return ;
+	*word = tmp;
 	ft_memcpy(*word + len_word, exp, len_exp);
 	(*word)[len_word + len_exp] = '\0';
 }

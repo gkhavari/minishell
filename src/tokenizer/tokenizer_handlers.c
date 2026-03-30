@@ -44,7 +44,7 @@ int	handle_end_of_string(t_shell *shell, t_state *state)
 	}
 	else
 	{
-		if (isatty(STDIN_FILENO) && shell->input && shell->input[0])
+		if (isatty(STDIN_FILENO) == 1 && shell->input && shell->input[0])
 			add_history(shell->input);
 		return (0);
 	}
@@ -77,8 +77,20 @@ int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 		return (1);
 	}
 	if (!*word)
+	{
 		*word = ft_strdup("");
-	append_char(shell, word, shell->input[*i + 1]);
+		if (!*word)
+		{
+			shell->last_exit = 1;
+			*i += 2;
+			return (1);
+		}
+	}
+	if (append_char(shell, word, shell->input[*i + 1]) == FAILURE)
+	{
+		*i += 2;
+		return (1);
+	}
 	*i += 2;
 	return (1);
 }

@@ -47,22 +47,31 @@ int	is_heredoc_mode(t_shell *shell)
  * The original *dest is freed.
  * resulting string is null-terminated.
 **/
-void	append_char(t_shell *shell, char **dst, char c)
+int	append_char(t_shell *shell, char **dst, char c)
 {
 	size_t	len;
 	char	*new;
 
+	(void)shell;
 	if (!(*dst))
 		len = 0;
 	else
 		len = ft_strlen(*dst);
-	new = msh_calloc(shell, sizeof(char), len + 2);
+	new = malloc(len + 2);
+	if (!new)
+	{
+		free(*dst);
+		*dst = NULL;
+		shell->last_exit = 1;
+		return (FAILURE);
+	}
 	if (*dst)
 		ft_memcpy(new, *dst, len);
 	new[len] = c;
 	new[len + 1] = '\0';
 	free(*dst);
 	*dst = new;
+	return (SUCCESS);
 }
 
 /**
@@ -89,6 +98,15 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 	if (*word)
 	{
 		tok = new_token(shell, WORD, *word);
+		if (!tok)
+		{
+			free(*word);
+			*word = NULL;
+			shell->word_quoted = 0;
+			shell->heredoc_mode = 0;
+			shell->last_exit = 1;
+			return ;
+		}
 		tok->quoted = shell->word_quoted;
 		add_token(token, tok);
 		free(*word);

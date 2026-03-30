@@ -6,11 +6,15 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/28 01:46:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 00:32:02 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+#ifndef PATH_MAX
+# define PATH_MAX 4096
+#endif
 
 static int	get_child_status(int status)
 {
@@ -48,61 +52,81 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	return (get_child_status(status));
 }
 
-static int	is_regular_file(char *path)
+static int	build_candidate(char out[PATH_MAX], const char *dir,
+		size_t dir_len, char *cmd)
 {
-	struct stat	sb;
+	size_t	cmd_len;
 
-	if (stat(path, &sb) != 0)
+	cmd_len = ft_strlen(cmd);
+	if (dir_len == 0)
+	{
+		if (cmd_len >= PATH_MAX)
+			return (0);
+		ft_memcpy(out, cmd, cmd_len + 1);
+		return (1);
+	}
+	if (dir_len + 1 + cmd_len >= PATH_MAX)
 		return (0);
-	return (S_ISREG(sb.st_mode));
+	ft_memcpy(out, dir, dir_len);
+	out[dir_len] = '/';
+	ft_memcpy(out + dir_len + 1, cmd, cmd_len + 1);
+	return (1);
 }
 
-static char	*search_in_path(char **paths, char *cmd)
+static char	*search_in_path(const char *path_env, char *cmd,
+		char resolved[PATH_MAX])
 {
-	char	*tmp;
-	char	*full_path;
-	int		i;
+	struct stat	sb;
+	char		full_path[PATH_MAX];
+	const char	*start;
+	const char	*end;
+	size_t		len;
 
-	i = 0;
-	while (paths[i])
+	start = path_env;
+	while (1)
 	{
-		tmp = ft_strjoin(paths[i], "/");
-		if (!tmp)
-			break ;
-		full_path = ft_strjoin(tmp, cmd);
-		free(tmp);
-		if (!full_path)
-			break ;
-		if (is_regular_file(full_path))
+		end = start;
+		while (*end && *end != ':')
+			end++;
+		len = (size_t)(end - start);
+		if (build_candidate(full_path, start, len, cmd)
+			&& stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
 		{
-			free_array(paths);
-			return (full_path);
+			ft_strlcpy(resolved, full_path, PATH_MAX);
+			return (resolved);
 		}
-		free(full_path);
-		i++;
+		if (*end == '\0')
+			break ;
+		start = end + 1;
 	}
-	free_array(paths);
 	return (NULL);
 }
 
 char	*find_command_path(char *cmd, t_shell *shell)
 {
-	char	*path_env;
-	char	**paths;
+	static char	resolved[PATH_MAX];
+	char		*path_env;
+	size_t		cmd_len;
 
 	if (!cmd || !*cmd)
 		return (NULL);
+	cmd_len = ft_strlen(cmd);
+	if (cmd_len >= PATH_MAX)
+		return (NULL);
 	if (ft_strchr(cmd, '/'))
-		return (ft_strdup(cmd));
+	{
+		ft_memcpy(resolved, cmd, cmd_len + 1);
+		return (resolved);
+	}
 	path_env = get_env_value(shell->envp, "PATH");
 	if (!path_env && shell->had_path)
 		path_env = "/usr/local/bin:/usr/bin:/bin:.";
 	if (!path_env)
 		return (NULL);
 	if (*path_env == '\0')
-		return (ft_strdup(cmd));
-	paths = ft_split(path_env, ':');
-	if (!paths)
-		return (NULL);
-	return (search_in_path(paths, cmd));
+	{
+		ft_memcpy(resolved, cmd, cmd_len + 1);
+		return (resolved);
+	}
+	return (search_in_path(path_env, cmd, resolved));
 }

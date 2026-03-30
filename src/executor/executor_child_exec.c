@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 17:38:38 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 17:38:41 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 00:31:36 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,15 +17,7 @@ char	*format_cmd_name_for_error(char *cmd_name);
 
 static void	run_builtin_child(t_command *cmd, t_shell *shell)
 {
-	char	*path;
-
 	signal(SIGPIPE, SIG_IGN);
-	path = find_command_path(cmd->argv[0], shell);
-	if (path)
-	{
-		set_underscore(shell, path);
-		free(path);
-	}
 	exit_child(shell, run_builtin(cmd->argv, shell));
 }
 
@@ -36,21 +28,18 @@ static void	check_is_dir(t_shell *shell, char *cmd_name, char *path)
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
 	{
 		write_err3("", cmd_name, ": Is a directory\n");
-		free(path);
 		exit_child(shell, 126);
 	}
 }
 
-static void	handle_exec_error(t_shell *shell, char *cmd_name, char *path)
+static void	handle_exec_error(t_shell *shell, char *cmd_name)
 {
 	if (errno == ENOENT)
 	{
 		write_err3("", cmd_name, ": No such file or directory\n");
-		free(path);
 		exit_child(shell, 127);
 	}
 	write_err3("", cmd_name, ": Permission denied\n");
-	free(path);
 	exit_child(shell, 126);
 }
 
@@ -81,5 +70,5 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 	check_is_dir(shell, cmd->argv[0], path);
 	set_underscore(shell, path);
 	execve(path, cmd->argv, shell->envp);
-	handle_exec_error(shell, cmd->argv[0], path);
+	handle_exec_error(shell, cmd->argv[0]);
 }

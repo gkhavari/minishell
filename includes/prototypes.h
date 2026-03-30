@@ -33,7 +33,7 @@ void		tokenize_input(t_shell *shell);
 void		flush_word(t_shell *shell, char **word, t_token **token);
 void		add_token(t_token **head, t_token *new);
 t_token		*new_token(t_shell *shell, t_tokentype type, char *value);
-void		append_char(t_shell *shell, char **dst, char c);
+int			append_char(t_shell *shell, char **dst, char c);
 void		mark_word_quoted(t_shell *shell);
 void		set_heredoc_mode(t_shell *shell, int mode);
 int			is_heredoc_mode(t_shell *shell);
@@ -45,7 +45,7 @@ int			handle_backslash(t_shell *shell, size_t *i,
 int			process_quote(t_shell *shell, char c, t_state *state);
 int			handle_operator(t_shell *shell, size_t *i, char **word);
 int			handle_whitespace(t_shell *shell, size_t *i, char **word);
-void		process_normal_char(t_shell *shell, char c, size_t *i,
+int			process_normal_char(t_shell *shell, char c, size_t *i,
 				char **word);
 
 /* tokenizer_quotes.c */
@@ -82,8 +82,8 @@ int			add_token_to_command(t_shell *shell, t_command *cmd,
 				t_token *token);
 
 /* argv_build.c */
-void		finalize_all_commands(t_shell *shell, t_command *cmd);
-void		finalize_argv(t_shell *shell, t_command *cmd);
+int			finalize_all_commands(t_shell *shell, t_command *cmd);
+int			finalize_argv(t_shell *shell, t_command *cmd);
 
 /* parser_syntax_check.c */
 int			syntax_check(t_token *token);
