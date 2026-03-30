@@ -14,7 +14,6 @@
 
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
 			int *prev_fd, int sync_fd[2]);
-int		handle_all_not_found_pipeline(t_command *cmds, t_shell *shell);
 
 static int	consume_wait_result(pid_t pid, int status, pid_t last_pid,
 		int *last_status)
@@ -107,8 +106,6 @@ int	execute_pipeline(t_command *cmds, t_shell *shell)
 	sync_fd[0] = -1;
 	sync_fd[1] = -1;
 	shell->barrier_write_fd = -1;
-	if (handle_all_not_found_pipeline(cmds, shell))
-		return (127);
 	set_signals_ignore();
 	n = run_pipeline_loop(cmds, shell, &last_pid, sync_fd);
 	result = 1;

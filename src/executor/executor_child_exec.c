@@ -68,7 +68,6 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 	if (!path)
 		cmd_not_found(shell, cmd->argv[0]);
 	check_is_dir(shell, cmd->argv[0], path);
-	set_underscore(shell, path);
 	execve(path, cmd->argv, shell->envp);
 	handle_exec_error(shell, cmd->argv[0]);
 }

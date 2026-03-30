@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 00:32:02 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 01:15:57 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,26 +106,17 @@ char	*find_command_path(char *cmd, t_shell *shell)
 {
 	static char	resolved[PATH_MAX];
 	char		*path_env;
-	size_t		cmd_len;
 
 	if (!cmd || !*cmd)
 		return (NULL);
-	cmd_len = ft_strlen(cmd);
-	if (cmd_len >= PATH_MAX)
+	if (ft_strlen(cmd) >= PATH_MAX)
 		return (NULL);
-	if (ft_strchr(cmd, '/'))
-	{
-		ft_memcpy(resolved, cmd, cmd_len + 1);
-		return (resolved);
-	}
 	path_env = get_env_value(shell->envp, "PATH");
 	if (!path_env && shell->had_path)
 		path_env = "/usr/local/bin:/usr/bin:/bin:.";
-	if (!path_env)
-		return (NULL);
-	if (*path_env == '\0')
+	if (ft_strchr(cmd, '/') || !path_env || *path_env == '\0')
 	{
-		ft_memcpy(resolved, cmd, cmd_len + 1);
+		ft_strlcpy(resolved, cmd, PATH_MAX);
 		return (resolved);
 	}
 	return (search_in_path(path_env, cmd, resolved));

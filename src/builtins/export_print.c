@@ -31,23 +31,16 @@ static void	print_export_entry(char *entry)
 {
 	char	*eq;
 	char	*key;
-	char	*out;
 
 	eq = ft_strchr(entry, '=');
 	if (!eq)
 		return (ft_putstr_fd("export ", 1), ft_putstr_fd(entry, 1),
 			ft_putchar_fd('\n', 1));
 	key = ft_substr(entry, 0, eq - entry);
-	out = NULL;
 	ft_putstr_fd("export ", 1);
 	ft_putstr_fd(key, 1);
 	ft_putstr_fd("=\"", 1);
-	if (ft_strcmp(key, "SHLVL") == 0)
-		out = ft_itoa(ft_atoi(eq + 1) + 1);
-	if (out)
-		(ft_putstr_fd(out, 1), free(out));
-	else
-		print_escaped_value(eq + 1);
+	print_escaped_value(eq + 1);
 	ft_putstr_fd("\"\n", 1);
 	free(key);
 }
