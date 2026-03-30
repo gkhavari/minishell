@@ -147,14 +147,6 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
 	if (!is_op_char(shell->input[*i]))
 		return (0);
-	if (*word && !(*word)[1] && (*word)[0] == '2' && shell->input[*i] == '>')
-	{
-		free(*word);
-		*word = NULL;
-		add_token(&shell->tokens, new_token(shell, REDIR_ERR_OUT, "2>"));
-		(*i)++;
-		return (1);
-	}
 	flush_word(shell, word, &shell->tokens);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
 		set_heredoc_mode(shell, 1);

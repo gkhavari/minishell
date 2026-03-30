@@ -21,7 +21,7 @@ typedef enum e_tokentype
 	REDIR_OUT,
 	APPEND,
 	HEREDOC,
-	REDIR_ERR_OUT
+
 }	t_tokentype;
 
 typedef enum e_state
