@@ -3,81 +3,114 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line_utils.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/21 20:57:12 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/21 21:15:02 by thanh-ng         ###   ########.fr       */
+/*   Created: 2025/05/19 15:56:01 by gkhavari          #+#    #+#             */
+/*   Updated: 2025/06/10 11:51:15 by gkhavari         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-int	has_newline(t_buffer *stash)
+void	*ft_calloc(size_t nmemb, size_t size)
 {
-	t_buffer	*last;
-	int			i;
+	void			*r;
+	size_t			total_size;
+	size_t			i;
+	unsigned char	*ptr;
 
-	if (!stash)
-		return (0);
-	last = get_last_buffer(stash);
-	i = last->position;
-	while (i < last->size)
+	total_size = nmemb * size;
+	i = 0;
+	r = (int *)malloc(total_size);
+	if (r == NULL)
+		return (NULL);
+	ptr = (unsigned char *)r;
+	while (i < nmemb)
 	{
-		if (last->content[i] == '\n')
-			return (1);
+		ptr[i] = 0;
 		i++;
 	}
-	return (0);
+	return (r);
 }
 
-int	calculate_line_size(t_buffer *stash)
+size_t	ft_strlen(const char *str)
 {
-	t_buffer	*current;
-	int			len;
-	int			i;
+	size_t	len;
 
 	len = 0;
-	current = stash;
-	while (current)
-	{
-		i = current->position;
-		while (i < current->size)
-		{
-			len++;
-			if (current->content[i] == '\n')
-				break ;
-			i++;
-		}
-		current = current->next;
-	}
+	while (str[len] != '\0')
+		len++;
 	return (len);
 }
 
-void	free_stash_list(t_buffer *stash)
+char	*ft_substr(char const *s, unsigned int start, size_t len)
 {
-	t_buffer	*current;
-	t_buffer	*next;
+	char	*sub;
+	size_t	len_str;
+	size_t	len_sub;
+	size_t	i;
 
-	current = stash;
-	while (current)
+	if (s == NULL)
+		return (NULL);
+	len_str = ft_strlen(s);
+	if (start >= len_str)
+		return (ft_strjoin("", ""));
+	if (len_str - start > len)
+		len_sub = len;
+	else
+		len_sub = len_str - start;
+	sub = (char *)ft_calloc(len_sub + 1, sizeof(char));
+	if (sub == NULL)
+		return (NULL);
+	i = 0;
+	while (i < len_sub)
 	{
-		next = current->next;
-		free(current);
-		current = next;
+		sub[i] = s[start + i];
+		i++;
 	}
+	return (sub);
 }
 
-int	add_buffer_to_stash(t_buffer **stash, char *buf, int bytes_read)
+char	*ft_strjoin(char const *str1, char const *str2)
 {
-	(void)stash;
-	(void)buf;
-	(void)bytes_read;
-	return (ERROR);
+	char	*joined;
+	size_t	len1;
+	size_t	len2;
+	size_t	i;
+
+	if (str1 == NULL || str2 == NULL)
+		return (NULL);
+	len1 = ft_strlen(str1);
+	len2 = ft_strlen(str2);
+	joined = (char *)ft_calloc(len1 + len2 + 1, sizeof(char));
+	if (joined == NULL)
+		return (NULL);
+	i = 0;
+	while (i < len1)
+	{
+		joined[i] = str1[i];
+		i++;
+	}
+	while (i < len1 + len2)
+	{
+		joined[i] = str2[i - len1];
+		i++;
+	}
+	return (joined);
 }
 
-t_buffer	*create_new_buffer(char *buf, int bytes_read)
+char	*ft_strchr(const char *str, int c)
 {
-	(void)buf;
-	(void)bytes_read;
+	size_t	i;
+
+	i = 0;
+	while (str[i])
+	{
+		if ((unsigned char)str[i] == (unsigned char)c)
+			return ((char *)&str[i]);
+		i++;
+	}
+	if (c == '\0')
+		return ((char *)&str[i]);
 	return (NULL);
 }

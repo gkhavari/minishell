@@ -34,31 +34,3 @@ size_t	ft_strlcat(char *dest, const char *src, size_t size)
 		dest[len_dest + i] = '\0';
 	return (len_dest + len_src);
 }
-/*
-#include <stdio.h>
-#include <string.h>
-
-void test_strlcat(const char *src, size_t size)
-{
-    char dest[100];
-    strcpy(dest, "Hello ");
-    
-    size_t result_ft = ft_strlcat(dest, src, size);
-    
-    printf("Testing ft_strlcat\n");
-    printf("Source: \"%s\"\n", src);
-    printf("Size: %zu\n", size);
-    printf("ft_strlcat result: %zu, dest: \"%s\"\n", result_ft, dest);
-    printf("\n");
-}
-
-int main()
-{
-    test_strlcat("world!", 20);
-    test_strlcat("world!", 5);
-    test_strlcat("world!", 0);
-    test_strlcat("some longer string that will exceed buffer", 15);
-    test_strlcat("", 10);
-    
-    return 0;
-}*/

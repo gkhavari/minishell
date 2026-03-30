@@ -23,37 +23,3 @@ size_t	ft_strlen(const char *str)
 		i++;
 	return (i);
 }
-/*
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-int main(void)
-{
-	char *test5 = (char *)calloc(1000, sizeof(char));
-	char test6[3] = {'4', '2', '!'};
-	
-	char *tests[] = {
-		"hello42",
-		"",
-		"a",
-		"hello\nworld",
-		"hello\0world",
-		test5,
-		test6,
-		};
-	size_t num_of_tests = sizeof(tests) / sizeof(tests[0]);
-	size_t i = 0;
-	while (i < num_of_tests)
-	{
-		if (ft_strlen(tests[i]) != strlen(tests[i]))
-		{
-			printf("ft_strlen failed on test %zu\n", i);
-			printf("returned %zu, expected %lu\n", 
-			ft_strlen(tests[i]), strlen(tests[i]));
-		}
-		i++;
-	}
-	printf("Finished testing ft_strlen\n");	
-	free(test5);
-}*/

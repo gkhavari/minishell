@@ -16,23 +16,3 @@ int	ft_isascii(int c)
 {
 	return (0 <= c && c <= 127);
 }
-/*
-#include <stdio.h>
-#include <ctype.h>
-int	main(void)
-{
-	int i = 0;
-	while (i < 127)
-	{
-		if (!!ft_isascii(i) != !!isascii(i))
-		{
-			printf("ft_isascii: failed on %d\n", i);
-			printf("my function gives %d, expected %d\n", 
-			ft_isascii(i), isascii(i));
-			return (1);
-		}
-		i++;
-	}
-	printf("ft_isascii: ok\n");
-	return (0);
-}*/
