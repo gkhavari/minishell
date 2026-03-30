@@ -131,6 +131,7 @@ void		free_array(char **arr);
 
 /* executor_pipeline.c */
 int			execute_pipeline(t_command *cmds, t_shell *shell);
+int			handle_all_not_found_pipeline(t_command *cmds, t_shell *shell);
 
 /* builtins */
 int			builtin_cd(char **args, t_shell *shell);

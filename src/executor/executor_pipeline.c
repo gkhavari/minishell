@@ -14,7 +14,7 @@
 
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
 			int *prev_fd, int sync_fd[2]);
-void	release_pipeline_barrier(int write_fd, int count);
+int		handle_all_not_found_pipeline(t_command *cmds, t_shell *shell);
 
 /*
 ** wait_children_last - Wait for n children and return last command status
@@ -73,22 +73,6 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 	return (i);
 }
 
-static void	setup_pipeline_barrier(t_shell *shell, int sync_fd[2])
-{
-	(void)sync_fd;
-	shell->barrier_write_fd = -1;
-}
-
-static void	close_pipeline_barrier(t_shell *shell, int sync_fd[2], int n)
-{
-	release_pipeline_barrier(-1, n);
-	if (sync_fd[0] != -1)
-		close(sync_fd[0]);
-	if (sync_fd[1] != -1)
-		close(sync_fd[1]);
-	shell->barrier_write_fd = -1;
-}
-
 /*
 ** execute_pipeline - Execute a multi-command pipeline (cmd1 | cmd2 | ...)
 ** Allocates a PID array, forks all children connected by pipes,
@@ -105,10 +89,10 @@ int	execute_pipeline(t_command *cmds, t_shell *shell)
 	sync_fd[0] = -1;
 	sync_fd[1] = -1;
 	shell->barrier_write_fd = -1;
-	setup_pipeline_barrier(shell, sync_fd);
+	if (handle_all_not_found_pipeline(cmds, shell))
+		return (127);
 	set_signals_ignore();
 	n = run_pipeline_loop(cmds, shell, &last_pid, sync_fd);
-	close_pipeline_barrier(shell, sync_fd, n);
 	result = 1;
 	if (n > 0)
 		result = wait_children_last(last_pid, n);

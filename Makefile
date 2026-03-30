@@ -68,6 +68,7 @@ SRCS        += $(SRC_DIR)/executor/executor.c \
 			   $(SRC_DIR)/executor/executor_cmd_utils.c \
 			   $(SRC_DIR)/executor/executor_external.c \
 			   $(SRC_DIR)/executor/executor_pipeline.c \
+			   $(SRC_DIR)/executor/executor_pipeline_not_found.c \
 			   $(SRC_DIR)/executor/executor_pipeline_steps.c \
 			   $(SRC_DIR)/executor/executor_child_format.c \
 			   $(SRC_DIR)/executor/executor_child_exec.c \
@@ -137,5 +138,8 @@ fclean: clean
 	@echo "Executable removed"
 
 re: fclean all
+
+debug:  CFLAGS += -g
+debug: re
 
 .PHONY: all clean fclean re

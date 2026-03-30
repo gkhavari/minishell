@@ -32,7 +32,7 @@ static int	is_redir_target(t_shell *shell, char *word)
 		return (0);
 	return (last->type == REDIR_IN || last->type == REDIR_OUT
 		|| last->type == APPEND || last->type == HEREDOC
-		|| last->type == REDIR_ERR_OUT);
+	);
 }
 
 int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,

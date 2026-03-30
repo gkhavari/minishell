@@ -110,6 +110,11 @@ static char	*expand_normal_var(t_shell *shell, size_t *i)
 		len++;
 	}
 	name = ft_strndup(shell->input + start, len);
+	if (!name)
+	{
+		*i = start + len;
+		return (NULL);
+	}
 	value = get_env_value(shell->envp, name);
 	free(name);
 	*i = start + len;
@@ -181,6 +186,11 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 		return (0);
 	start = *i;
 	expanded = expand_var(shell, i);
+	if (!expanded)
+	{
+		shell->last_exit = 1;
+		return (1);
+	}
 	if (expanded[0] == '\0' && handle_empty_unquoted_expansion(shell,
 			start, *i, word))
 	{

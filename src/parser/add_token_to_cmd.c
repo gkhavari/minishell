@@ -108,8 +108,6 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 		append_redir(cmd, token->next->value, STDOUT_FILENO, 0);
 	else if (token->type == APPEND)
 		append_redir(cmd, token->next->value, STDOUT_FILENO, 1);
-	else if (token->type == REDIR_ERR_OUT)
-		append_redir(cmd, token->next->value, STDERR_FILENO, 0);
 	else
 		return (1);
 	return (2);

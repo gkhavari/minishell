@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokenizer_quotes.c                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/07 17:01:14 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/07 17:01:16 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/30 20:50:11 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ PARAMETERS:
 * t_state *state: Pointer to the current state. This function only acts
 	if the state is ST_DQUOTE.
 
-BEHAVOIR:
+BEHAVIOR:
 * Checks if the state is in ST_DQUOTE.
 * If not, returns 0 to indicate it did not handle the character.
 * If the current character is $:
@@ -75,10 +75,14 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 	if (*state != ST_DQUOTE)
 		return (0);
 	if (shell->input[*i] == '$' && !is_heredoc_mode(shell)
-		&& shell->input[*i + 1] != '"'
-		&& shell->input[*i + 1] != '\'')
+		&& shell->input[*i + 1] != '"' && shell->input[*i + 1] != '\'')
 	{
 		expanded = expand_var(shell, i);
+		if (!expanded)
+		{
+			shell->last_exit = 1;
+			return (1);
+		}
 		append_expansion_quoted(word, expanded);
 		free(expanded);
 		return (1);

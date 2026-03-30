@@ -35,6 +35,8 @@ char	*get_env_value(char **envp, const char *key)
 	int		i;
 	size_t	len;
 
+	if (!envp || !key)
+		return (NULL);
 	i = 0;
 	len = ft_strlen(key);
 	while (envp[i])
