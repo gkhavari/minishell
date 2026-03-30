@@ -1,0 +1,19 @@
+# Readline/history library symbols
+readline
+add_history
+rl_clear_history
+rl_on_new_line
+rl_replace_line
+rl_redisplay
+rl_done
+rl_event_hook
+
+# Project functions that directly call readline/history APIs
+read_input
+read_continuation_line
+read_heredoc_line
+handle_end_of_string
+readline_event_hook
+clean_exit
+exit_child
+main

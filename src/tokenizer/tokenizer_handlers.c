@@ -44,7 +44,8 @@ int	handle_end_of_string(t_shell *shell, t_state *state)
 	}
 	else
 	{
-		add_history(shell->input);
+		if (isatty(STDIN_FILENO) && shell->input && shell->input[0])
+			add_history(shell->input);
 		return (0);
 	}
 }
