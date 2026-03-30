@@ -171,8 +171,8 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 */
 int	apply_redirections(t_command *cmd)
 {
-	t_redir		*r;
-	int			had_input;
+	t_redir	*r;
+	int		had_input;
 
 	had_input = 0;
 	r = cmd->redirs;
@@ -181,20 +181,17 @@ int	apply_redirections(t_command *cmd)
 		if (apply_one_redir(r, &had_input))
 		{
 			if (cmd->heredoc_fd != -1)
-			{
 				close(cmd->heredoc_fd);
-				cmd->heredoc_fd = -1;
-			}
+			cmd->heredoc_fd = -1;
 			return (1);
 		}
 		r = r->next;
 	}
-	if (cmd->heredoc_fd != -1)
-	{
-		if (!had_input)
-			dup2(cmd->heredoc_fd, STDIN_FILENO);
-		close(cmd->heredoc_fd);
-		cmd->heredoc_fd = -1;
-	}
+	if (cmd->heredoc_fd == -1)
+		return (0);
+	if (!had_input)
+		dup2(cmd->heredoc_fd, STDIN_FILENO);
+	close(cmd->heredoc_fd);
+	cmd->heredoc_fd = -1;
 	return (0);
 }
