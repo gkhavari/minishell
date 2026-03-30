@@ -33,13 +33,10 @@ static size_t	count_words(const char *str, char c)
 	return (words);
 }
 
-static void	free_all(char **dest)
+static void	free_all(char **dest, size_t count)
 {
-	size_t	i;
-
-	i = 0;
-	while (dest[i])
-		free(dest[i++]);
+	while (count > 0)
+		free(dest[--count]);
 	free(dest);
 }
 
@@ -62,7 +59,7 @@ static int	write_split(char ***dest, const char *str, const char c)
 			(*dest)[j++] = ft_substr(str, 0, word_len);
 			if ((*dest)[j - 1] == NULL)
 			{
-				free_all(*dest);
+				free_all(*dest, j - 1);
 				return (0);
 			}
 			str = str + word_len;
