@@ -56,7 +56,7 @@ int	builtin_exit(char **args, t_shell *shell)
 {
 	long long	value;
 
-	if (isatty(STDIN_FILENO))
+	if (isatty(STDIN_FILENO) == 1)
 		ft_putendl_fd("exit", STDERR_FILENO);
 	if (!args[1])
 		clean_exit(shell, shell->last_exit);

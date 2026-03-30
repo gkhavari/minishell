@@ -125,6 +125,6 @@ void	init_shell(t_shell *shell, char **envp)
 	if (!shell->cwd)
 		shell->cwd = ft_strdup("/");
 	init_runtime_fields(shell);
-	if (isatty(STDIN_FILENO))
+	if (isatty(STDIN_FILENO) == 1)
 		update_shlvl(shell);
 }

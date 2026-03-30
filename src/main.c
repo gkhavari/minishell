@@ -31,21 +31,24 @@ static char	*read_line_stdin(t_shell *shell)
 		ret = read(STDIN_FILENO, &c, 1);
 		if (ret <= 0)
 		{
-			if (ft_strlen(line) == 0)
+			if (!line || ft_strlen(line) == 0)
 				return (free(line), NULL);
 			return (line);
 		}
 		if (c == '\n')
 			return (line);
-		append_char(shell, &line, c);
+		if (append_char(shell, &line, c) == FAILURE)
+			return (NULL);
 	}
 }
 
 static int	read_input(t_shell *shell)
 {
 	char	*prompt;
+	int		tty;
 
-	if (!isatty(STDIN_FILENO))
+	tty = isatty(STDIN_FILENO);
+	if (tty != 1)
 		shell->input = read_line_stdin(shell);
 	else
 	{
@@ -57,7 +60,7 @@ static int	read_input(t_shell *shell)
 	}
 	if (!shell->input)
 	{
-		if (isatty(STDIN_FILENO))
+		if (tty == 1)
 			ft_putstr_fd("exit\n", STDOUT_FILENO);
 		return (0);
 	}
@@ -91,7 +94,7 @@ static void	shell_loop(t_shell *shell)
 		if (!shell->commands && shell->last_exit == 2)
 			syntax_err = 1;
 		reset_shell(shell);
-		if (!isatty(STDIN_FILENO) && syntax_err)
+		if (isatty(STDIN_FILENO) != 1 && syntax_err)
 			break ;
 	}
 }
@@ -105,7 +108,7 @@ int	main(int argc, char **argv, char **envp)
 	ft_bzero(&shell, sizeof(t_shell));
 	init_shell(&shell, envp);
 	set_signals_interactive();
-	if (isatty(STDIN_FILENO))
+	if (isatty(STDIN_FILENO) == 1)
 		rl_event_hook = readline_event_hook;
 	shell_loop(&shell);
 	rl_clear_history();
