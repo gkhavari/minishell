@@ -18,7 +18,7 @@
 | `src/tokenizer/` | `tokenizer.c`, `tokenizer_utils.c`, `tokenizer_utils2.c`, `tokenizer_ops.c`, `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `expansion_utils.c`, `continuation.c` | Lexer: input string to token list |
 | `src/parser/` | `parser.c`, `parser_syntax_check.c`, `add_token_to_cmd.c`, `argv_build.c`, `heredoc.c`, `heredoc_utils.c` | Parser: tokens to command list + heredocs |
 | `src/executor/` | `executor.c`, `executor_utils.c`, `executor_cmd_utils.c`, `executor_external.c`, `executor_child.c`, `executor_child_exec.c`, `executor_child_format.c`, `executor_pipeline.c`, `executor_pipeline_steps.c`, `executor_count.c` | Executor: run commands, pipes, redirections |
-| `src/builtins/` | `builtin_dispatcher.c`, `echo.c`, `cd.c`, `pwd.c`, `env.c`, `export.c`, `export_utils.c`, `export_print.c`, `unset.c`, `exit.c`, `exit_utils.c` | Builtin commands |
+| `src/builtins/` | `builtin_dispatcher.c`, `echo.c`, `cd.c`, `pwd.c`, `env.c`, `export.c`, `export_utils.c`, `export_print.c`, `unset.c`, `exit.c` | Builtin commands |
 | `includes/` | `minishell.h`, `includes.h`, `defines.h`, `structs.h`, `prototypes.h` | Headers |
 | `libft/` | 50+ files | 42-approved utility library |
 
@@ -198,6 +198,16 @@ Happens after parsing, before execution. `process_heredocs()` in `heredoc.c`:
 7. SIGINT during heredoc: stop, return to prompt, `last_exit = 130`
 
 ---
+
+Note on multiple heredocs:
+
+If a single command contains multiple `<<` operators (for example
+`cat << EOF1 << EOF2`), this minishell stores only one `heredoc_delim` per
+command and will process only the last delimiter. Earlier `<<` delimiters are
+overwritten while parsing. By contrast, bash reads all here-document bodies
+for the command before execution; the minishell's behavior is an intentional
+simplification and therefore a divergence from bash.
+
 
 ## 6. Executor
 

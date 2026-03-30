@@ -101,6 +101,14 @@ typedef struct s_command {
 | `is_builtin` | Set once in `finalize_all_commands()` so executor doesn't re-check |
 | `next` | Pipeline: `ls | grep | wc` = 3 linked commands |
 
+Note: this implementation stores only a single `heredoc_delim` per
+`t_command`. If the user writes multiple `<<` operators on the same command
+(for example `cat << EOF1 << EOF2`), earlier delimiters are overwritten and
+only the last heredoc delimiter is processed by `process_heredocs()`. Bash
+reads all here-document bodies before executing the command; this minishell
+only reads the final one (intentional simplification to keep the parser
+and command model simpler).
+
 ### 1.6 Shell: `t_shell`
 
 ```c

@@ -122,7 +122,7 @@ The tester feeds input non-interactively via stdin, so the shell uses `read_line
 
 ## 7. Exit
 
-**Source:** `src/builtins/exit.c`, `exit_utils.c` | **Tester:** `1_builtins_exit.sh`
+**Source:** `src/builtins/exit.c` | **Tester:** `1_builtins_exit.sh`
 
 | Input | stdout | stderr | Exit |
 |-------|--------|--------|------|
@@ -142,7 +142,6 @@ The tester feeds input non-interactively via stdin, so the shell uses `read_line
 4. Too many args: prints error, returns **1** without exiting.
 5. Valid numeric: exits with `(unsigned char)value` (i.e., `value % 256`).
 
-**Known bash delta:** Bash exits with **255** for non-numeric arguments. This minishell exits with **2**. The tester will flag this as an EXIT_CODE mismatch on those specific cases.
 
 ---
 
@@ -176,7 +175,6 @@ The tester feeds input non-interactively via stdin, so the shell uses `read_line
 | `cat < file` (file exists) | file contents | none | 0 |
 | `cat < nonexistent` | (none) | `nonexistent: No such file or directory` | 1 |
 | `echo a > f1 > f2` | (none) | none | 0 (f1 created empty, f2 gets `a`) |
-| `echo err 2> file` | (none to stdout) | none | 0 (stdout `err 2` written to `file`) |
 | `echo hi > /dev/full` | (none) | error message | 1 |
 
 **How it works:**
@@ -213,6 +211,15 @@ The tester feeds input non-interactively via stdin, so the shell uses `read_line
 5. Body is written to the pipe write end; read end stored in `cmd->heredoc_fd`.
 6. During execution, if no file input redirect was applied, `heredoc_fd` is dup2'd to stdin.
 7. **Ctrl+C during heredoc:** stops reading, returns to prompt, `last_exit = 130`.
+
+Note on multiple heredocs:
+
+When a single command contains multiple `<<` operators (for example
+`cat << EOF1 << EOF2`), this minishell stores only one `heredoc_delim` per
+command and will process only the last delimiter. Earlier `<<` delimiters are
+overwritten during parsing and their bodies are not read. Bash, by contrast,
+reads all here-document bodies before executing the command; this implementation
+is a simplification and therefore differs from bash in this specific case.
 
 ---
 
@@ -366,7 +373,6 @@ These are intentional or known differences between this minishell and bash:
 
 | Feature | Bash behavior | Minishell behavior | Impact |
 |---------|--------------|-------------------|--------|
-| `exit hello` exit code | 255 | 2 | Tester EXIT_CODE mismatch |
 | `;` separator | Supported | Not implemented (subject scope) | N/A |
 | `\` backslash escape | Supported | Not implemented (subject scope) | N/A |
 | `&&` / `\|\|` | Supported | Not implemented (bonus scope) | N/A |
