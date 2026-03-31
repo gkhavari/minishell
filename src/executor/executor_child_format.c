@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 17:38:49 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 02:26:56 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 20:51:59 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,28 +21,12 @@ static void	write_err_line(char *msg)
 
 void	write_err3(char *a, char *b, char *c)
 {
-	char	*tmp;
-	char	*line;
-
-	tmp = ft_strjoin(a, b);
-	if (!tmp)
-	{
+	if (a)
 		write_err_line(a);
+	if (b)
 		write_err_line(b);
+	if (c)
 		write_err_line(c);
-		return ;
-	}
-	line = ft_strjoin(tmp, c);
-	free(tmp);
-	if (!line)
-	{
-		write_err_line(a);
-		write_err_line(b);
-		write_err_line(c);
-		return ;
-	}
-	write_err_line(line);
-	free(line);
 }
 
 static int	needs_dollar_quote(char *cmd_name)
