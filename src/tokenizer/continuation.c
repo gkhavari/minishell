@@ -19,7 +19,7 @@ static char	*read_stdin_line(t_shell *shell)
 	size_t	len;
 
 	if (!fgets(buf, sizeof(buf), stdin))
-		return (NULL);
+		free_early(shell, EXIT_FAILURE);
 	len = ft_strlen(buf);
 	result = msh_calloc(shell, len + 1, sizeof(char));
 	ft_memcpy(result, buf, len);

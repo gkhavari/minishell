@@ -85,8 +85,7 @@ int			add_token_to_command(t_shell *shell, t_command *cmd,
 				t_token *token);
 
 /* argv_build.c */
-int			finalize_all_commands(t_shell *shell, t_command *cmd);
-int			finalize_argv(t_shell *shell, t_command *cmd);
+void			finalize_all_commands(t_shell *shell, t_command *cmd);
 
 /* parser_syntax_check.c */
 int			syntax_check(t_token *token);

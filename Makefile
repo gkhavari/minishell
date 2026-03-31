@@ -30,7 +30,8 @@ SRCS		+=	$(SRC_DIR)/core/init.c
 SRCS		+=	$(SRC_DIR)/core/init_runtime.c
 
 # utils
-SRCS		+=	$(SRC_DIR)/utils/utils.c
+SRCS		+=	$(SRC_DIR)/utils/utils.c \
+				$(SRC_DIR)/utils/utils2.c
 
 # free
 SRCS		+=	$(SRC_DIR)/free/free_utils.c \
