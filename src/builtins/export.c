@@ -15,13 +15,17 @@
 static int	replace_or_append(t_shell *shell, char *arg, char *key)
 {
 	int	idx;
+	char	*dup;
 
 	idx = find_export_key_index(shell, key, ft_strlen(key));
 	if (idx >= 0)
 	{
+		dup = ft_strdup(arg);
+		if (!dup)
+			return (1);
 		free(shell->envp[idx]);
-		shell->envp[idx] = ft_strdup(arg);
-		return (shell->envp[idx] == NULL);
+		shell->envp[idx] = dup;
+		return (0);
 	}
 	return (append_export_env(shell, arg));
 }

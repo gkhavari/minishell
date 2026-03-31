@@ -17,7 +17,7 @@ static char	*get_cd_target(char **args, t_shell *shell, int *print)
 	char	*target;
 
 	*print = 0;
-	if (!args[1] || ft_strcmp(args[1], "--") == 0)
+	if (!args[1] || args[1][0] == '\0' || ft_strcmp(args[1], "--") == 0)
 	{
 		target = get_env_value(shell->envp, "HOME");
 		if (!target)
@@ -83,7 +83,7 @@ static int	do_chdir(char *target, char *old_pwd)
 {
 	if (chdir(target) == -1)
 	{
-		ft_putstr_fd("cd: ", 2);
+		ft_putstr_fd("minishell: cd: ", 2);
 		ft_putstr_fd(target, 2);
 		ft_putstr_fd(": ", 2);
 		ft_putendl_fd(strerror(errno), 2);
@@ -100,7 +100,7 @@ int	builtin_cd(char **args, t_shell *shell)
 	int		print;
 
 	if (args[1] && args[2])
-		return (ft_putendl_fd("cd: too many arguments", 2), 1);
+		return (ft_putendl_fd("minishell: cd: too many arguments", 2), 1);
 	target = get_cd_target(args, shell, &print);
 	if (!target)
 		return (1);

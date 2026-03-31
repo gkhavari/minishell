@@ -107,6 +107,8 @@ void	parse_input(t_shell *shell)
 		return ;
 	}
 	shell->commands = parse_tokens(shell, shell->tokens);
+	free_tokens(shell->tokens);
+	shell->tokens = NULL;
 	if (!shell->commands)
 	{
 		shell->last_exit = 1;

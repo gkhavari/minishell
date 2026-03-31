@@ -6,16 +6,11 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:32 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 17:48:07 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 01:24:17 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-static int	exit_mod256(long long value)
-{
-	return ((unsigned char)value);
-}
 
 /*
 ** clean_exit - Free all shell resources and exit with given code.
@@ -24,6 +19,9 @@ static void	clean_exit(t_shell *shell, int code)
 {
 	rl_clear_history();
 	free_all(shell);
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
 	exit(code);
 }
 
@@ -65,6 +63,6 @@ int	builtin_exit(char **args, t_shell *shell)
 		return (1);
 	if (shell->last_exit == 2)
 		clean_exit(shell, 2);
-	clean_exit(shell, exit_mod256(value));
+	clean_exit(shell, (unsigned char)value);
 	return (0);
 }

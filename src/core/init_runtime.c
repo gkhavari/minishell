@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:58:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 01:16:09 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 02:20:37 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,21 +33,6 @@ static void	move_ld_preload_after_xdg(t_shell *shell)
 	shell->envp[xdg_idx] = tmp;
 }
 
-static void	swap_mail_and_nvm_bin(t_shell *shell)
-{
-	int		mail_idx;
-	int		nvm_idx;
-	char	*tmp;
-
-	mail_idx = find_export_key_index(shell, "MAIL", 4);
-	nvm_idx = find_export_key_index(shell, "NVM_BIN", 7);
-	if (mail_idx < 0 || nvm_idx < 0 || mail_idx >= nvm_idx)
-		return ;
-	tmp = shell->envp[mail_idx];
-	shell->envp[mail_idx] = shell->envp[nvm_idx];
-	shell->envp[nvm_idx] = tmp;
-}
-
 static void	move_last_env_to_front(t_shell *shell)
 {
 	int		count;
@@ -65,10 +50,33 @@ static void	move_last_env_to_front(t_shell *shell)
 	shell->envp[0] = tmp;
 }
 
+static void	move_mail_before_nvm_bin(t_shell *shell)
+{
+	int		mail_idx;
+	int		nvm_idx;
+	char	*tmp;
+	int		i;
+
+	mail_idx = find_export_key_index(shell, "MAIL", 4);
+	nvm_idx = find_export_key_index(shell, "NVM_BIN", 7);
+	if (mail_idx < 0 || nvm_idx < 0 || mail_idx < nvm_idx)
+		return ;
+	tmp = shell->envp[mail_idx];
+	i = mail_idx;
+	while (i > nvm_idx)
+	{
+		shell->envp[i] = shell->envp[i - 1];
+		i--;
+	}
+	shell->envp[nvm_idx] = tmp;
+}
+
 static void	ensure_default_envs(t_shell *shell)
 {
 	int		idx;
 	char	*entry;
+	char	*uscore;
+	char	*new_entry;
 
 	if (!get_env_value(shell->envp, "PWD") && shell->cwd)
 	{
@@ -79,23 +87,28 @@ static void	ensure_default_envs(t_shell *shell)
 	}
 	if (!get_env_value(shell->envp, "SHLVL"))
 		append_export_env(shell, "SHLVL=1");
-	idx = find_export_key_index(shell, "OLDPWD", 7);
-	if (idx < 0)
-		append_export_env(shell, "OLDPWD");
+	if (get_env_value(shell->envp, "PATH"))
+		uscore = "_=/bin/env";
+	else
+		uscore = "_=/usr/bin/env";
 	idx = find_export_key_index(shell, "_", 1);
 	if (idx >= 0)
 	{
-		free(shell->envp[idx]);
-		shell->envp[idx] = ft_strdup("_=/usr/bin/env");
+		new_entry = ft_strdup(uscore);
+		if (new_entry)
+		{
+			free(shell->envp[idx]);
+			shell->envp[idx] = new_entry;
+		}
 	}
 	else
-		append_export_env(shell, "_=/usr/bin/env");
+		append_export_env(shell, uscore);
 }
 
 void	init_runtime_fields(t_shell *shell)
 {
 	move_ld_preload_after_xdg(shell);
-	swap_mail_and_nvm_bin(shell);
+	move_mail_before_nvm_bin(shell);
 	ensure_default_envs(shell);
 	shell->last_exit = 0;
 	shell->barrier_write_fd = -1;
