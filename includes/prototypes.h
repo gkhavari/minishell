@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/31 17:28:40 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 20:44:18 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,8 +115,6 @@ int			execute_single_command(t_command *cmd, t_shell *shell);
 
 /* executor_utils.c */
 int			apply_redirections(t_command *cmd);
-void		restore_fds(int stdin_backup, int stdout_backup);
-void		set_underscore(t_shell *shell, char *path);
 
 /* executor_external.c */
 int			execute_external(t_command *cmd, t_shell *shell);
