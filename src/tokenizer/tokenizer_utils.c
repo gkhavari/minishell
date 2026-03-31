@@ -99,11 +99,7 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 		if (!tok)
 		{
 			free(*word);
-			*word = NULL;
-			shell->word_quoted = 0;
-			shell->heredoc_mode = 0;
-			shell->last_exit = 1;
-			return ;
+			clean_exit(shell, EXIT_FAILURE);
 		}
 		tok->quoted = shell->word_quoted;
 		add_token(token, tok);
