@@ -75,9 +75,6 @@ void		append_expansion_unquoted(t_shell *shell, char **word,
 int			handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 				size_t end, char **word);
 
-/* continuation.c */
-int			append_continuation(t_shell *shell, char **s, t_state state);
-
 /* parser.c */
 void		parse_input(t_shell *shell);
 

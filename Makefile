@@ -50,8 +50,7 @@ SRCS		+=	$(SRC_DIR)/tokenizer/tokenizer.c \
 				$(SRC_DIR)/tokenizer/expansion.c \
 				$(SRC_DIR)/tokenizer/expansion_utils.c \
 				$(SRC_DIR)/tokenizer/tokenizer_handlers.c \
-				$(SRC_DIR)/tokenizer/tokenizer_quotes.c \
-				$(SRC_DIR)/tokenizer/continuation.c
+				$(SRC_DIR)/tokenizer/tokenizer_quotes.c
 
 # parser
 SRCS		+=	$(SRC_DIR)/parser/parser.c \
