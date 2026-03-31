@@ -99,6 +99,11 @@ BEHAVIOR:
 **/
 void	parse_input(t_shell *shell)
 {
+	if (!shell->tokens)
+	{
+		shell->commands = NULL;
+		return ;
+	}
 	if (syntax_check(shell->tokens) == SYNTAX_ERR)
 	{
 		shell->last_exit = EXIT_SYNTAX_ERROR;
