@@ -243,7 +243,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/tokenizer_utils2.c** | `add_token(head, new)` | Appends token `new` to list `*head`. |
 | **tokenizer/tokenizer_utils2.c** | `new_token(shell, type, value)` | Allocates a token with type and value (value is strduped). |
 | **tokenizer/tokenizer_utils2.c** | `process_normal_char(shell, c, i, word)` | Appends char `c` to word and advances `*i`. |
-| **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state)` | At end of input: flush word, handle unclosed quotes / continuation. |
+| **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state)` | At end of input: flush word; if quotes are unclosed emit a syntax error immediately (no continuation). |
 | **tokenizer/tokenizer_handlers.c** | `process_quote(shell, c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
 | **tokenizer/tokenizer_handlers.c** | `handle_operator(shell, i, word)` | If input at *i is operator (| < > << >>), flushes word and calls read_operator. |
 | **tokenizer/tokenizer_handlers.c** | `handle_whitespace(shell, i, word)` | Skips spaces/tabs; flushes word if non-empty. |
@@ -258,7 +258,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/expansion_utils.c** | `append_expansion_quoted(word, exp)` | Appends string `exp` to *word (quoted context). |
 | **tokenizer/expansion_utils.c** | `append_expansion_unquoted(shell, word, exp, tokens)` | Appends expansion result; may split into multiple WORDs (IFS). |
 | **tokenizer/expansion_utils.c** | `handle_empty_unquoted_expansion(shell, start, end, word)` | Handles empty expansion in unquoted context (inserts `MSH_EMPTY_EXPAND_TOKEN` or adjusts for ambiguous redirect). |
-| **tokenizer/continuation.c** | `append_continuation(shell, s, state)` | Reads more lines (e.g. after backslash or unclosed quote) and appends to *s. |
+| *(continuation support removed — unclosed quotes now emit a syntax error immediately)* |
 
 ---
 

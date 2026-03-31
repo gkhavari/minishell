@@ -46,7 +46,7 @@ Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed 
 | `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
-| `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
+| `src/tokenizer/` | Lexer: tokenizer.c, expansion, utils |
 | `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc, heredoc_utils, heredoc_warning |
 | `src/executor/` | Execution: executor.c, executor_utils, executor_external, executor_pipeline, executor_pipeline_steps, executor_child, executor_child_exec, executor_child_format, executor_count, executor_cmd_utils |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
@@ -81,7 +81,6 @@ graph TB
         tok_quotes[tokenizer_quotes.c]
         expansion[expansion.c]
         expansion_utils[expansion_utils.c]
-        continuation[continuation.c]
     end
     subgraph Parser
         parser[parser.c]
@@ -1211,7 +1210,7 @@ Covered by **42_minishell_tester** (`make -C tests test`). See [BEHAVIOR.md](BEH
 
 - [x] Empty input (just Enter)
 - [x] Only spaces/tabs
-- [x] Unclosed quotes (continuation or no crash)
+- [x] Unclosed quotes (syntax error on unclosed quotes)
 - [x] Invalid pipe syntax error
 - [x] Non-existent command error
 
@@ -1229,8 +1228,8 @@ Phase 1: Foundation
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
 Phase 2: Lexer & Parser
-├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c, continuation.c)
-├── [x] Quote handling (tokenizer/continuation.c for unclosed quotes)
+├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c)
+├── [x] Quote handling (unclosed quotes now produce a syntax error immediately)
 ├── [x] Syntax validation (parser/parser_syntax_check.c)
 └── [x] Command table construction (parser/parser.c, add_token_to_cmd.c, argv_build.c)
 
