@@ -16,9 +16,9 @@ void	print_heredoc_eof_warning(int line_no, char *delim)
 {
 	int	display_line;
 
-	display_line = line_no - 2;
-	if (display_line < 2)
-		display_line = 2;
+	display_line = line_no;
+	if (display_line < 1)
+		display_line = 1;
 	ft_putstr_fd("warning: here-document at line ", 2);
 	ft_putnbr_fd(display_line, 2);
 	ft_putstr_fd(" delimited by end-of-file (wanted `", 2);

@@ -50,7 +50,8 @@ static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 	return (1);
 }
 
-static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no)
+static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
+		int start_line)
 {
 	char	*line;
 
@@ -61,7 +62,7 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no)
 			return (heredoc_interrupted(ctx, line));
 		if (!line)
 		{
-			print_heredoc_eof_warning(*line_no, ctx->cmd->heredoc_delim);
+			print_heredoc_eof_warning(start_line, ctx->cmd->heredoc_delim);
 			break ;
 		}
 		(*line_no)++;
@@ -81,13 +82,15 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no)
 int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 {
 	t_heredoc_ctx	ctx;
+	int			start_line;
 
 	if (pipe(ctx.pipe_fd) == -1)
 		return (1);
 	ctx.cmd = cmd;
 	ctx.shell = shell;
 	ctx.expand = !cmd->heredoc_quoted;
-	return (heredoc_read_loop(&ctx, line_no));
+	start_line = *line_no + 1;
+	return (heredoc_read_loop(&ctx, line_no, start_line));
 }
 
 int	process_heredocs(t_shell *shell)
