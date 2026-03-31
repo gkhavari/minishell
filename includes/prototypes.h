@@ -27,6 +27,7 @@ char		*ft_strcat(char *dest, const char *src);
 char		*ft_realloc(char *ptr, const size_t new_size);
 char		**ft_arrdup(char **envp);
 void		*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
+void		free_early(t_shell *shell, int exit_status);
 
 /* tokenizer.c */
 void		tokenize_input(t_shell *shell);

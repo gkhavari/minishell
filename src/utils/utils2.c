@@ -6,10 +6,7 @@ char *msh_readline(t_shell *shell, char *prompt)
 
 	res = readline(prompt);
 	if (res == NULL)
-	{
-		free_all(shell);
-		exit(EXIT_FAILURE);
-	}
+		free_early(shell, EXIT_FAILURE);
 	return (res);
 }
 
