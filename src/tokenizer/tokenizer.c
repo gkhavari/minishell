@@ -44,8 +44,7 @@ static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 	{
 		if (!shell->input[*i])
 		{
-			if (handle_end_of_string(shell, state))
-				continue ;
+			handle_end_of_string(shell, state);
 			break ;
 		}
 		if (handle_quotes_and_expand(shell, i, word, state))
@@ -70,7 +69,8 @@ void	tokenize_input(t_shell *shell)
 	word = NULL;
 	i = 0;
 	tokenizer_loop(shell, &i, &state, &word);
-	flush_word(shell, &word, &shell->tokens);
+	if (shell->last_exit != 2)
+		flush_word(shell, &word, &shell->tokens);
 	free(shell->input);
 	shell->input = NULL;
 }
