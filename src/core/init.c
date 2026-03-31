@@ -114,16 +114,16 @@ void	init_shell(t_shell *shell, char **envp)
 	if (!shell->envp)
 	{
 		perror("minishell: failed to duplicate environment");
-		exit(1);
+		clean_exit(shell, EXIT_FAILURE);
 	}
 	user = get_env_value(shell->envp, "USER");
 	if (user)
-		shell->user = ft_strdup(user);
+		shell->user = msh_strdup(shell, user);
 	else
 		shell->user = NULL;
 	shell->cwd = getcwd(NULL, 0);
 	if (!shell->cwd)
-		shell->cwd = ft_strdup("/");
+		shell->cwd = msh_strdup(shell, "/");
 	init_runtime_fields(shell);
 	if (isatty(STDIN_FILENO) == 1)
 		update_shlvl(shell);

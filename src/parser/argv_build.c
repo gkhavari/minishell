@@ -60,7 +60,7 @@ static void	build_argv_array(t_shell *shell, t_command *cmd, t_arg *tmp, size_t 
 		{
 			cleanup_partial_argv(cmd->argv, i);
 			cmd->argv = NULL;
-			free_early(shell, EXIT_FAILURE);
+			clean_exit(shell, EXIT_FAILURE);
 		}
 		tmp = tmp->next;
 		i++;
@@ -83,7 +83,7 @@ static void	finalize_argv(t_shell *shell, t_command *cmd)
 	}
 	cmd->argv = ft_calloc(count + 1, sizeof(char *));
 	if (!cmd->argv)
-		free_early(shell, EXIT_FAILURE);
+		clean_exit(shell, EXIT_FAILURE);
 	build_argv_array(shell, cmd, cmd->args, count);
 }
 
