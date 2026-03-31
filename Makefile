@@ -63,7 +63,6 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \
-			   $(SRC_DIR)/executor/executor_count.c \
 			   $(SRC_DIR)/executor/executor_utils.c \
 			   $(SRC_DIR)/executor/executor_cmd_utils.c \
 			   $(SRC_DIR)/executor/executor_external.c \

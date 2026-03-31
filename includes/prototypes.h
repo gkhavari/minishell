@@ -16,11 +16,13 @@
 /* init.c */
 char		*build_prompt(t_shell *shell);
 void		init_shell(t_shell *shell, char **envp);
-void		init_runtime_fields(t_shell *shell);
 void		process_input(t_shell *shell);
+char		*get_env_value(char **envp, const char *key);
+
+/* init_runtime.c */
+void		init_runtime_fields(t_shell *shell);
 
 /* utils.c */
-char		*get_env_value(char **envp, const char *key);
 char		*ft_strcat(char *dest, const char *src);
 char		*ft_realloc(char *ptr, const size_t new_size);
 char		**ft_arrdup(char **envp);
@@ -111,8 +113,6 @@ void		free_all(t_shell *shell);
 /* executor.c */
 int			execute_commands(t_shell *shell);
 int			execute_single_command(t_command *cmd, t_shell *shell);
-int			wait_pipeline(pid_t *pids, int n);
-int			count_cmds(t_command *cmd);
 
 /* executor_utils.c */
 int			apply_redirections(t_command *cmd);
@@ -125,12 +125,20 @@ int			execute_external(t_command *cmd, t_shell *shell);
 char		*find_command_path(char *cmd, t_shell *shell);
 
 /* executor_child.c */
-void		execute_in_child(t_command *cmd, t_shell *shell);
 void		exit_child(t_shell *shell, int status);
 void		free_array(char **arr);
 
+/* executor_child_exec.c */
+void		execute_in_child(t_command *cmd, t_shell *shell);
+
+/* executor_child_format.c */
+void		write_err3(char *a, char *b, char *c);
+char		*format_cmd_name_for_error(char *cmd_name);
+
 /* executor_pipeline.c */
 int			execute_pipeline(t_command *cmds, t_shell *shell);
+
+/* executor_pipeline_not_found.c */
 int			handle_all_not_found_pipeline(t_command *cmds, t_shell *shell);
 
 /* builtins */
@@ -155,7 +163,8 @@ int			print_sorted_env(t_shell *shell);
 int			set_signals_default(void);
 int			set_signals_ignore(void);
 int			set_signals_interactive(void);
-int			handle_child_exit(int *last_exit_status, pid_t pid);
+
+/* signal_utils.c */
 int			check_signal_received(t_shell *shell);
 int			readline_event_hook(void);
 

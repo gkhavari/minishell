@@ -12,9 +12,6 @@
 
 #include "minishell.h"
 
-void	write_err3(char *a, char *b, char *c);
-char	*format_cmd_name_for_error(char *cmd_name);
-
 static int	is_simple_not_found_cmd(t_command *cmd, t_shell *shell)
 {
 	char	*path;

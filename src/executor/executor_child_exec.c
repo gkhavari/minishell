@@ -12,9 +12,6 @@
 
 #include "minishell.h"
 
-void	write_err3(char *a, char *b, char *c);
-char	*format_cmd_name_for_error(char *cmd_name);
-
 static void	run_builtin_child(t_command *cmd, t_shell *shell)
 {
 	signal(SIGPIPE, SIG_IGN);

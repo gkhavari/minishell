@@ -85,18 +85,3 @@ pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
 		*prev_fd = -1;
 	return (pid);
 }
-
-void	release_pipeline_barrier(int write_fd, int count)
-{
-	int	i;
-
-	if (write_fd == -1 || count <= 0)
-		return ;
-	i = 0;
-	while (i < count)
-	{
-		if (write(write_fd, "x", 1) != 1)
-			break ;
-		i++;
-	}
-}

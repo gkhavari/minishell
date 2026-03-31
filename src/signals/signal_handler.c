@@ -66,31 +66,3 @@ int	set_signals_interactive(void)
 	return (0);
 }
 
-/*
-** Handle child process termination and set exit status
-** Returns: 0 on success, -1 on error
-*/
-int	handle_child_exit(int *last_exit_status, pid_t pid)
-{
-	int	status;
-
-	status = 0;
-	if (waitpid(pid, &status, 0) == -1)
-	{
-		*last_exit_status = 1;
-		return (-1);
-	}
-	if (WIFSIGNALED(status))
-	{
-		*last_exit_status = 128 + WTERMSIG(status);
-		if (WTERMSIG(status) == SIGQUIT)
-			ft_putstr_fd("Quit (core dumped)\n", STDOUT_FILENO);
-		else if (WTERMSIG(status) == SIGINT)
-			ft_putstr_fd("\n", STDOUT_FILENO);
-	}
-	else if (WIFEXITED(status))
-		*last_exit_status = WEXITSTATUS(status);
-	else
-		*last_exit_status = EXIT_FAILURE;
-	return (0);
-}
