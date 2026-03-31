@@ -65,4 +65,3 @@ int	set_signals_interactive(void)
 	sigaction(SIGINT, &sa, NULL);
 	return (0);
 }
-
