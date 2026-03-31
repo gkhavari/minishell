@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   tokenizer.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 20:21:58 by gkhavari          #+#    #+#             */
-/*   Updated: 2025/12/07 17:00:50 by gkhavari         ###   ########.fr       */
+/*   Updated: 2026/03/31 20:15:31 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,8 +69,13 @@ void	tokenize_input(t_shell *shell)
 	word = NULL;
 	i = 0;
 	tokenizer_loop(shell, &i, &state, &word);
-	if (shell->last_exit != 2)
+	if (state == ST_NORMAL)
 		flush_word(shell, &word, &shell->tokens);
+	else if (shell->tokens)
+	{
+		free_tokens(shell->tokens);
+		shell->tokens = NULL;
+	}
 	free(shell->input);
 	shell->input = NULL;
 }

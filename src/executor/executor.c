@@ -63,7 +63,7 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	}
 	if (need_restore)
 		restore_fds(*in, *out);
-	return (execute_builtin(cmd, shell));
+	return (run_builtin(cmd->argv, shell));
 }
 
 /*

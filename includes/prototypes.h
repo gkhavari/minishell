@@ -116,7 +116,6 @@ int			execute_single_command(t_command *cmd, t_shell *shell);
 /* executor_utils.c */
 int			apply_redirections(t_command *cmd);
 void		restore_fds(int stdin_backup, int stdout_backup);
-int			execute_builtin(t_command *cmd, t_shell *shell);
 void		set_underscore(t_shell *shell, char *path);
 
 /* executor_external.c */

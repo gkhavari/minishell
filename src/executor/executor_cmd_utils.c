@@ -19,12 +19,6 @@ void	restore_fds(int stdin_backup, int stdout_backup)
 	close(stdin_backup);
 	close(stdout_backup);
 }
-
-int	execute_builtin(t_command *cmd, t_shell *shell)
-{
-	return (run_builtin(cmd->argv, shell));
-}
-
 void	set_underscore(t_shell *shell, char *path)
 {
 	char	*entry;
