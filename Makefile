@@ -72,7 +72,6 @@ SRCS        += $(SRC_DIR)/executor/executor.c \
 			   $(SRC_DIR)/executor/executor_pipeline_steps.c \
 			   $(SRC_DIR)/executor/executor_child_format.c \
 			   $(SRC_DIR)/executor/executor_child_exec.c \
-			   $(SRC_DIR)/executor/executor_child.c
 
 # builtins
 SRCS        += $(SRC_DIR)/builtins/cd.c \

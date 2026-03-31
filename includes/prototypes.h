@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 19:55:18 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 17:23:34 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,10 +124,6 @@ void		set_underscore(t_shell *shell, char *path);
 /* executor_external.c */
 int			execute_external(t_command *cmd, t_shell *shell);
 char		*find_command_path(char *cmd, t_shell *shell);
-
-/* executor_child.c */
-void		exit_child(t_shell *shell, int status);
-void		free_array(char **arr);
 
 /* executor_child_exec.c */
 void		execute_in_child(t_command *cmd, t_shell *shell);

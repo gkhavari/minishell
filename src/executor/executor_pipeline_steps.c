@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 17:39:42 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 17:39:44 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 17:24:05 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL,
 			shell->barrier_write_fd);
 		if (apply_redirections(cmd) != 0)
-			exit_child(shell, 1);
+			clean_exit(shell, 1);
 		execute_in_child(cmd, shell);
 	}
 	return (pid);
