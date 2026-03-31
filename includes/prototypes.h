@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/31 20:44:18 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 21:07:51 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,7 +111,6 @@ void		free_all(t_shell *shell);
 
 /* executor.c */
 int			execute_commands(t_shell *shell);
-int			execute_single_command(t_command *cmd, t_shell *shell);
 
 /* executor_utils.c */
 int			apply_redirections(t_command *cmd);
