@@ -98,17 +98,12 @@ static char	*expand_normal_var(t_shell *shell, size_t *i)
 	size_t	len;
 	char	*name;
 	char	*value;
-	char	c;
 
 	start = *i + 1;
 	len = 0;
-	while (1)
-	{
-		c = shell->input[start + len];
-		if (!(ft_isalnum(c) || c == '_'))
-			break ;
+	while (ft_isalnum(shell->input[start + len])
+		|| shell->input[start + len] == '_')
 		len++;
-	}
 	name = ft_strndup(shell->input + start, len);
 	if (!name)
 	{

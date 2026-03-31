@@ -14,7 +14,7 @@
 
 static int	replace_or_append(t_shell *shell, char *arg, char *key)
 {
-	int	idx;
+	int		idx;
 	char	*dup;
 
 	idx = find_export_key_index(shell, key, ft_strlen(key));

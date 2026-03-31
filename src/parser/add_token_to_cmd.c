@@ -12,13 +12,6 @@
 
 #include "minishell.h"
 
-static int	is_empty_expand_token(char *value)
-{
-	if (!value)
-		return (0);
-	return (ft_strcmp(value, MSH_EMPTY_EXPAND_TOKEN) == 0);
-}
-
 /*
 ** handle_heredoc_token - Store heredoc delimiter from the next token
 ** Frees any previous delimiter (handles multiple heredocs per command).
@@ -104,6 +97,31 @@ static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 	return (SUCCESS);
 }
 
+static int	add_redir_token(t_command *cmd, t_token *token)
+{
+	if (!token->next || !token->next->value)
+		return (FAILURE);
+	if (token->type == REDIR_IN)
+	{
+		if (append_redir(cmd, token->next->value, STDIN_FILENO, 0) == FAILURE)
+			return (FAILURE);
+		return (2);
+	}
+	if (token->type == REDIR_OUT)
+	{
+		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 0) == FAILURE)
+			return (FAILURE);
+		return (2);
+	}
+	if (token->type == APPEND)
+	{
+		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 1) == FAILURE)
+			return (FAILURE);
+		return (2);
+	}
+	return (1);
+}
+
 /*
 ** add_token_to_command - Dispatch a token into the command structure
 ** WORD tokens become command arguments.
@@ -115,7 +133,8 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
 	if (token->type == WORD)
 	{
-		if (is_empty_expand_token(token->value))
+		if (token->value
+			&& ft_strcmp(token->value, MSH_EMPTY_EXPAND_TOKEN) == 0)
 			return (1);
 		if (add_word_to_cmd(shell, cmd, token->value) == FAILURE)
 			return (FAILURE);
@@ -127,26 +146,5 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 			return (FAILURE);
 		return (2);
 	}
-	if (!token->next || !token->next->value)
-		return (FAILURE);
-	if (token->type == REDIR_IN)
-	{
-		if (append_redir(cmd, token->next->value, STDIN_FILENO, 0) == FAILURE)
-			return (FAILURE);
-		return (2);
-	}
-	else if (token->type == REDIR_OUT)
-	{
-		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 0) == FAILURE)
-			return (FAILURE);
-		return (2);
-	}
-	else if (token->type == APPEND)
-	{
-		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 1) == FAILURE)
-			return (FAILURE);
-		return (2);
-	}
-	else
-		return (1);
+	return (add_redir_token(cmd, token));
 }

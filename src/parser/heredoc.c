@@ -82,7 +82,7 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
 int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 {
 	t_heredoc_ctx	ctx;
-	int			start_line;
+	int				start_line;
 
 	if (pipe(ctx.pipe_fd) == -1)
 		return (1);

@@ -1,11 +1,11 @@
 services:
   run-container:
     container_name: 42-Docker-DevEnv
+    platform: linux/amd64
+    image: minishell-dev:latest
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        USER: ${USER}
     volumes:
       - .:/app
       - ${HOME}/.ssh:/root/.ssh:cached

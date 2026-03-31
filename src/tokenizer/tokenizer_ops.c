@@ -44,55 +44,47 @@ int	is_op_char(char c)
  * 1 or 2: number of characters that form the operator.
  * 0: no operator found
  **/
+static size_t	get_op_len_type(const char *s, t_tokentype *type)
+{
+	if (s[0] == '|')
+		return (*type = PIPE, 1);
+	if (s[0] == '<' && s[1] == '<')
+		return (*type = HEREDOC, 2);
+	if (s[0] == '>' && s[1] == '>')
+		return (*type = APPEND, 2);
+	if (s[0] == '<')
+		return (*type = REDIR_IN, 1);
+	if (s[0] == '>' && s[1] == '|')
+		return (*type = REDIR_OUT, 2);
+	if (s[0] == '>')
+		return (*type = REDIR_OUT, 1);
+	return (0);
+}
+
+static char	*get_op_value(t_tokentype type)
+{
+	if (type == PIPE)
+		return ("|");
+	if (type == HEREDOC)
+		return ("<<");
+	if (type == APPEND)
+		return (">>");
+	if (type == REDIR_IN)
+		return ("<");
+	return (">");
+}
+
 size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 {
 	t_token		*tok;
 	t_tokentype	type;
-	char		*value;
 	size_t		len;
 
-	len = 0;
-	value = NULL;
 	type = WORD;
-	if (s[0] == '|')
-	{
-		type = PIPE;
-		value = "|";
-		len = 1;
-	}
-	else if (s[0] == '<' && s[1] == '<')
-	{
-		type = HEREDOC;
-		value = "<<";
-		len = 2;
-	}
-	else if (s[0] == '>' && s[1] == '>')
-	{
-		type = APPEND;
-		value = ">>";
-		len = 2;
-	}
-	else if (s[0] == '<')
-	{
-		type = REDIR_IN;
-		value = "<";
-		len = 1;
-	}
-	else if (s[0] == '>' && s[1] == '|')
-	{
-		type = REDIR_OUT;
-		value = ">";
-		len = 2;
-	}
-	else if (s[0] == '>')
-	{
-		type = REDIR_OUT;
-		value = ">";
-		len = 1;
-	}
+	len = get_op_len_type(s, &type);
 	if (len == 0)
 		return (0);
-	tok = new_token(shell, type, value);
+	tok = new_token(shell, type, get_op_value(type));
 	if (!tok)
 		shell->last_exit = 1;
 	else

@@ -32,14 +32,14 @@ static int	check_exit_value(char **args, long long *value)
 {
 	if (!parse_exit_value(args[1], value))
 	{
-		ft_putstr_fd("minishell: exit: ", 2);
+		ft_putstr_fd("exit: ", 2);
 		ft_putstr_fd(args[1], 2);
 		ft_putendl_fd(": numeric argument required", 2);
 		return (2);
 	}
 	if (args[2])
 	{
-		ft_putendl_fd("minishell: exit: too many arguments", 2);
+		ft_putendl_fd("exit: too many arguments", 2);
 		return (1);
 	}
 	return (0);

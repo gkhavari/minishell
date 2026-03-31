@@ -78,24 +78,10 @@ argv[1] = second argument
 argv[count-1] = last argument  
 argv[count] = NULL  
 **/
-int	finalize_argv(t_shell *shell, t_command *cmd)
+static int	build_argv_array(t_command *cmd, t_arg *tmp, size_t count)
 {
-	t_arg	*tmp;
-	size_t	count;
 	size_t	i;
 
-	(void)shell;
-	tmp = cmd->args;
-	count = 0;
-	while (tmp)
-	{
-		count++;
-		tmp = tmp->next;
-	}
-	cmd->argv = ft_calloc(count + 1, sizeof(char *));
-	if (!cmd->argv)
-		return (FAILURE);
-	tmp = cmd->args;
 	i = 0;
 	while (i < count)
 	{
@@ -111,4 +97,23 @@ int	finalize_argv(t_shell *shell, t_command *cmd)
 	}
 	cmd->argv[count] = NULL;
 	return (SUCCESS);
+}
+
+int	finalize_argv(t_shell *shell, t_command *cmd)
+{
+	t_arg	*tmp;
+	size_t	count;
+
+	(void)shell;
+	tmp = cmd->args;
+	count = 0;
+	while (tmp)
+	{
+		count++;
+		tmp = tmp->next;
+	}
+	cmd->argv = ft_calloc(count + 1, sizeof(char *));
+	if (!cmd->argv)
+		return (FAILURE);
+	return (build_argv_array(cmd, cmd->args, count));
 }

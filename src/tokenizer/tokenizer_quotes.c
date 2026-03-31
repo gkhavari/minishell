@@ -68,6 +68,19 @@ BEHAVIOR:
 * Otherwise, appends the character literally via process_normal_char().
 * Returns 1 to indicate the character was handled.
  **/
+static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
+{
+	if (shell->input[*i] != '\\' || shell->input[*i + 1] != '$')
+		return (0);
+	if (append_char(shell, word, '$') == FAILURE)
+	{
+		*i += 2;
+		return (1);
+	}
+	*i += 2;
+	return (1);
+}
+
 int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	char	*expanded;
@@ -87,16 +100,8 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 		free(expanded);
 		return (1);
 	}
-	if (shell->input[*i] == '\\' && shell->input[*i + 1] == '$')
-	{
-		if (append_char(shell, word, '$') == FAILURE)
-		{
-			*i += 2;
-			return (1);
-		}
-		*i += 2;
+	if (handle_escaped_dollar(shell, i, word))
 		return (1);
-	}
 	process_normal_char(shell, shell->input[*i], i, word);
 	return (1);
 }
