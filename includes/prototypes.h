@@ -170,6 +170,7 @@ int			readline_event_hook(void);
 
 /* builtin_dispatcher.c */
 int			is_builtin(char *cmd);
+int			must_run_in_parent(t_builtin type);
 int			run_builtin(char **argv, t_shell *shell);
 t_builtin	get_builtin_type(char *cmd);
 

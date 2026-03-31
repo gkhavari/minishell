@@ -38,6 +38,16 @@ int	is_builtin(char *cmd)
 	return (get_builtin_type(cmd) != NOT_BUILTIN);
 }
 
+/*
+** must_run_in_parent - Returns 1 if this builtin must execute in the parent
+** process (cd/export/unset/exit mutate shell state; others may fork on redir).
+*/
+int	must_run_in_parent(t_builtin type)
+{
+	return (type == BUILTIN_CD || type == BUILTIN_EXPORT
+		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT);
+}
+
 int	run_builtin(char **argv, t_shell *shell)
 {
 	t_builtin	type;

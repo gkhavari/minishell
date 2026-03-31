@@ -14,27 +14,10 @@
 
 static void	print_redir_error(char *file, int err)
 {
-	char	*line;
-	char	*msg;
-	size_t	len;
-
-	msg = strerror(err);
-	len = ft_strlen(file) + ft_strlen(msg) + 4;
-	line = malloc(len);
-	if (!line)
-	{
-		ft_putstr_fd(file, 2);
-		ft_putstr_fd(": ", 2);
-		ft_putstr_fd(msg, 2);
-		ft_putstr_fd("\n", 2);
-		return ;
-	}
-	ft_strlcpy(line, file, len);
-	ft_strlcat(line, ": ", len);
-	ft_strlcat(line, msg, len);
-	ft_strlcat(line, "\n", len);
-	write(STDERR_FILENO, line, ft_strlen(line));
-	free(line);
+	ft_putstr_fd(file, 2);
+	ft_putstr_fd(": ", 2);
+	ft_putstr_fd(strerror(err), 2);
+	ft_putstr_fd("\n", 2);
 }
 
 static int	apply_input_redir(t_redir *r, int *had_input)
