@@ -43,7 +43,7 @@ void		set_heredoc_mode(t_shell *shell, int mode);
 int			is_heredoc_mode(t_shell *shell);
 
 /* tokenizer_handlers.c */
-void		handle_end_of_string(t_shell *shell, t_state *state);
+void		handle_end_of_string(t_shell *shell, t_state *state, char **word);
 int			handle_backslash(t_shell *shell, size_t *i,
 				char **word, t_state *state);
 int			process_quote(t_shell *shell, char c, t_state *state);

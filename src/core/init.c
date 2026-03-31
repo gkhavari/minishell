@@ -122,7 +122,7 @@ void	init_shell(t_shell *shell, char **envp)
 	else
 		shell->user = NULL;
 	shell->cwd = getcwd(NULL, 0);
-	if (!shell->cwd)
+	if (shell->cwd == NULL)
 		shell->cwd = msh_strdup(shell, "/");
 	init_runtime_fields(shell);
 	if (isatty(STDIN_FILENO) == 1)

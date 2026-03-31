@@ -61,9 +61,7 @@ int	append_char(t_shell *shell, char **dst, char c)
 	if (!new)
 	{
 		free(*dst);
-		*dst = NULL;
-		shell->last_exit = 1;
-		return (FAILURE);
+		clean_exit(shell, EXIT_FAILURE);
 	}
 	if (*dst)
 		ft_memcpy(new, *dst, len);

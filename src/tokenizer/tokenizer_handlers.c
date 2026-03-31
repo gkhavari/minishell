@@ -34,10 +34,12 @@ BEHAVIOR:
 ** Adds the input to shell history using add_history(shell->input).
 ** Returns 0 to indicate that no further processing is required.
 **/
-void	handle_end_of_string(t_shell *shell, t_state *state)
+void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 {
 	if (*state == ST_SQUOTE || *state == ST_DQUOTE)
 	{
+		free(*word);
+		*word = NULL;
 		ft_putendl_fd("minishell: syntax error: unclosed quote", STDERR_FILENO);
 		shell->last_exit = 2;
 	}
