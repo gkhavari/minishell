@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/31 17:23:34 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 17:28:40 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,7 @@ void		free_args(t_arg *arg);
 
 /* free_utils.c */
 void		free_tokens(t_token *token);
+void		free_array(char **arr);
 
 /* free_shell.c */
 void		reset_shell(t_shell *shell);
