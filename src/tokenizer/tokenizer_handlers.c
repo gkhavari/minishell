@@ -14,10 +14,9 @@
 
 /**
  DESCRIPTION:
-* Handles the situation when the tokenizer reaches the end of the input string.
-	Depending on the current parser state, it either requests input continuation
-	for unfinished quotes or finalizes the input by adding it to the
-	shell history.
+* Handles end-of-input during tokenization.
+	If the parser is still inside a quote, it reports a syntax error immediately.
+	Otherwise it records non-empty interactive input in history.
 
 PARAMETERS:
 * t_shell *shell: Pointer to the shell structure containing the input string
@@ -27,12 +26,10 @@ PARAMETERS:
 
 BEHAVIOR:
 * If the parser is inside a quote (ST_SQUOTE or ST_DQUOTE):
-** Calls append_continuation(&shell->input, *state) to allow the user to continue
-	the input line (multi-line command).
-** Returns 1 to indicate that the end of string handling requires continuation.
+** Frees the current partial word and sets exit status to 2.
+** Prints: "minishell: syntax error: unclosed quote".
 * If the parser is not inside a quote:
 ** Adds the input to shell history using add_history(shell->input).
-** Returns 0 to indicate that no further processing is required.
 **/
 void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 {

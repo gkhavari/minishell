@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:44:54 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 01:59:49 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 20:42:27 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,14 @@ static int	backup_fds(int *in, int *out)
 		return (1);
 	}
 	return (0);
+}
+
+static void	restore_fds(int stdin_backup, int stdout_backup)
+{
+	dup2(stdin_backup, STDIN_FILENO);
+	dup2(stdout_backup, STDOUT_FILENO);
+	close(stdin_backup);
+	close(stdout_backup);
 }
 
 static int	run_empty_command(t_command *cmd, int *in, int *out)
@@ -63,27 +71,7 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	}
 	if (need_restore)
 		restore_fds(*in, *out);
-	return (execute_builtin(cmd, shell));
-}
-
-/*
-** execute_single_command - Run a single command (no pipeline)
-** Builtins run in the parent process (so cd/export/unset/exit work).
-** External commands are forked.
-** FDs are backed up and restored around redirections.
-*/
-int	execute_single_command(t_command *cmd, t_shell *shell)
-{
-	int	stdin_backup;
-	int	stdout_backup;
-	int	status;
-
-	if (!cmd->argv || !cmd->argv[0])
-		return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
-	if (cmd->is_builtin)
-		return (run_builtin_command(cmd, shell, &stdin_backup, &stdout_backup));
-	status = execute_external(cmd, shell);
-	return (status);
+	return (run_builtin(cmd->argv, shell));
 }
 
 /*
@@ -93,9 +81,22 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 */
 int	execute_commands(t_shell *shell)
 {
+	t_command	*cmd;
+	int			stdin_backup;
+	int			stdout_backup;
+	int			status;
+		
 	if (!shell->commands)
 		return (0);
 	if (!shell->commands->next)
-		return (execute_single_command(shell->commands, shell));
+	{
+		cmd = shell->commands;
+		if (!cmd->argv || !cmd->argv[0])
+			return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
+		if (cmd->is_builtin)
+			return (run_builtin_command(cmd, shell, &stdin_backup, &stdout_backup));
+		status = execute_external(cmd, shell);
+		return (status);
+	}
 	return (execute_pipeline(shell->commands, shell));
 }
