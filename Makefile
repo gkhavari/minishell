@@ -28,6 +28,7 @@ SRCS		=	$(SRC_DIR)/main.c
 # core
 SRCS		+=	$(SRC_DIR)/core/init.c
 SRCS		+=	$(SRC_DIR)/core/init_runtime.c
+SRCS		+=	$(SRC_DIR)/core/init_utils.c
 
 # utils
 SRCS		+=	$(SRC_DIR)/utils/utils.c

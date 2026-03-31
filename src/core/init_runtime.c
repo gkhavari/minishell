@@ -33,23 +33,6 @@ static void	move_ld_preload_after_xdg(t_shell *shell)
 	shell->envp[xdg_idx] = tmp;
 }
 
-static void	move_last_env_to_front(t_shell *shell)
-{
-	int		count;
-	char	*tmp;
-
-	count = 0;
-	while (shell->envp[count])
-		count++;
-	tmp = shell->envp[count - 1];
-	while (count > 1)
-	{
-		shell->envp[count - 1] = shell->envp[count - 2];
-		count--;
-	}
-	shell->envp[0] = tmp;
-}
-
 static void	move_mail_before_nvm_bin(t_shell *shell)
 {
 	int		mail_idx;
@@ -71,14 +54,33 @@ static void	move_mail_before_nvm_bin(t_shell *shell)
 	shell->envp[nvm_idx] = tmp;
 }
 
-static void	ensure_default_envs(t_shell *shell)
+static void	set_underscore_env(t_shell *shell)
 {
 	int		idx;
-	char	*entry;
 	char	*uscore;
 	char	*new_entry;
 
-	new_entry = NULL;
+	uscore = "_=/bin/env";
+	if (!get_env_value(shell->envp, "PATH"))
+		uscore = "_=/usr/bin/env";
+	idx = find_export_key_index(shell, "_", 1);
+	if (idx >= 0)
+		new_entry = ft_strdup(uscore);
+	else
+		new_entry = NULL;
+	if (idx >= 0 && new_entry)
+	{
+		free(shell->envp[idx]);
+		shell->envp[idx] = new_entry;
+	}
+	else if (idx < 0)
+		append_export_env(shell, uscore);
+}
+
+static void	ensure_default_envs(t_shell *shell)
+{
+	char	*entry;
+
 	if (!get_env_value(shell->envp, "PWD") && shell->cwd)
 	{
 		entry = ft_strjoin("PWD=", shell->cwd);
@@ -88,16 +90,7 @@ static void	ensure_default_envs(t_shell *shell)
 	}
 	if (!get_env_value(shell->envp, "SHLVL"))
 		append_export_env(shell, "SHLVL=1");
-	uscore = "_=/bin/env";
-	if (!get_env_value(shell->envp, "PATH"))
-		uscore = "_=/usr/bin/env";
-	idx = find_export_key_index(shell, "_", 1);
-	if (idx >= 0)
-		new_entry = ft_strdup(uscore);
-	if (idx >= 0 && new_entry)
-		(free(shell->envp[idx]), (shell->envp[idx] = new_entry));
-	else if (idx < 0)
-		append_export_env(shell, uscore);
+	set_underscore_env(shell);
 }
 
 void	init_runtime_fields(t_shell *shell)

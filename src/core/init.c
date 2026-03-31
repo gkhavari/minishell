@@ -30,53 +30,21 @@ void	process_input(t_shell *shell)
 	shell->last_exit = execute_commands(shell);
 }
 
-char	*get_env_value(char **envp, const char *key)
+static void	set_shlvl_entry(t_shell *shell, char *entry)
 {
-	int		i;
-	size_t	len;
+	int	idx;
 
-	if (!envp || !key)
-		return (NULL);
-	i = 0;
-	len = ft_strlen(key);
-	while (envp[i])
+	idx = find_export_key_index(shell, "SHLVL", 5);
+	if (idx >= 0)
 	{
-		if (ft_strncmp(envp[i], key, len) == 0 && envp[i][len] == '=')
-			return (envp[i] + len + 1);
-		i++;
+		free(shell->envp[idx]);
+		shell->envp[idx] = entry;
 	}
-	return (NULL);
-}
-
-/*
-** build_prompt - Create the shell prompt string
-** Format: "USER@minishell:CWD$ "
-** Falls back to defaults if user or cwd are not set.
-** Returns: newly allocated prompt string, or NULL on malloc failure.
-*/
-char	*build_prompt(t_shell *shell)
-{
-	char		*prompt;
-	size_t		total_len;
-	const char	*user;
-	const char	*cwd;
-
-	if (shell->user != NULL)
-		user = shell->user;
 	else
-		user = PROMPT_DEFAULT_USER;
-	if (shell->cwd != NULL)
-		cwd = shell->cwd;
-	else
-		cwd = PROMPT_DEFAULT_CWD;
-	total_len = ft_strlen(user) + ft_strlen(cwd)
-		+ ft_strlen(PROMPT_PREFIX) + ft_strlen(PROMPT_SUFFIX);
-	prompt = msh_calloc(shell, total_len + 1, sizeof(char));
-	ft_strcat(prompt, user);
-	ft_strcat(prompt, PROMPT_PREFIX);
-	ft_strcat(prompt, cwd);
-	ft_strcat(prompt, PROMPT_SUFFIX);
-	return (prompt);
+	{
+		append_export_env(shell, entry);
+		free(entry);
+	}
 }
 
 static void	update_shlvl(t_shell *shell)
@@ -85,7 +53,6 @@ static void	update_shlvl(t_shell *shell)
 	char	*num_str;
 	char	*entry;
 	int		shlvl;
-	int		idx;
 
 	shlvl_val = get_env_value(shell->envp, "SHLVL");
 	if (shlvl_val)
@@ -99,11 +66,7 @@ static void	update_shlvl(t_shell *shell)
 	free(num_str);
 	if (!entry)
 		return ;
-	idx = find_export_key_index(shell, "SHLVL", 5);
-	if (idx >= 0)
-		(free(shell->envp[idx]), (shell->envp[idx] = entry));
-	else
-		(append_export_env(shell, entry), free(entry));
+	set_shlvl_entry(shell, entry);
 }
 
 void	init_shell(t_shell *shell, char **envp)
