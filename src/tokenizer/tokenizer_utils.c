@@ -59,10 +59,7 @@ int	append_char(t_shell *shell, char **dst, char c)
 		len = ft_strlen(*dst);
 	new = malloc(len + 2);
 	if (!new)
-	{
-		free(*dst);
-		clean_exit(shell, EXIT_FAILURE);
-	}
+		return (FAILURE);
 	if (*dst)
 		ft_memcpy(new, *dst, len);
 	new[len] = c;

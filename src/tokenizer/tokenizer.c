@@ -21,25 +21,30 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		{
 			*word = ft_strdup("");
 			if (!*word)
-				shell->last_exit = 1;
+			{
+				free(*word);
+				clean_exit(shell, EXIT_FAILURE);
+			}
 		}
 		(*i)++;
 		return (1);
 	}
-	if (handle_single_quote(shell, i, word, state))
-		return (1);
-	if (handle_double_quote(shell, i, word, state))
-		return (1);
-	if (!is_heredoc_mode(shell) && handle_variable_expansion(shell, i, word))
-		return (1);
-	if (!is_heredoc_mode(shell) && handle_tilde_expansion(shell, i, word))
-		return (1);
+	if (handle_single_quote(shell, i, word, state) == FAILURE ||
+			handle_double_quote(shell, i, word, state) == FAILURE ||
+			(!is_heredoc_mode(shell) && handle_variable_expansion(shell, i, word) == FAILURE) ||
+			(!is_heredoc_mode(shell) && handle_tilde_expansion(shell, i, word) == FAILURE))
+	{
+		free(*word);
+		clean_exit(shell, EXIT_FAILURE);
+	}
 	return (0);
 }
 
 static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 		char **word)
 {
+	int	catch_all;
+
 	while (1)
 	{
 		if (!shell->input[*i])
@@ -47,15 +52,25 @@ static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 			handle_end_of_string(shell, state, word);
 			break ;
 		}
-		if (handle_quotes_and_expand(shell, i, word, state))
+		if (handle_quotes_and_expand(shell, i, word, state) == SUCCESS)
 			continue ;
-		if (handle_backslash(shell, i, word, state))
+		else if (handle_quotes_and_expand(shell, i, word, state) == MALLOC_FAIL)
+			clean_exit(shell, EXIT_FAILURE);
+		if (handle_backslash(shell, i, word, state) == SUCCESS)
 			continue ;
-		if (handle_operator(shell, i, word))
+		else if (handle_backslash(shell, i, word, state) == MALLOC_FAIL)
+			clean_exit(shell, EXIT_FAILURE);
+		if (handle_operator(shell, i, word) == SUCCESS)
 			continue ;
-		if (handle_whitespace(shell, i, word))
+		else if (handle_operator(shell, i, word) == MALLOC_FAIL)
+			clean_exit(shell, EXIT_FAILURE);
+		if (handle_whitespace(shell, i, word) == SUCCESS)
 			continue ;
-		process_normal_char(shell, shell->input[*i], i, word);
+		else if (handle_whitespace(shell, i, word) == MALLOC_FAIL)
+			clean_exit(shell, EXIT_FAILURE);
+		catch_all = process_normal_char(shell, shell->input[*i], i, word);
+		if (catch_all == MALLOC_FAIL)
+			clean_exit(shell, EXIT_FAILURE);
 	}
 }
 

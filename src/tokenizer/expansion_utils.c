@@ -35,6 +35,7 @@ static int	is_redir_target(t_shell *shell, char *word)
 	);
 }
 
+/*Left to Shawn to simplify*/
 int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 		size_t end, char **word)
 {
@@ -74,7 +75,7 @@ int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 * const char *exp: The string to append. Can be NULL, in which case 
 	the function does nothing.
 **/
-void	append_expansion_quoted(char **word, const char *exp)
+int	append_expansion_quoted(char **word, const char *exp)
 {
 	size_t	len_word;
 	size_t	len_exp;
@@ -90,10 +91,11 @@ void	append_expansion_quoted(char **word, const char *exp)
 		len_exp = 0;
 	tmp = ft_realloc(*word, len_word + len_exp + 1);
 	if (!tmp)
-		return ;
+		return (FAILURE);
 	*word = tmp;
 	ft_memcpy(*word + len_word, exp, len_exp);
 	(*word)[len_word + len_exp] = '\0';
+	return (SUCCESS);
 }
 
 /**

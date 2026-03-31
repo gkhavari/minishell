@@ -182,10 +182,7 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	start = *i;
 	expanded = expand_var(shell, i);
 	if (!expanded)
-	{
-		shell->last_exit = 1;
-		return (1);
-	}
+		return(FAILURE);
 	if (expanded[0] == '\0' && handle_empty_unquoted_expansion(shell,
 			start, *i, word))
 	{

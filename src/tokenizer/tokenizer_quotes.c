@@ -36,8 +36,7 @@ int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
 		return (0);
-	process_normal_char(shell, shell->input[*i], i, word);
-	return (1);
+	return(process_normal_char(shell, shell->input[*i], i, word));
 }
 
 /**
@@ -73,10 +72,7 @@ static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
 	if (shell->input[*i] != '\\' || shell->input[*i + 1] != '$')
 		return (0);
 	if (append_char(shell, word, '$') == FAILURE)
-	{
-		*i += 2;
-		return (1);
-	}
+		return (FAILURE);
 	*i += 2;
 	return (1);
 }
@@ -92,16 +88,18 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 	{
 		expanded = expand_var(shell, i);
 		if (!expanded)
+			return(FAILURE);
+		if(append_expansion_quoted(word, expanded) == FAILURE)
 		{
-			shell->last_exit = 1;
-			return (1);
+			free(expanded);
+			return(FAILURE);
 		}
-		append_expansion_quoted(word, expanded);
 		free(expanded);
-		return (1);
+		return (SUCCESS);
 	}
-	if (handle_escaped_dollar(shell, i, word))
-		return (1);
-	process_normal_char(shell, shell->input[*i], i, word);
-	return (1);
+	if (handle_escaped_dollar(shell, i, word) == FAILURE)
+		return (FAILURE);
+	if (process_normal_char(shell, shell->input[*i], i, word) == FAILURE)
+		return(FAILURE);
+	return (SUCCESS);
 }

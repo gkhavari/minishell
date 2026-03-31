@@ -14,7 +14,7 @@
 # define DEFINES_H
 
 # define SUCCESS 0
-# define FAILURE -1
+# define FAILURE 1
 
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"

@@ -69,7 +69,7 @@ int			handle_tilde_expansion(t_shell *shell, size_t *i, char **word);
 char		*expand_var(t_shell *shell, size_t *i);
 
 /* expansion_utils.c */
-void		append_expansion_quoted(char **word, const char *exp);
+int			append_expansion_quoted(char **word, const char *exp);
 void		append_expansion_unquoted(t_shell *shell, char **word,
 				const char *exp, t_token **tokens);
 int			handle_empty_unquoted_expansion(t_shell *shell, size_t start,
