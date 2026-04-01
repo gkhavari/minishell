@@ -53,7 +53,7 @@ int	run_builtin(char **argv, t_shell *shell)
 	t_builtin	type;
 
 	if (!argv || !argv[0])
-		return (1);
+		return (FAILURE);
 	type = get_builtin_type(argv[0]);
 	if (type == BUILTIN_ECHO)
 		return (builtin_echo(argv, shell));
@@ -69,5 +69,5 @@ int	run_builtin(char **argv, t_shell *shell)
 		return (builtin_env(argv, shell));
 	if (type == BUILTIN_EXIT)
 		return (builtin_exit(argv, shell));
-	return (1);
+	return (FAILURE);
 }

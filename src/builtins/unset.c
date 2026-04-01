@@ -94,11 +94,11 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 		return (2);
 	}
 	if (!is_valid_unset_name(arg))
-		return (0);
+		return (SUCCESS);
 	idx = find_env_index(shell, arg);
 	if (idx >= 0)
 		remove_env_entry(shell, idx);
-	return (0);
+	return (SUCCESS);
 }
 
 int	builtin_unset(char **args, t_shell *shell)

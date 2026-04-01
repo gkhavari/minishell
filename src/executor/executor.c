@@ -22,9 +22,9 @@ static int	backup_fds(int *in, int *out)
 			close(*in);
 		if (*out != -1)
 			close(*out);
-		return (1);
+		return (FAILURE);
 	}
-	return (0);
+	return (SUCCESS);
 }
 
 static int	run_empty_command(t_command *cmd, int *in, int *out)
@@ -33,15 +33,15 @@ static int	run_empty_command(t_command *cmd, int *in, int *out)
 
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
 	if (need_restore && backup_fds(in, out))
-		return (1);
+		return (FAILURE);
 	if (need_restore && apply_redirections(cmd))
 	{
 		restore_fds(*in, *out);
-		return (1);
+		return (FAILURE);
 	}
 	if (need_restore)
 		restore_fds(*in, *out);
-	return (0);
+	return (SUCCESS);
 }
 
 static int	run_builtin_command(t_command *cmd, t_shell *shell,
@@ -55,11 +55,11 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	if (!must_run_in_parent(type) && need_restore)
 		return (execute_external(cmd, shell));
 	if (need_restore && backup_fds(in, out))
-		return (1);
+		return (FAILURE);
 	if (need_restore && apply_redirections(cmd))
 	{
 		restore_fds(*in, *out);
-		return (1);
+		return (FAILURE);
 	}
 	if (need_restore)
 		restore_fds(*in, *out);
@@ -94,7 +94,7 @@ int	execute_single_command(t_command *cmd, t_shell *shell)
 int	execute_commands(t_shell *shell)
 {
 	if (!shell->commands)
-		return (0);
+		return (SUCCESS);
 	if (!shell->commands->next)
 		return (execute_single_command(shell->commands, shell));
 	return (execute_pipeline(shell->commands, shell));

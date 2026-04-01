@@ -42,7 +42,7 @@ static int	check_redir_syntax(t_token *token)
 		return (syntax_error("newline"));
 	if (token->next->type != WORD)
 		return (syntax_error(get_token_str(token->next->type)));
-	return (0);
+	return (SYNTAX_OK);
 }
 
 static int	is_redirection(t_tokentype type)
@@ -91,7 +91,7 @@ int	syntax_check(t_token *token)
 		if (is_redirection(token->type))
 		{
 			if (check_redir_syntax(token))
-				return (1);
+				return (SYNTAX_ERR);
 		}
 		token = token->next;
 	}

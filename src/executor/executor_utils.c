@@ -49,12 +49,12 @@ static int	apply_input_redir(t_redir *r, int *had_input)
 	if (fd == -1)
 	{
 		print_redir_error(r->file, errno);
-		return (1);
+		return (FAILURE);
 	}
 	dup2(fd, STDIN_FILENO);
 	close(fd);
 	*had_input = 1;
-	return (0);
+	return (SUCCESS);
 }
 
 static int	apply_output_redir(t_redir *r)
@@ -68,11 +68,11 @@ static int	apply_output_redir(t_redir *r)
 	if (fd == -1)
 	{
 		print_redir_error(r->file, errno);
-		return (1);
+		return (FAILURE);
 	}
 	dup2(fd, r->fd);
 	close(fd);
-	return (0);
+	return (SUCCESS);
 }
 
 /*
@@ -90,7 +90,7 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 	{
 		ft_putstr_fd(r->file + prefix_len, 2);
 		ft_putstr_fd(": ambiguous redirect\n", 2);
-		return (1);
+		return (FAILURE);
 	}
 	if (r->fd == STDIN_FILENO)
 		return (apply_input_redir(r, had_input));
@@ -112,7 +112,7 @@ int	apply_redirections(t_command *cmd)
 	while (r)
 	{
 		if (apply_one_redir(r, &had_input))
-			return (1);
+			return (FAILURE);
 		r = r->next;
 	}
 	if (cmd->heredoc_fd != -1 && !had_input)
@@ -121,5 +121,5 @@ int	apply_redirections(t_command *cmd)
 		close(cmd->heredoc_fd);
 		cmd->heredoc_fd = -1;
 	}
-	return (0);
+	return (SUCCESS);
 }

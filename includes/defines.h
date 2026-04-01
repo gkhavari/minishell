@@ -13,8 +13,9 @@
 #ifndef DEFINES_H
 # define DEFINES_H
 
-# define SUCCESS 0
-# define FAILURE -1
+# define SUCCESS   0
+# define FAILURE   1
+# define PARSE_ERR -1
 
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"

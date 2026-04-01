@@ -35,10 +35,10 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	int		status;
 
 	if (!cmd->argv || !cmd->argv[0])
-		return (0);
+		return (SUCCESS);
 	pid = fork();
 	if (pid < 0)
-		return (perror("minishell: fork"), 1);
+		return (perror("minishell: fork"), FAILURE);
 	if (pid == 0)
 	{
 		set_signals_default();

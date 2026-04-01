@@ -47,7 +47,7 @@ static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 	free(line);
 	close(ctx->pipe_fd[0]);
 	close(ctx->pipe_fd[1]);
-	return (1);
+	return (FAILURE);
 }
 
 static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
@@ -76,7 +76,7 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
 	}
 	close(ctx->pipe_fd[1]);
 	ctx->cmd->heredoc_fd = ctx->pipe_fd[0];
-	return (0);
+	return (SUCCESS);
 }
 
 int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
@@ -85,7 +85,7 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 	int				start_line;
 
 	if (pipe(ctx.pipe_fd) == -1)
-		return (1);
+		return (FAILURE);
 	ctx.cmd = cmd;
 	ctx.shell = shell;
 	ctx.expand = !cmd->heredoc_quoted;
@@ -105,9 +105,9 @@ int	process_heredocs(t_shell *shell)
 		if (cmd->heredoc_delim)
 		{
 			if (read_heredoc(cmd, shell, &line_no))
-				return (1);
+				return (FAILURE);
 		}
 		cmd = cmd->next;
 	}
-	return (0);
+	return (SUCCESS);
 }

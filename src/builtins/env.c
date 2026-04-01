@@ -30,7 +30,7 @@ int	builtin_env(char **args, t_shell *shell)
 		return (127);
 	}
 	if (!shell->envp)
-		return (1);
+		return (FAILURE);
 	i = 0;
 	while (shell->envp[i])
 	{
@@ -38,5 +38,5 @@ int	builtin_env(char **args, t_shell *shell)
 			ft_putendl_fd(shell->envp[i], 1);
 		i++;
 	}
-	return (0);
+	return (SUCCESS);
 }

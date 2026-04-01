@@ -72,5 +72,5 @@ int	builtin_echo(char **args, t_shell *shell)
 	print_args(args, i);
 	if (newline)
 		ft_putchar_fd('\n', 1);
-	return (0);
+	return (SUCCESS);
 }

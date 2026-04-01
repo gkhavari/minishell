@@ -79,15 +79,15 @@ int	append_export_env(t_shell *shell, char *entry)
 		count++;
 	new_envp = malloc(sizeof(char *) * (count + 2));
 	if (!new_envp)
-		return (1);
+		return (FAILURE);
 	i = -1;
 	while (++i < count)
 		new_envp[i] = shell->envp[i];
 	new_envp[count] = ft_strdup(entry);
 	if (!new_envp[count])
-		return (free(new_envp), 1);
+		return (free(new_envp), FAILURE);
 	new_envp[count + 1] = NULL;
 	free(shell->envp);
 	shell->envp = new_envp;
-	return (0);
+	return (SUCCESS);
 }

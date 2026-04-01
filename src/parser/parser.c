@@ -50,7 +50,7 @@ static int	parse_token_step(t_shell *shell, t_command **cmd,
 		return (SUCCESS);
 	}
 	consumed = add_token_to_command(shell, *cmd, *token);
-	if (consumed == FAILURE)
+	if (consumed == PARSE_ERR)
 		return (free_commands(head), FAILURE);
 	while (consumed > 0 && *token)
 	{

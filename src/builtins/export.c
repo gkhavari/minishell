@@ -22,10 +22,10 @@ static int	replace_or_append(t_shell *shell, char *arg, char *key)
 	{
 		dup = ft_strdup(arg);
 		if (!dup)
-			return (1);
+			return (FAILURE);
 		free(shell->envp[idx]);
 		shell->envp[idx] = dup;
-		return (0);
+		return (SUCCESS);
 	}
 	return (append_export_env(shell, arg));
 }
@@ -37,11 +37,11 @@ static int	export_no_value(t_shell *shell, char *arg)
 		ft_putstr_fd("export: `", 2);
 		ft_putstr_fd(arg, 2);
 		ft_putendl_fd("': not a valid identifier", 2);
-		return (1);
+		return (FAILURE);
 	}
 	if (find_export_key_index(shell, arg, ft_strlen(arg)) < 0)
 		return (append_export_env(shell, arg));
-	return (0);
+	return (SUCCESS);
 }
 
 static int	handle_append(t_shell *shell, char *key, char *eq)
@@ -57,16 +57,16 @@ static int	handle_append(t_shell *shell, char *key, char *eq)
 	else
 		tmp = ft_strdup(eq + 1);
 	if (!tmp)
-		return (free(key), 1);
+		return (free(key), FAILURE);
 	new_entry = ft_strjoin(key, "=");
 	free(key);
 	if (!new_entry)
-		return (free(tmp), 1);
+		return (free(tmp), FAILURE);
 	key = ft_strjoin(new_entry, tmp);
 	free(new_entry);
 	free(tmp);
 	if (!key)
-		return (1);
+		return (FAILURE);
 	ret = replace_or_append(shell, key, key);
 	return (free(key), ret);
 }
@@ -86,16 +86,16 @@ static int	set_env_var(t_shell *shell, char *arg)
 	else
 		key = ft_substr(arg, 0, eq - arg);
 	if (!key)
-		return (1);
+		return (FAILURE);
 	if (!is_valid_export_name(key))
 	{
 		ft_putstr_fd("export: `", 2);
 		ft_putstr_fd(arg, 2);
 		ft_putendl_fd("': not a valid identifier", 2);
-		return (free(key), 1);
+		return (free(key), FAILURE);
 	}
 	if (!append_mode)
-		return (replace_or_append(shell, arg, key), free(key), 0);
+		return (replace_or_append(shell, arg, key), free(key), SUCCESS);
 	return (handle_append(shell, key, eq));
 }
 
