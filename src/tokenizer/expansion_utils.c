@@ -101,7 +101,7 @@ void	append_expansion_quoted(char **word, const char *exp)
  * Appends a string exp to a word buffer *word while splitting the content
  	on whitespace
 
- BEHAVOIR:
+ BEHAVIOR:
  * Iterates through each character of exp.
  * If a whitespace character is found:
  ** Flushes the current word to the token list (if any).

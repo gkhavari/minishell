@@ -140,10 +140,10 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `cat < /no_such_file` | — | "No such file" or similar | 1 |
 | `echo hi > /no_such/dir/file` | — | error (directory or path) | 1 |
 | `echo a > f1 > f2` | — | none | 0; only **last** file gets output |
-| `echo err 2> file` (stderr to file) | nothing to stdout (or empty line) | none | 0; **stderr** content in `file` (bash-like) |
+| `echo err 2> file` (stderr to file) | `2` then newline to stdout; nothing redirected to file | none | 0; **`2>` is not implemented** — tokenizer produces WORD `2` + REDIR_OUT, so `2` is an argument and `>` redirects stdout |
 | Redirect to directory (e.g. `echo x > /tmp`) | — | error | 1 |
 
-**Test-design note:** Multiple `>`: last wins. Missing input file: stderr + exit 1. **`2>`** is implemented (`REDIR_ERR_OUT` → `dup2` to stderr’s target file). See `1_redirs.sh`.
+**Test-design note:** Multiple `>`: last wins. Missing input file: stderr + exit 1. **`2>` stderr redirect is NOT implemented** — the tokenizer does not recognize `2>` as a compound operator; the `2` becomes a WORD argument. The `t_redir.fd` field supports arbitrary FD targets, but the tokenizer/parser don’t produce `STDERR_FILENO` redirections. See `1_redirs.sh`.
 
 ---
 
@@ -178,12 +178,12 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Current local residual (Linux):** one stubborn long-pipeline case (`1_pipelines.sh:180`) can differ only by ordering of repeated `command not found` lines across many concurrent children.
 
-**Scheduling hardening note (2026-03-28):** pipeline launch now uses a
-light barrier for **non-redirection** pipelines so children start after all
-forks are prepared, which reduced stderr-order variance in the huge
-all-not-found case. The barrier is intentionally disabled when pipeline
-commands include file redirections to avoid races like `cat out1: No such file`
-that can appear if consumers run before producers create redirection targets.
+**Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
+barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
+`sync_fd[1] = -1` in `execute_pipeline`). The all-not-found fast path
+(`executor_pipeline_not_found.c`) handles the ordering problem for that case
+by printing errors in the parent before forking — no barrier needed.
+Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 
 **Current m-only unstable case:** `2_correction.sh:221` can differ because `mkdir/chmod/cd/rm` side effects in the shared tmp-dir run order produce a bash/minishell stderr delta even when core behavior is otherwise aligned.
 

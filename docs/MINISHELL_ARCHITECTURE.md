@@ -48,7 +48,7 @@ Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed 
 | `src/signals/` | Signal handlers and readline hook |
 | `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
 | `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc, heredoc_utils, heredoc_warning |
-| `src/executor/` | Execution: executor.c, executor_utils, executor_external, executor_pipeline, executor_pipeline_steps, executor_child, executor_child_exec, executor_child_format, executor_count, executor_cmd_utils |
+| `src/executor/` | Execution: executor.c, executor_utils, executor_cmd_utils, executor_external, executor_pipeline, executor_pipeline_steps, executor_pipeline_not_found, executor_child, executor_child_exec, executor_child_format |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
 
 ```mermaid
@@ -101,7 +101,7 @@ graph TB
         exec_child[executor_child.c]
         exec_child_exec[executor_child_exec.c]
         exec_child_fmt[executor_child_format.c]
-        exec_count[executor_count.c]
+        exec_pipe_nf[executor_pipeline_not_found.c]
         exec_cmd_utils[executor_cmd_utils.c]
     end
     subgraph Builtins
@@ -131,7 +131,7 @@ graph TB
     exec --> exec_external
     exec --> exec_pipeline
     exec_pipeline --> exec_pipe_steps
-    exec_pipeline --> exec_count
+    exec_pipeline --> exec_pipe_nf
     exec --> exec_child
     exec_child --> exec_child_exec
     exec_child_exec --> exec_child_fmt
@@ -284,15 +284,16 @@ flowchart TD
 ```c
 typedef enum e_tokentype
 {
-    WORD,          /* Commands, arguments, filenames */
-    PIPE,          /* | */
-    REDIR_IN,      /* < */
-    REDIR_OUT,     /* > */
-    APPEND,        /* >> */
-    HEREDOC,       /* << */
-    REDIR_ERR_OUT  /* 2> (redirect stderr to file) */
+    WORD,      /* Commands, arguments, filenames */
+    PIPE,      /* | */
+    REDIR_IN,  /* < */
+    REDIR_OUT, /* > and >| (clobber treated as plain redirect) */
+    APPEND,    /* >> */
+    HEREDOC,   /* << */
 }   t_tokentype;
 ```
+
+> **Note:** `2>` (stderr redirect) is **not implemented** — not a mandatory requirement. The tokenizer treats `2` as a WORD and `>` as `REDIR_OUT`.
 
 ### 3.2 Lexer State Machine
 
@@ -309,9 +310,9 @@ State: NORMAL
         │       └── else → Emit REDIR_IN
         ├── > → Check next char
         │       ├── > → Emit APPEND
+        │       ├── | → Emit REDIR_OUT (clobber >| treated as plain >)
         │       └── else → Emit REDIR_OUT
-        ├── 2> → Emit REDIR_ERR_OUT (stderr redirect)
-        └── Other → Accumulate into WORD
+        └── Other → Accumulate into WORD  (note: "2>" → WORD "2" + REDIR_OUT)
 
 State: SINGLE_QUOTED (')
         └── Everything is literal until closing '
@@ -695,7 +696,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/executor.c` (`execute_commands`), `executor/executor_utils.c` (redirections), `executor/executor_cmd_utils.c` (`execute_builtin`, `restore_fds`, `set_underscore`), `executor/executor_external.c`, `executor/executor_pipeline.c` + `executor_pipeline_steps.c` (pipeline orchestration), `executor/executor_child.c` + `executor_child_exec.c` + `executor_child_format.c` (child process), `executor/executor_count.c` (`wait_pipeline`, `count_cmds`).
+**Implementation:** `executor/executor.c` (`execute_commands`), `executor/executor_utils.c` (redirections), `executor/executor_cmd_utils.c` (`execute_builtin`, `restore_fds`, `set_underscore`), `executor/executor_external.c`, `executor/executor_pipeline.c` + `executor_pipeline_steps.c` (pipeline orchestration), `executor/executor_pipeline_not_found.c` (all-not-found fast path), `executor/executor_child.c` + `executor_child_exec.c` + `executor_child_format.c` (child process).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -715,7 +716,7 @@ flowchart TD
     RUN_B --> RESTORE[restore_fds, return status]
     EXT --> RESTORE
     PIPE --> FORK[fork per command, execute_in_child]
-    FORK --> WAIT[wait_pipeline, return last exit]
+    FORK --> WAIT[wait_children_last, return last exit]
 ```
 
 ### 7.2 Single Command Execution
@@ -900,7 +901,7 @@ void execute_in_child(t_command *cmd, t_shell *shell)
 **Supporting files:**
 - **`executor_child.c`**: `exit_child(shell, status)` — clean child exit (frees all, closes FDs); `free_array(arr)`.
 - **`executor_child_format.c`**: `write_err3(prefix, name, msg)` — write 3-part error to stderr; `format_cmd_name_for_error(name)` — escapes special chars for display.
-- **`executor_count.c`**: `wait_pipeline(pids, n)` — wait for all pipeline children; `count_cmds(cmd)` — count commands in linked list.
+- **`executor_pipeline_not_found.c`**: `handle_all_not_found_pipeline(cmds, shell)` — fast path: if every stage is a not-found external with no redirections, print all errors in parent and return 1, skipping fork/wait entirely.
 - **`executor_cmd_utils.c`**: `restore_fds()`, `execute_builtin()`, `set_underscore()` — shared helpers extracted from executor_utils.
 
 ### 7.7 Path Resolution
@@ -1250,7 +1251,7 @@ Phase 5: Pipes & Heredoc
 ├── [x] Pipeline execution (executor/executor_pipeline.c)
 ├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
-└── [x] Signal handling in children (wait_pipeline, exit codes 128+N)
+└── [x] Signal handling in children (wait_children_last, exit codes 128+N)
 
 Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)

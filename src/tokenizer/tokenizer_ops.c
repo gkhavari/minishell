@@ -33,7 +33,7 @@ int	is_op_char(char c)
  * Parses an operator token starting at position s.
  * This function identifies single and double character operators 
  	and produces the appropriate token.
- * Supperted operators: | << >> < >
+ * Supported operators: | << >> < >
 
  PARAMETERS:
  * s: Pointer to the input string at the operator position.

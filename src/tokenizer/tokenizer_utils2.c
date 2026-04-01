@@ -75,7 +75,7 @@ void	add_token(t_token **head, t_token *new)
  	appended to this buffer.
 
  BEHAVIOR:
- * Calls append_char(word, c) to append the character to the word buffer.
+ * Calls append_char(shell, word, c) to append the character to the word buffer.
  * Increments *i to move to the next character in the input.
  **/
 int	process_normal_char(t_shell *shell, char c, size_t *i, char **word)

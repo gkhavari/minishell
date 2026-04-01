@@ -27,8 +27,8 @@ PARAMETERS:
 
 BEHAVIOR:
 * If the parser is inside a quote (ST_SQUOTE or ST_DQUOTE):
-** Calls append_continuation(&shell->input, *state) to allow the user to continue
-	the input line (multi-line command).
+** Calls append_continuation(shell, &shell->input, *state) to allow
+	the user to continue the input line (multi-line command).
 ** Returns 1 to indicate that the end of string handling requires continuation.
 * If the parser is not inside a quote:
 ** Adds the input to shell history using add_history(shell->input).

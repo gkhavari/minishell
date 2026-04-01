@@ -35,7 +35,7 @@ PARAMETERS:
 
 BEHAVIOR:
 * Iterates through every command node in the list.
-* Calls finalize_argv(cmd) to construct cmd->argv.
+* Calls finalize_argv(shell, cmd) to construct cmd->argv.
 * Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
 **/
 int	finalize_all_commands(t_shell *shell, t_command *cmd)

@@ -73,7 +73,7 @@ VALIDATION RULES:
 	* no consecutive pipes
 * redirections must be followed by a WORD token
 
-BEHAVOIR:
+BEHAVIOR:
 * When an error is detected, the function calls syntax_error() with the 
 	appropriate message.
  **/
