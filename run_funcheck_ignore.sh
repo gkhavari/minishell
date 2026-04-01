@@ -15,7 +15,10 @@ if [ ! -f "$IGNORE_FILE" ]; then
     exit 1
 fi
 
-readarray -t IGNORE_FUNCS < <(grep -v '^[[:space:]]*#' "$IGNORE_FILE" | awk 'NF {print $1}')
+# Normalize CRLF and load non-comment function names.
+readarray -t IGNORE_FUNCS < <(
+    tr -d '\r' < "$IGNORE_FILE" | awk '!/^[[:space:]]*#/ && NF {print $1}'
+)
 
 if [ "${#IGNORE_FUNCS[@]}" -eq 0 ]; then
     echo "Error: no functions loaded from $IGNORE_FILE" >&2

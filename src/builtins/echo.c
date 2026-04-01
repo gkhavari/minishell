@@ -12,11 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** check_n_flag - Check if arg is a valid -n flag (e.g. -n, -nnn)
-** @arg: argument string to check
-** Return: 1 if valid -n flag, 0 otherwise
-*/
+/** True if arg is -n, -nn, ... (only n after first dash). */
 static int	check_n_flag(char *arg)
 {
 	int	i;
@@ -31,11 +27,7 @@ static int	check_n_flag(char *arg)
 	return (0);
 }
 
-/*
-** print_args - Print arguments separated by spaces
-** @args: array of arguments
-** @start: index to start printing from
-*/
+/** Print args[start..] separated by single spaces. */
 static void	print_args(char **args, int start)
 {
 	int	i;
@@ -50,12 +42,7 @@ static void	print_args(char **args, int start)
 	}
 }
 
-/*
-** builtin_echo - Implement echo builtin with -n flag support
-** @args: command arguments (args[0] = "echo")
-** @shell: shell state (unused)
-** Return: 0 always (echo never fails)
-*/
+/** echo with -n / -nnn flags; always returns 0. */
 int	builtin_echo(char **args, t_shell *shell)
 {
 	int	newline;
@@ -72,5 +59,5 @@ int	builtin_echo(char **args, t_shell *shell)
 	print_args(args, i);
 	if (newline)
 		ft_putchar_fd('\n', 1);
-	return (0);
+	return (SUCCESS);
 }

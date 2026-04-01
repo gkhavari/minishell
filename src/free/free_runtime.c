@@ -40,6 +40,7 @@ static void	free_out_redirs(t_redir *r)
 	}
 }
 
+/** Free command list: argv, args, redirs, heredoc fd/delim. */
 void	free_commands(t_command *cmd)
 {
 	t_command	*tmp;
@@ -59,4 +60,4 @@ void	free_commands(t_command *cmd)
 	}
 }
 
-/* free_all is in free_shell.c to avoid duplicate symbol */
+/* free_all lives in free_shell.c */

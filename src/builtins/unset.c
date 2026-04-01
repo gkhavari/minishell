@@ -12,11 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** is_valid_unset_name - Check if name is valid identifier
-** @name: variable name to check
-** Return: 1 if valid, 0 otherwise
-*/
+/** C-style identifier for unset name. */
 static int	is_valid_unset_name(char *name)
 {
 	int	i;
@@ -35,12 +31,7 @@ static int	is_valid_unset_name(char *name)
 	return (1);
 }
 
-/*
-** find_env_index - Find index of env var by key
-** @shell: shell state containing envp
-** @key: variable name to find
-** Return: index if found, -1 otherwise
-*/
+/** Index of KEY= in envp or -1. */
 static int	find_env_index(t_shell *shell, char *key)
 {
 	int		i;
@@ -63,11 +54,7 @@ static int	find_env_index(t_shell *shell, char *key)
 	return (-1);
 }
 
-/*
-** remove_env_entry - Remove entry at index, shift remaining
-** @shell: shell state
-** @idx: index to remove
-*/
+/** Remove envp[idx] and compact array. */
 static void	remove_env_entry(t_shell *shell, int idx)
 {
 	int	i;
@@ -94,13 +81,14 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 		return (2);
 	}
 	if (!is_valid_unset_name(arg))
-		return (0);
+		return (SUCCESS);
 	idx = find_env_index(shell, arg);
 	if (idx >= 0)
 		remove_env_entry(shell, idx);
-	return (0);
+	return (SUCCESS);
 }
 
+/** Remove valid identifiers from envp; ignore invalid names and bad options. */
 int	builtin_unset(char **args, t_shell *shell)
 {
 	int	i;

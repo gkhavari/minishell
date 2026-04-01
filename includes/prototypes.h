@@ -14,10 +14,13 @@
 # define PROTOTYPES_H
 
 /* init.c */
-char		*build_prompt(t_shell *shell);
 void		init_shell(t_shell *shell, char **envp);
 void		process_input(t_shell *shell);
+
+/* init_utils.c */
+char		*build_prompt(t_shell *shell);
 char		*get_env_value(char **envp, const char *key);
+void		move_last_env_to_front(t_shell *shell);
 
 /* init_runtime.c */
 void		init_runtime_fields(t_shell *shell);

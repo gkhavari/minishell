@@ -81,6 +81,7 @@ static void	maybe_print_oldpwd(t_shell *shell, int *printed_oldpwd,
 	*printed_oldpwd = 1;
 }
 
+/** declare -x style listing of envp (sorted), with OLDPWD quirks for no-PATH. */
 int	print_sorted_env(t_shell *shell)
 {
 	int		count;
@@ -93,7 +94,7 @@ int	print_sorted_env(t_shell *shell)
 		count++;
 	sorted = ft_arrdup(shell->envp);
 	if (!sorted)
-		return (1);
+		return (FAILURE);
 	sort_env(sorted, count);
 	printed_oldpwd = (find_export_key_index(shell, "OLDPWD", 7) >= 0);
 	i = -1;
@@ -107,5 +108,5 @@ int	print_sorted_env(t_shell *shell)
 	if (!printed_oldpwd && shell->had_path == 0)
 		(ft_putendl_fd("export OLDPWD", 1));
 	free_array(sorted);
-	return (0);
+	return (SUCCESS);
 }

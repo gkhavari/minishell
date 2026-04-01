@@ -36,10 +36,7 @@ static int	consume_wait_result(pid_t pid, int status, pid_t last_pid,
 	return (1);
 }
 
-/*
-** wait_children_last - Wait for n children and return last command status
-** Uses waitpid(-1) and tracks the child PID of the last pipeline command.
-*/
+/** waitpid loop until n reap; status of last_pid becomes return value. */
 static int	wait_children_last(pid_t last_pid, int n)
 {
 	int		status;
@@ -61,11 +58,7 @@ static int	wait_children_last(pid_t last_pid, int n)
 	return (last_status);
 }
 
-/*
-** run_pipeline_loop - Fork each command and connect them with pipes
-** start_fd is a read end for a launch barrier shared by all children.
-** Returns the number of children forked.
-*/
+/** Fork each cmd with pipes + sync_fd barrier; return child count. */
 static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
 {
@@ -90,12 +83,7 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 	return (i);
 }
 
-/*
-** execute_pipeline - Execute a multi-command pipeline (cmd1 | cmd2 | ...)
-** Allocates a PID array, forks all children connected by pipes,
-** waits for all of them, then returns the last child's exit status.
-** Parent ignores SIGINT/SIGQUIT while children run.
-*/
+/** Pipe chain: fork children, wait, return last command exit status. */
 int	execute_pipeline(t_command *cmds, t_shell *shell)
 {
 	pid_t	last_pid;

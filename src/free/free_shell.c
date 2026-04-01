@@ -28,6 +28,7 @@ static void	free_envp(char **envp)
 	free(envp);
 }
 
+/** Free tokens, commands, and input for the next prompt (keep env/user/cwd). */
 void	reset_shell(t_shell *shell)
 {
 	if (!shell)
@@ -43,6 +44,7 @@ void	reset_shell(t_shell *shell)
 	shell->input = NULL;
 }
 
+/** Full teardown: env, user, cwd, tokens, commands, input. */
 void	free_all(t_shell *shell)
 {
 	if (!shell)

@@ -42,6 +42,7 @@ static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
 	return (ft_strdup(val));
 }
 
+/** Expand $var and $? inside one heredoc line (quoted-style joins). */
 char	*expand_heredoc_line(char *line, t_shell *shell)
 {
 	char	*result;
@@ -70,6 +71,7 @@ char	*expand_heredoc_line(char *line, t_shell *shell)
 	return (result);
 }
 
+/** True if delim is wrapped in matching single or double quotes. */
 int	is_quoted_delimiter(char *delim)
 {
 	size_t	len;

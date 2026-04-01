@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Free linked token list and each value. */
 void	free_tokens(t_token *token)
 {
 	t_token	*tmp;
@@ -26,6 +27,7 @@ void	free_tokens(t_token *token)
 	}
 }
 
+/** Free t_arg list. */
 void	free_args(t_arg *arg)
 {
 	t_arg	*tmp;
@@ -40,6 +42,7 @@ void	free_args(t_arg *arg)
 	}
 }
 
+/** Free NULL-terminated char ** (strings + array). */
 void	free_array(char **arr)
 {
 	int	i;

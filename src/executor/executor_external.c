@@ -29,16 +29,17 @@ static int	get_child_status(int status)
 	return (1);
 }
 
+/** Fork child: redirs + execve PATH lookup; parent waits, restores signals. */
 int	execute_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
 	int		status;
 
 	if (!cmd->argv || !cmd->argv[0])
-		return (0);
+		return (SUCCESS);
 	pid = fork();
 	if (pid < 0)
-		return (perror("minishell: fork"), 1);
+		return (perror("minishell: fork"), FAILURE);
 	if (pid == 0)
 	{
 		set_signals_default();
@@ -102,6 +103,7 @@ static char	*search_in_path(const char *path_env, char *cmd,
 	return (NULL);
 }
 
+/** Resolve argv[0] to executable path; static buffer, NULL if not found. */
 char	*find_command_path(char *cmd, t_shell *shell)
 {
 	static char	resolved[PATH_MAX];

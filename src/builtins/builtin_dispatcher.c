@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Map command name to builtin id or NOT_BUILTIN. */
 t_builtin	get_builtin_type(char *cmd)
 {
 	if (!cmd)
@@ -38,22 +39,20 @@ int	is_builtin(char *cmd)
 	return (get_builtin_type(cmd) != NOT_BUILTIN);
 }
 
-/*
-** must_run_in_parent - Returns 1 if this builtin must execute in the parent
-** process (cd/export/unset/exit mutate shell state; others may fork on redir).
-*/
+/** cd/export/unset/exit must not run in a forked child. */
 int	must_run_in_parent(t_builtin type)
 {
 	return (type == BUILTIN_CD || type == BUILTIN_EXPORT
 		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT);
 }
 
+/** Dispatch argv[0] to the matching builtin implementation. */
 int	run_builtin(char **argv, t_shell *shell)
 {
 	t_builtin	type;
 
 	if (!argv || !argv[0])
-		return (1);
+		return (FAILURE);
 	type = get_builtin_type(argv[0]);
 	if (type == BUILTIN_ECHO)
 		return (builtin_echo(argv, shell));
@@ -69,5 +68,5 @@ int	run_builtin(char **argv, t_shell *shell)
 		return (builtin_env(argv, shell));
 	if (type == BUILTIN_EXIT)
 		return (builtin_exit(argv, shell));
-	return (1);
+	return (FAILURE);
 }

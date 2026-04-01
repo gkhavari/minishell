@@ -12,11 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** read_input - Display prompt and read one line of user input.
-** Returns 1 on success, 0 on EOF (Ctrl+D), -1 on signal.
-** When stdin is not a TTY (e.g. tester) uses read_line_stdin.
-*/
+/** Non-TTY: read one line from stdin byte-by-byte into a growing buffer. */
 static char	*read_line_stdin(t_shell *shell)
 {
 	char	*line;
@@ -42,6 +38,7 @@ static char	*read_line_stdin(t_shell *shell)
 	}
 }
 
+/** TTY: readline; else read_line_stdin. Returns 1, 0 (EOF), or -1 (signal). */
 static int	read_input(t_shell *shell)
 {
 	char	*prompt;
@@ -69,12 +66,7 @@ static int	read_input(t_shell *shell)
 	return (1);
 }
 
-/*
-** shell_loop - Main REPL loop following architecture doc
-** 1. Check signals  2. Build prompt  3. Read input
-** 4. Check signals again  5. Process (lex/parse/expand/execute)
-** 6. Cleanup
-*/
+/** REPL: read line, process_input, reset state on syntax error. */
 static void	shell_loop(t_shell *shell)
 {
 	int	status;
@@ -99,6 +91,7 @@ static void	shell_loop(t_shell *shell)
 	}
 }
 
+/** Program entry: init shell/env, interactive signals, REPL, exit with last status. */
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;

@@ -12,17 +12,12 @@
 
 #include "minishell.h"
 
-/*
-** builtin_pwd - Print current working directory
-** @args: unused
-** @shell: shell state for fallback cwd
-** Return: 0 on success, 1 on failure
-*/
+/** Print shell->cwd. */
 int	builtin_pwd(char **args, t_shell *shell)
 {
 	(void)args;
 	if (!shell->cwd)
-		return (1);
+		return (FAILURE);
 	ft_putendl_fd(shell->cwd, 1);
-	return (0);
+	return (SUCCESS);
 }

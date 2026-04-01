@@ -12,11 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** handle_heredoc_token - Store heredoc delimiter from the next token
-** Frees any previous delimiter (handles multiple heredocs per command).
-** The actual heredoc reading happens later in process_heredocs().
-*/
+/** Next WORD is heredoc delimiter; replaces any previous delim. */
 static int	handle_heredoc_token(t_command *cmd, t_token *token)
 {
 	char	*new_delim;
@@ -33,10 +29,7 @@ static int	handle_heredoc_token(t_command *cmd, t_token *token)
 	return (SUCCESS);
 }
 
-/*
-** append_redir - Append a redirection node to cmd->redirs (ordered list).
-** is_input=1 for <, is_input=0 for > or >>. append=1 for >>.
-*/
+/** Append one t_redir to cmd->redirs. */
 static int	append_redir(t_command *cmd, char *file, int fd, int append)
 {
 	t_redir	*r;
@@ -100,35 +93,31 @@ static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 static int	add_redir_token(t_command *cmd, t_token *token)
 {
 	if (!token->next || !token->next->value)
-		return (FAILURE);
+		return (PARSE_ERR);
 	if (token->type == REDIR_IN)
 	{
 		if (append_redir(cmd, token->next->value, STDIN_FILENO, 0) == FAILURE)
-			return (FAILURE);
+			return (PARSE_ERR);
 		return (2);
 	}
 	if (token->type == REDIR_OUT)
 	{
 		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 0) == FAILURE)
-			return (FAILURE);
+			return (PARSE_ERR);
 		return (2);
 	}
 	if (token->type == APPEND)
 	{
 		if (append_redir(cmd, token->next->value, STDOUT_FILENO, 1) == FAILURE)
-			return (FAILURE);
+			return (PARSE_ERR);
 		return (2);
 	}
 	return (1);
 }
 
-/*
-** add_token_to_command - Dispatch a token into the command structure
-** WORD tokens become command arguments.
-** Redirection tokens (< > >> <<) set the appropriate file/delimiter.
-** Note: parse_tokens() already skips the filename WORD after redirections.
-** Returns: 1 for WORD, 2 for redir/heredoc, FAILURE on error.
-*/
+/**
+ * WORD → args; redir/heredoc → file or delim. Returns 1, 2, or PARSE_ERR.
+ */
 int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 {
 	if (token->type == WORD)
@@ -137,13 +126,13 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_token *token)
 			&& ft_strcmp(token->value, MSH_EMPTY_EXPAND_TOKEN) == 0)
 			return (1);
 		if (add_word_to_cmd(shell, cmd, token->value) == FAILURE)
-			return (FAILURE);
+			return (PARSE_ERR);
 		return (1);
 	}
 	if (token->type == HEREDOC)
 	{
 		if (handle_heredoc_token(cmd, token) == FAILURE)
-			return (FAILURE);
+			return (PARSE_ERR);
 		return (2);
 	}
 	return (add_redir_token(cmd, token));

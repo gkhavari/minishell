@@ -24,30 +24,8 @@ static void	cleanup_partial_argv(char **argv, size_t count)
 }
 
 /**
- DESCRIPTION:
-* Constructs the argv array for a command from its linked list of
-	arguments (cmd->args).
-* The resulting array is NULL-terminated
-
-PARAMETERS:
-* cmd: Pointer to the command whose argument list should be converted.
-
-PROCESS:
-* Count arguments: Iterates through the t_arg linked list to determine how many
-	arguments exist.
-* Allocate array: Allocates count + 1 slots for the argv array (the extra one
-	for the terminating NULL).
-* Copy arguments: Duplicates each t_arg->value into the argv array.
-* Terminate: Sets argv[count] = NULL.
-
-RESULT:
-* cmd->argv will contain:
-argv[0] = first argument  
-argv[1] = second argument  
-...  
-argv[count-1] = last argument  
-argv[count] = NULL  
-**/
+ * Build cmd->argv from cmd->args (NULL-terminated); exit on strdup failure.
+ */
 static void	build_argv_array(t_shell *shell, t_command *cmd, t_arg *tmp, size_t count)
 {
 	size_t	i;
@@ -88,20 +66,8 @@ static void	finalize_argv(t_shell *shell, t_command *cmd)
 }
 
 /**
- DESCRIPTION:
-* Completes the setup of each command in a linked list of t_command structures.
-* For every command, this function:
-** Builds the argv array from the linked list of arguments.
-** Determines whether the command’s executable name corresponds to a builtin.
-
-PARAMETERS:
-* cmd: Pointer to the first command in the command list.
-
-BEHAVIOR:
-* Iterates through every command node in the list.
-* Calls finalize_argv(cmd) to construct cmd->argv.
-* Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
-**/
+ * For each command: build argv, set is_builtin (with env special-case).
+ */
 void	finalize_all_commands(t_shell *shell, t_command *cmd)
 {
 	while (cmd)

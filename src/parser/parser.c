@@ -12,14 +12,8 @@
 
 #include "minishell.h"
 /**
- DESCRIPTION:
-* Allocates and initializes a new t_command structure.
-* Everything is initiallized to 0/NULL.
-
-RETURN VALUE:
-* A pointer to a newly allocated and initialized t_command structure.
-* NULL if memory allocation fails.
-**/
+ * calloc(1) t_command; heredoc_fd = -1; NULL on failure.
+ */
 static t_command	*new_command(t_shell *shell)
 {
 	t_command	*cmd;
@@ -35,6 +29,9 @@ static t_command	*new_command(t_shell *shell)
 	return (cmd);
 }
 
+/**
+ * One parse step: pipe splits command; else add_token_to_command and advance.
+ */
 static int	parse_token_step(t_shell *shell, t_command **cmd,
 		t_token **token, t_command *head)
 {
@@ -50,7 +47,7 @@ static int	parse_token_step(t_shell *shell, t_command **cmd,
 		return (SUCCESS);
 	}
 	consumed = add_token_to_command(shell, *cmd, *token);
-	if (consumed == FAILURE)
+	if (consumed == PARSE_ERR)
 		return (free_commands(head), FAILURE);
 	while (consumed > 0 && *token)
 	{
@@ -78,25 +75,8 @@ static t_command	*parse_tokens(t_shell *shell, t_token *token)
 }
 
 /**
- DESCRIPTION:
-* High-level parsing function that takes the already-tokenized shell input 
-	and constructs
-	the final command list.
-* It first checks syntax validity, and if no errors are present, builds 
-	the command list and performs post-processing.
-
-PARAMETERS:
-* shell: A pointer to the main shell structure, containing tokens and
-	a location to store parsed commands.
-
-BEHAVIOR:
-* Calls syntax_check(shell->tokens)
-* If a syntax error is detected, the function immediately returns without
-	altering shell->commands.
-* Calls parse_tokens() to turn tokens into a command list.
-* Calls finalize_all_commands() to perform final adjustments 
-	(e.g., building argv, resolving redirections, etc.).
-**/
+ * syntax_check → parse_tokens → finalize_all_commands; frees token list.
+ */
 void	parse_input(t_shell *shell)
 {
 	if (!shell->tokens)
@@ -122,10 +102,7 @@ void	parse_input(t_shell *shell)
 	finalize_all_commands(shell, shell->commands);
 }
 
-/*
-** is_redirection - Check if a token type is a redirection operator
-** Returns 1 for < > >> <<, 0 otherwise.
-*/
+/** True if type is <, >, >>, or <<. */
 int	is_redirection(t_tokentype type)
 {
 	return (type == REDIR_IN || type == REDIR_OUT || type == APPEND

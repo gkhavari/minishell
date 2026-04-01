@@ -2,27 +2,28 @@
 
 This document defines **expected behavior** for minishell: what output and exit code the shell must produce for given inputs. It serves as (1) a **behavior specification** for the program and (2) a **guide for designing tests** for those cases.
 
-**Primary reference:** **[42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester)** (cozyGarage fork) — same input as **bash**, compare stdout (`diff -q`), normalized stderr (`diff -q` after tester filters), and exit code.
+**Primary harness:** **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** — same input as **bash**, compare stdout (`diff -q`), normalized stderr (`diff -q` after tester filters), and exit code. Mandatory mode: `tester.sh m` (see `scripts/run_minishell_tester.sh`).
 
-**Run mandatory tests from repo root:**
+**Run mandatory tests (Docker dev container, from host):**
 
 ```bash
-make
-./scripts/run_minishell_tester.sh m     # mandatory
-./scripts/run_minishell_tester.sh vm    # mandatory + valgrind
+./scripts/run_minishell_tester.sh m       # mandatory
+./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
 ```
 
-**CI status (Ubuntu):** Current baseline and failure breakdown are tracked in [42_tester_failures.md](42_tester_failures.md).
+Build runs inside the container (`make re` / `make debug`). CI clones the same repo (see `.github/workflows/test.yaml`).
+
+**CI / baseline:** Failure notes in [42_tester_failures.md](42_tester_failures.md).
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** or **`\`**, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo.
 
-For architecture and data structures, see [minishell_architecture.md](minishell_architecture.md).
+For architecture and data structures, see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md).
 
 ---
 
 ## How the 42_minishell_tester Works
 
-- Reads test **blocks** from scripts under `cmds/mand/` (e.g. `1_builtins.sh`, `8_syntax_errors.sh`). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
+- Reads test **blocks** from scripts under `cmds/mand/` (LeaYeh splits builtins into `1_builtins_echo.sh`, `1_builtins_cd.sh`, …; plus `8_syntax_errors.sh`, `1_redirs.sh`, etc.). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
 - For each block: sends the same input to **minishell** and to **bash** (with `enable -n .` prepended so bash runs the test as the last command).
 - **Pass** requires: stdout identical (`diff -q`), normalized stderr identical (`diff -q`), and exit code identical.
 - **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** (not readline) for non-TTY stdin — one logical line per tester block.
@@ -32,7 +33,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 ---
 
-## 1. Echo (`1_builtins.sh`)
+## 1. Echo (`1_builtins_echo.sh`)
 
 | Input | Expected stdout | Expected stderr | Exit |
 |-------|-----------------|-----------------|------|
@@ -51,11 +52,11 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `echo \$USER` | literal `$USER` + newline (backslash escapes `$`) | none | 0 |
 | `echo \\$USER`, `echo \\\$USER`, etc. | As in bash (backslash and expansion rules) | none | 0 |
 
-**Test-design note:** Add cases for empty args, multiple `-n`, `-n` with non-flag arg, single/double quotes, `$VAR` and `$?`, and backslash before `$`. See `1_builtins.sh` (ECHO section) and `0_compare_parsing.sh` for many examples.
+**Test-design note:** Add cases for empty args, multiple `-n`, `-n` with non-flag arg, single/double quotes, `$VAR` and `$?`, and backslash before `$`. See `1_builtins_echo.sh` and `0_compare_parsing.sh` for many examples.
 
 ---
 
-## 2. PWD & CD (`1_builtins.sh`)
+## 2. PWD & CD (`1_builtins_pwd.sh`, `1_builtins_cd.sh`)
 
 | Input | Expected stdout | Expected stderr | Exit |
 |-------|-----------------|-----------------|------|
@@ -69,11 +70,11 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `cd 123123` (non-existent) | — | message e.g. "No such file or directory" | 1 |
 | `cd '/////'` (normalized by bash to `/`) | — | bash: none; minishell may differ (path normalization) | bash 0 |
 
-**Test-design note:** Cover no-arg (HOME), `-` (OLDPWD), nonexistent path (exit 1), and **extra arguments** (use first only, exit 0). See `1_builtins.sh` (PWD, CD).
+**Test-design note:** Cover no-arg (HOME), `-` (OLDPWD), nonexistent path (exit 1), and **extra arguments** (use first only, exit 0). See `1_builtins_pwd.sh`, `1_builtins_cd.sh`.
 
 ---
 
-## 3. Env, Export, Unset (`1_builtins.sh`)
+## 3. Env, Export, Unset (`1_builtins_env.sh`, `1_builtins_export.sh`, `1_builtins_unset.sh`)
 
 | Input | Expected stdout | Expected stderr | Exit |
 |-------|-----------------|-----------------|------|
@@ -86,13 +87,13 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `unset VAR` then `env` | `VAR` no longer in env | none | 0 |
 | `unset`, `unset ""` | — | error or no-op per bash | 0 or 1 |
 
-**Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. Subject: builtin **`env`** is **no options or arguments** — any `env` with args is executed as **external** `env` (this repo: `argv_build` / dispatch). See `1_builtins.sh` (ENV, EXPORT, UNSET).
+**Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. Subject: builtin **`env`** is **no options or arguments** — any `env` with args is executed as **external** `env` (this repo: `argv_build` / dispatch). See the three `1_builtins_*` scripts above.
 
-**Tester note:** The known edge line is **`unset TES;T`** in `1_builtins.sh`; it depends on **`;`** separator behavior (out of mandatory scope). To test `unset` itself, use **`unset TES`** without semicolon.
+**Tester note:** Any block with **`unset TES;T`** (semicolon) depends on **`;`** separator behavior (out of mandatory scope). To test `unset` itself, use **`unset TES`** without semicolon.
 
 ---
 
-## 4. Exit (`1_builtins.sh`)
+## 4. Exit (`1_builtins_exit.sh`)
 
 | Input | Expected stdout | Expected stderr | Exit |
 |-------|-----------------|-----------------|------|
@@ -110,11 +111,11 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Implementation note (this repo):** For non-numeric `exit`, **`exit.c` exits with 2**, not bash’s **255**. Mandatory tester will disagree with bash on **EXIT_CODE** for those blocks until the code matches bash.
 
-**Test-design note:** Numeric: exit with `n % 256`. Non-numeric (bash): stderr + exit **255**. Too many args: stderr + exit 1, **no exit**. See `1_builtins.sh` (EXIT).
+**Test-design note:** Numeric: exit with `n % 256`. Non-numeric (bash): stderr + exit **255**. Too many args: stderr + exit 1, **no exit**. See `1_builtins_exit.sh`.
 
 ---
 
-## 5. Variable Expansion (`0_compare_parsing.sh`, `1_builtins.sh`, `1_variables.sh`)
+## 5. Variable Expansion (`0_compare_parsing.sh`, `1_builtins_echo.sh`, `1_variables.sh`, `11_expansion.sh`)
 
 | Input | Expected stdout | Expected stderr | Exit |
 |-------|-----------------|-----------------|------|
@@ -126,7 +127,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `echo "hello $VAR"` (VAR=world) | `hello world` | none | 0 |
 | `export A_B=1` then `echo $A_B` | `1` | none | 0 |
 
-**Test-design note:** Single quotes: no expansion. Double quotes: expand `$VAR`, `$?`. Unset → empty. See `0_compare_parsing.sh`, `1_builtins.sh`, `1_variables.sh`.
+**Test-design note:** Single quotes: no expansion. Double quotes: expand `$VAR`, `$?`. Unset → empty. See `0_compare_parsing.sh`, `1_builtins_echo.sh`, `1_variables.sh`, `11_expansion.sh`.
 
 ---
 
@@ -140,10 +141,10 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `cat < /no_such_file` | — | "No such file" or similar | 1 |
 | `echo hi > /no_such/dir/file` | — | error (directory or path) | 1 |
 | `echo a > f1 > f2` | — | none | 0; only **last** file gets output |
-| `echo err 2> file` (stderr to file) | nothing to stdout (or empty line) | none | 0; **stderr** content in `file` (bash-like) |
+| `echo err 2> file` (stderr to file) | `2` then newline to stdout; nothing redirected to file | none | 0; **`2>` is not implemented** — tokenizer produces WORD `2` + REDIR_OUT, so `2` is an argument and `>` redirects stdout |
 | Redirect to directory (e.g. `echo x > /tmp`) | — | error | 1 |
 
-**Test-design note:** Multiple `>`: last wins. Missing input file: stderr + exit 1. **`2>`** is implemented (`REDIR_ERR_OUT` → `dup2` to stderr’s target file). See `1_redirs.sh`.
+**Test-design note:** Multiple `>`: last wins. Missing input file: stderr + exit 1. **`2>` stderr redirect is NOT implemented** — the tokenizer does not recognize `2>` as a compound operator; the `2` becomes a WORD argument. The `t_redir.fd` field supports arbitrary FD targets, but the tokenizer/parser don’t produce `STDERR_FILENO` redirections. See `1_redirs.sh`.
 
 ---
 
@@ -178,12 +179,12 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Current local residual (Linux):** one stubborn long-pipeline case (`1_pipelines.sh:180`) can differ only by ordering of repeated `command not found` lines across many concurrent children.
 
-**Scheduling hardening note (2026-03-28):** pipeline launch now uses a
-light barrier for **non-redirection** pipelines so children start after all
-forks are prepared, which reduced stderr-order variance in the huge
-all-not-found case. The barrier is intentionally disabled when pipeline
-commands include file redirections to avoid races like `cat out1: No such file`
-that can appear if consumers run before producers create redirection targets.
+**Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
+barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
+`sync_fd[1] = -1` in `execute_pipeline`). The all-not-found fast path
+(`executor_pipeline_not_found.c`) handles the ordering problem for that case
+by printing errors in the parent before forking — no barrier needed.
+Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 
 **Current m-only unstable case:** `2_correction.sh:221` can differ because `mkdir/chmod/cd/rm` side effects in the shared tmp-dir run order produce a bash/minishell stderr delta even when core behavior is otherwise aligned.
 
@@ -248,16 +249,23 @@ Use multiple input lines to chain commands. The 42 subject does not require `;`,
 
 ---
 
-## 13. 42_minishell_tester Script Reference
+## 13. 42_minishell_tester Script Reference (LeaYeh `cmds/mand/`)
 
 | Script | Content |
 |--------|---------|
 | `0_compare_parsing.sh` | Echo, quotes, expansion (compare to bash parsing) |
-| `1_builtins.sh` | Echo, pwd, export, unset, cd, exit (bulk of builtins) |
+| `1_builtins_echo.sh` | `echo`, `-n`, quotes, `$?`, backslash |
+| `1_builtins_pwd.sh` | `pwd` |
+| `1_builtins_cd.sh` | `cd` |
+| `1_builtins_env.sh` | `env` |
+| `1_builtins_export.sh` | `export` |
+| `1_builtins_unset.sh` | `unset` |
+| `1_builtins_exit.sh` | `exit` |
 | `1_pipelines.sh` | Pipes, heredocs in pipes |
 | `1_redirs.sh` | Redirections, heredocs, combined |
 | `1_scmds.sh` | Simple commands, path |
 | `1_variables.sh` | Variable expansion cases |
+| `11_expansion.sh` | Additional expansion cases |
 | `2_correction.sh` | Correction / edge cases |
 | `2_path_check.sh` | PATH, env -i |
 | `8_syntax_errors.sh` | Syntax error cases (pipe, redirect, etc.) |

@@ -59,6 +59,7 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 	return (pid);
 }
 
+/** Fork one pipeline segment; set up stdin/stdout pipes and sync barrier. */
 pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
 		int *prev_fd, int sync_fd[2])
 {

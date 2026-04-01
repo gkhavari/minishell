@@ -49,6 +49,7 @@ static int	parse_exit_finalize(char *str, int i)
 	return (1);
 }
 
+/** Parse exit numeric string into *value; 0 if invalid or out of range. */
 int	parse_exit_value(char *str, long long *value)
 {
 	unsigned long long	acc;

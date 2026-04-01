@@ -47,7 +47,7 @@ static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 	free(line);
 	close(ctx->pipe_fd[0]);
 	close(ctx->pipe_fd[1]);
-	return (1);
+	return (FAILURE);
 }
 
 static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
@@ -76,16 +76,17 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
 	}
 	close(ctx->pipe_fd[1]);
 	ctx->cmd->heredoc_fd = ctx->pipe_fd[0];
-	return (0);
+	return (SUCCESS);
 }
 
+/** Open pipe, read lines until delim; set cmd->heredoc_fd to read end. */
 int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 {
 	t_heredoc_ctx	ctx;
 	int				start_line;
 
 	if (pipe(ctx.pipe_fd) == -1)
-		return (1);
+		return (FAILURE);
 	ctx.cmd = cmd;
 	ctx.shell = shell;
 	ctx.expand = !cmd->heredoc_quoted;
@@ -93,6 +94,7 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 	return (heredoc_read_loop(&ctx, line_no, start_line));
 }
 
+/** For each command with a delimiter, read_heredoc; FAILURE on error/SIGINT. */
 int	process_heredocs(t_shell *shell)
 {
 	t_command	*cmd;
@@ -105,9 +107,9 @@ int	process_heredocs(t_shell *shell)
 		if (cmd->heredoc_delim)
 		{
 			if (read_heredoc(cmd, shell, &line_no))
-				return (1);
+				return (FAILURE);
 		}
 		cmd = cmd->next;
 	}
-	return (0);
+	return (SUCCESS);
 }

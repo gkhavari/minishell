@@ -22,9 +22,9 @@ static int	backup_fds(int *in, int *out)
 			close(*in);
 		if (*out != -1)
 			close(*out);
-		return (1);
+		return (FAILURE);
 	}
-	return (0);
+	return (SUCCESS);
 }
 
 static void	restore_fds(int stdin_backup, int stdout_backup)
@@ -41,15 +41,15 @@ static int	run_empty_command(t_command *cmd, int *in, int *out)
 
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
 	if (need_restore && backup_fds(in, out))
-		return (1);
+		return (FAILURE);
 	if (need_restore && apply_redirections(cmd))
 	{
 		restore_fds(*in, *out);
-		return (1);
+		return (FAILURE);
 	}
 	if (need_restore)
 		restore_fds(*in, *out);
-	return (0);
+	return (SUCCESS);
 }
 
 static int	run_builtin_command(t_command *cmd, t_shell *shell,
@@ -63,22 +63,18 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	if (!must_run_in_parent(type) && need_restore)
 		return (execute_external(cmd, shell));
 	if (need_restore && backup_fds(in, out))
-		return (1);
+		return (FAILURE);
 	if (need_restore && apply_redirections(cmd))
 	{
 		restore_fds(*in, *out);
-		return (1);
+		return (FAILURE);
 	}
 	if (need_restore)
 		restore_fds(*in, *out);
 	return (run_builtin(cmd->argv, shell));
 }
 
-/*
-** execute_commands - Entry point: decide single vs pipeline execution
-** If there is only one command, run it directly (builtins stay in parent).
-** If there are multiple commands, run the full pipeline with pipes.
-*/
+/** Run one command or a pipeline; return last exit status. */
 int	execute_commands(t_shell *shell)
 {
 	t_command	*cmd;
@@ -87,7 +83,7 @@ int	execute_commands(t_shell *shell)
 	int			status;
 		
 	if (!shell->commands)
-		return (0);
+		return (SUCCESS);
 	if (!shell->commands->next)
 	{
 		cmd = shell->commands;

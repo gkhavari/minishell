@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Quotes, quoted segments, unquoted $ and ~ (respect heredoc mode). */
 static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		char **word, t_state *state)
 {
@@ -37,6 +38,7 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 	return (0);
 }
 
+/** One pass over shell->input until NUL; dispatches handlers. */
 static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 		char **word)
 {
@@ -59,6 +61,7 @@ static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 	}
 }
 
+/** Lex shell->input into shell->tokens; frees input; clears tokens on quote error. */
 void	tokenize_input(t_shell *shell)
 {
 	t_state	state;

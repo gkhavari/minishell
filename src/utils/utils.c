@@ -56,6 +56,7 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	return (res);
 }
 
+/** ft_calloc or clean_exit on failure. */
 void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
 {
 	char	*res;
@@ -76,6 +77,7 @@ static void	ft_arrdup_cleanup(char **copy, size_t i)
 	free(copy);
 }
 
+/** Deep copy of NULL-terminated string array; NULL on error. */
 char	**ft_arrdup(char **envp)
 {
 	char	**copy;

@@ -12,11 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** is_valid_name - Check if name is valid env identifier
-** @name: variable name to check
-** Return: 1 if valid, 0 otherwise
-*/
+/** Valid export variable name (letter/underscore + alnum/_). */
 int	is_valid_export_name(char *name)
 {
 	int	i;
@@ -35,13 +31,7 @@ int	is_valid_export_name(char *name)
 	return (1);
 }
 
-/*
-** find_key_index - Find index of env var by key
-** @shell: shell state
-** @key: variable name
-** @key_len: length of key
-** Return: index if found, -1 otherwise
-*/
+/** Index of key= in envp or -1. */
 int	find_export_key_index(t_shell *shell, char *key, int key_len)
 {
 	int		i;
@@ -62,12 +52,7 @@ int	find_export_key_index(t_shell *shell, char *key, int key_len)
 	return (-1);
 }
 
-/*
-** append_env - Add new entry to envp array
-** @shell: shell state
-** @entry: KEY=value string to add
-** Return: 0 on success, 1 on malloc failure
-*/
+/** Append entry to envp (realloc list); FAILURE on malloc error. */
 int	append_export_env(t_shell *shell, char *entry)
 {
 	char	**new_envp;
@@ -79,15 +64,15 @@ int	append_export_env(t_shell *shell, char *entry)
 		count++;
 	new_envp = malloc(sizeof(char *) * (count + 2));
 	if (!new_envp)
-		return (1);
+		return (FAILURE);
 	i = -1;
 	while (++i < count)
 		new_envp[i] = shell->envp[i];
 	new_envp[count] = ft_strdup(entry);
 	if (!new_envp[count])
-		return (free(new_envp), 1);
+		return (free(new_envp), FAILURE);
 	new_envp[count + 1] = NULL;
 	free(shell->envp);
 	shell->envp = new_envp;
-	return (0);
+	return (SUCCESS);
 }

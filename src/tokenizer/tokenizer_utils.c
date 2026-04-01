@@ -12,41 +12,27 @@
 
 #include "minishell.h"
 
+/** Next flushed WORD token is marked quoted. */
 void	mark_word_quoted(t_shell *shell)
 {
 	shell->word_quoted = 1;
 }
 
+/** After <<, suppress $ expansion in delimiter word. */
 void	set_heredoc_mode(t_shell *shell, int mode)
 {
 	shell->heredoc_mode = mode;
 }
 
+/** True while lexing heredoc delimiter token. */
 int	is_heredoc_mode(t_shell *shell)
 {
 	return (shell->heredoc_mode);
 }
 
 /**
- DESCRIPTION:
- * Appends a single character to the end of a dynamically allocated string.
- * This function grows the buffer by allocating a new one, copying the 
- 	existing data, adding the new character, and replacing the old pointer. 
-	This is used during tokenization to gradually build words one character 
-	at a time.
-
- PARAMETERS:
- * dst: Pointer to a dynamically allocated string. If *dst is NULL, a new 
- 	1-character string is created.
- * c: The character to append.
-
- RETURN VALUE:
- * None.
- * The buffer referenced by *dst is replaced with an enlarged version 
- 	containing the new character.
- * The original *dest is freed.
- * resulting string is null-terminated.
-**/
+ * Grow *dst and append c; exits on alloc failure.
+ */
 int	append_char(t_shell *shell, char **dst, char c)
 {
 	size_t	len;
@@ -73,22 +59,8 @@ int	append_char(t_shell *shell, char **dst, char c)
 }
 
 /**
- DESCRIPTION:
- * Finalizes the current accumulated word and converts it into a WORD token.
- * If a partial word is being built (via append_char), this function:
- ** Wraps it into a new token.
- ** Adds the token to the token list.
- ** Frees the word buffer.
- ** Resets the pointer to NULL.
-
- PARAMETERS:
- * shell: pointer to the shell (contains tokenlist to append to).
- * word: pointer to the buffer storing the current built word.
- * token: pointer to the tokenlist where the word token is appended
-
- RETURN VALUE:
- * none
-**/
+ * If *word non-empty: emit WORD token, clear buffer and quote/heredoc flags.
+ */
 void	flush_word(t_shell *shell, char **word, t_token **token)
 {
 	t_token	*tok;

@@ -45,11 +45,11 @@ static int	set_env_entry(t_shell *shell, char *key, char *value)
 	key_len = ft_strlen(key);
 	tmp = ft_strjoin(key, "=");
 	if (!tmp)
-		return (1);
+		return (FAILURE);
 	entry = ft_strjoin(tmp, value);
 	free(tmp);
 	if (!entry)
-		return (1);
+		return (FAILURE);
 	idx = find_export_key_index(shell, key, key_len);
 	if (idx >= 0)
 	{
@@ -57,10 +57,10 @@ static int	set_env_entry(t_shell *shell, char *key, char *value)
 		shell->envp[idx] = entry;
 	}
 	else if (append_export_env(shell, entry))
-		return (free(entry), 1);
+		return (free(entry), FAILURE);
 	else
 		free(entry);
-	return (0);
+	return (SUCCESS);
 }
 
 static int	update_shell_cwd(t_shell *shell, char *old_pwd)
@@ -69,14 +69,14 @@ static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 
 	cwd = getcwd(NULL, 0);
 	if (!cwd)
-		return (1);
+		return (FAILURE);
 	if (old_pwd)
 		set_env_entry(shell, "OLDPWD", old_pwd);
 	set_env_entry(shell, "PWD", cwd);
 	if (shell->cwd)
 		free(shell->cwd);
 	shell->cwd = cwd;
-	return (0);
+	return (SUCCESS);
 }
 
 static int	do_chdir(char *target, char *old_pwd)
@@ -88,11 +88,12 @@ static int	do_chdir(char *target, char *old_pwd)
 		ft_putstr_fd(": ", 2);
 		ft_putendl_fd(strerror(errno), 2);
 		free(old_pwd);
-		return (1);
+		return (FAILURE);
 	}
-	return (0);
+	return (SUCCESS);
 }
 
+/** chdir with HOME, OLDPWD (-), or path; updates PWD/OLDPWD and shell->cwd. */
 int	builtin_cd(char **args, t_shell *shell)
 {
 	char	*target;
@@ -100,16 +101,16 @@ int	builtin_cd(char **args, t_shell *shell)
 	int		print;
 
 	if (args[1] && args[2])
-		return (ft_putendl_fd("minishell: cd: too many arguments", 2), 1);
+		return (ft_putendl_fd("minishell: cd: too many arguments", 2), FAILURE);
 	target = get_cd_target(args, shell, &print);
 	if (!target)
-		return (1);
+		return (FAILURE);
 	old_pwd = getcwd(NULL, 0);
 	if (do_chdir(target, old_pwd))
-		return (1);
+		return (FAILURE);
 	update_shell_cwd(shell, old_pwd);
 	if (print)
 		ft_putendl_fd(shell->cwd, 1);
 	free(old_pwd);
-	return (0);
+	return (SUCCESS);
 }

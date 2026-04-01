@@ -1,6 +1,6 @@
 # Data Model & Function Reference
 
-This document explains **why** we chose the current data structures and lists **every function** in the codebase with a one-line description. Use it for onboarding, refactors, and debugging. See [minishell_architecture.md](minishell_architecture.md) for flow and [BEHAVIOR.md](BEHAVIOR.md) for semantics.
+This document explains **why** we chose the current data structures and lists **every function** in the codebase with a one-line description. Use it for onboarding, refactors, and debugging. See [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) for flow and [BEHAVIOR.md](BEHAVIOR.md) for semantics.
 
 ---
 
@@ -12,7 +12,7 @@ All types live in **`includes/structs.h`**. The design follows: (1) one represen
 
 | Type | Definition | Why we use it |
 |------|------------|----------------|
-| **`t_tokentype`** | `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC`, `REDIR_ERR_OUT` | Same as above, plus **`REDIR_ERR_OUT`** for the `2>` operator (redirect stderr to a file). |
+| **`t_tokentype`** | `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC` | Token type for lexer output. `REDIR_OUT` covers both `>` and `>\|` (clobber treated as plain redirect). `2>` stderr redirect is **not** a separate token — not implemented in mandatory scope. |
 | **`t_state`** | `ST_NORMAL`, `ST_SQUOTE`, `ST_DQUOTE` | Quote context during tokenization. Tells us whether `$` should be expanded (only in double quotes) and when to close a quoted span. |
 
 ### 1.2 Token: `t_token`
@@ -243,7 +243,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/tokenizer_utils2.c** | `add_token(head, new)` | Appends token `new` to list `*head`. |
 | **tokenizer/tokenizer_utils2.c** | `new_token(shell, type, value)` | Allocates a token with type and value (value is strduped). |
 | **tokenizer/tokenizer_utils2.c** | `process_normal_char(shell, c, i, word)` | Appends char `c` to word and advances `*i`. |
-| **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state)` | At end of input: flush word; if quotes are unclosed emit a syntax error immediately (no continuation). |
+| **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state, &word)` | At end of input: add history in normal state; on unclosed quote set syntax error and discard partial word. |
 | **tokenizer/tokenizer_handlers.c** | `process_quote(shell, c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
 | **tokenizer/tokenizer_handlers.c** | `handle_operator(shell, i, word)` | If input at *i is operator (| < > << >>), flushes word and calls read_operator. |
 | **tokenizer/tokenizer_handlers.c** | `handle_whitespace(shell, i, word)` | Skips spaces/tabs; flushes word if non-empty. |
@@ -294,10 +294,8 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **executor/executor.c** | `execute_commands(shell)` | If single command → execute_single_command; else execute_pipeline. Returns exit status. |
-| **executor/executor.c** | `execute_single_command(cmd, shell)` | `backup_fds` (closes partial dup on failure), apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
-| **executor/executor_count.c** | `wait_pipeline(pids, n)` | Waitpids all; returns exit status of last process (bash convention). |
-| **executor/executor_count.c** | `count_cmds(cmd)` | Returns number of commands in the pipeline (linked list length). |
-| **executor/executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (`r->fd` stdin/stdout/stderr); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
+| **executor/executor.c** | `execute_single_command(cmd, shell)` | Backs up stdin/stdout, apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
+| **executor/executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (`r->fd` stdin/stdout); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
 | **executor/executor_cmd_utils.c** | `restore_fds(stdin_backup, stdout_backup)` | Restores stdin/stdout from backups and closes backups. |
 | **executor/executor_cmd_utils.c** | `execute_builtin(cmd, shell)` | Calls run_builtin(cmd->argv, shell). |
 | **executor/executor_cmd_utils.c** | `set_underscore(shell, path)` | Updates `_` in envp after resolving executable path (child before execve). |
@@ -308,9 +306,12 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/executor_child_exec.c** | `execute_in_child(cmd, shell)` | In child: if builtin → `run_builtin_child`; else find path, check dir/exec, execve or exit 127/126. |
 | **executor/executor_child_format.c** | `write_err3(prefix, name, msg)` | Writes 3-part error message ("prefix: name: msg") to stderr. |
 | **executor/executor_child_format.c** | `format_cmd_name_for_error(name)` | Escapes special characters in command name for error display (e.g. `$'\n'` quoting). |
-| **executor/executor_pipeline.c** | `execute_pipeline(cmds, shell)` | Creates pipe(s), forks each command with pipes connected, wait_pipeline, returns last exit status. |
-| **executor/executor_pipeline_steps.c** | `run_pipe_step(cmd, shell, prev_fd, pipe_fd)` | Forks one pipeline step: sets up child FDs, calls `execute_in_child`. |
-| **executor/executor_pipeline_steps.c** | `release_pipeline_barrier(barrier_fd, cmd_count)` | Closes barrier write FD to unblock all pipeline children simultaneously. |
+| **executor/executor_pipeline.c** | `execute_pipeline(cmds, shell)` | Handles all-not-found fast path, forks all children connected by pipes, waits for all, returns last exit status. |
+| **executor/executor_pipeline.c** | `wait_children_last(last_pid, n)` | Waitpids n children; returns exit status of the last pipeline command (bash convention). |
+| **executor/executor_pipeline.c** | `run_pipeline_loop(cmds, shell, last_pid, sync_fd)` | Forks each command via `run_pipe_step`; returns count of children forked. |
+| **executor/executor_pipeline_steps.c** | `run_pipe_step(cmd, shell, prev_fd, sync_fd)` | Forks one pipeline step: creates pipe, sets up child FDs, calls `execute_in_child`. |
+| **executor/executor_pipeline_steps.c** | `fork_pipeline_cmd(cmd, shell, prev_fd, pipe_fd)` | Forks child; in child calls `setup_child_fds`, `apply_redirections`, `execute_in_child`. |
+| **executor/executor_pipeline_not_found.c** | `handle_all_not_found_pipeline(cmds, shell)` | Fast-path: if every pipeline stage is a not-found external with no redirs, prints errors in parent and returns 1 (skips forking). |
 
 ---
 
@@ -410,7 +411,7 @@ flowchart TB
 
 | Document | Content |
 |----------|---------|
-| [minishell_architecture.md](minishell_architecture.md) | Pipeline stages, signals, source layout, testing. |
+| [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
 | [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | What we changed and why (data, functions, defensive, 42); recent fix list. |
 | [42_tester_failures.md](42_tester_failures.md) | 42 tester status and root-cause fixes. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |
