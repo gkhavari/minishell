@@ -53,7 +53,7 @@ static pid_t	fork_pipeline_cmd(t_command *cmd, t_shell *shell, int prev_fd,
 		setup_child_fds(prev_fd, pipe_fd, cmd->next != NULL,
 			shell->barrier_write_fd);
 		if (apply_redirections(cmd) != 0)
-			clean_exit(shell, 1);
+			clean_exit(shell, FAILURE);
 		execute_in_child(cmd, shell);
 	}
 	return (pid);

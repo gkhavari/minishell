@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:45 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,22 +30,9 @@ static int	replace_or_append(t_shell *shell, char *arg, char *key)
 	return (append_export_env(shell, arg));
 }
 
-static int	export_no_value(t_shell *shell, char *arg)
-{
-	if (!is_valid_export_name(arg))
-	{
-		ft_dprintf(STDERR_FILENO,
-			"export: `%s': not a valid identifier\n", arg);
-		return (FAILURE);
-	}
-	if (find_export_key_index(shell, arg, ft_strlen(arg)) < 0)
-		return (append_export_env(shell, arg));
-	return (SUCCESS);
-}
-
 /**
- * VAR+=suffix: build new value, then replace/append by variable name (key_name).
- * replace_or_append() looks up env keys using key_name length only — not full entry.
+ * VAR+=suffix: build full KEY=value, replace/append by key name.
+ * replace_or_append() matches env keys by key_name length only.
  */
 static int	handle_append(t_shell *shell, char *key_name, char *eq)
 {
@@ -76,27 +63,16 @@ static int	handle_append(t_shell *shell, char *key_name, char *eq)
 	return (ret);
 }
 
-static int	set_env_var(t_shell *shell, char *arg)
+static int	export_apply_assign(t_shell *shell, char *arg, char *key,
+		char *eq)
 {
-	char	*eq;
-	char	*key;
-	int		append_mode;
-	int		ret;
+	int	append_mode;
+	int	ret;
 
-	eq = ft_strchr(arg, '=');
-	if (!eq)
-		return (export_no_value(shell, arg));
 	append_mode = (eq > arg && *(eq - 1) == '+');
-	if (append_mode)
-		key = ft_substr(arg, 0, eq - arg - 1);
-	else
-		key = ft_substr(arg, 0, eq - arg);
-	if (!key)
-		return (FAILURE);
 	if (!is_valid_export_name(key))
 	{
-		ft_dprintf(STDERR_FILENO,
-			"export: `%s': not a valid identifier\n", arg);
+		export_invalid_identifier_err(arg);
 		return (free(key), FAILURE);
 	}
 	if (!append_mode)
@@ -106,6 +82,32 @@ static int	set_env_var(t_shell *shell, char *arg)
 		return (ret);
 	}
 	return (handle_append(shell, key, eq));
+}
+
+static int	set_env_var(t_shell *shell, char *arg)
+{
+	char	*eq;
+	char	*key;
+
+	eq = ft_strchr(arg, '=');
+	if (!eq)
+	{
+		if (!is_valid_export_name(arg))
+		{
+			export_invalid_identifier_err(arg);
+			return (FAILURE);
+		}
+		if (find_export_key_index(shell, arg, ft_strlen(arg)) < 0)
+			return (append_export_env(shell, arg));
+		return (SUCCESS);
+	}
+	if (eq > arg && *(eq - 1) == '+')
+		key = ft_substr(arg, 0, eq - arg - 1);
+	else
+		key = ft_substr(arg, 0, eq - arg);
+	if (!key)
+		return (FAILURE);
+	return (export_apply_assign(shell, arg, key, eq));
 }
 
 /** export with no args prints sorted env; else set/export each argument. */
@@ -127,7 +129,10 @@ int	builtin_export(char **args, t_shell *shell)
 			ret = 2;
 		}
 		else if (set_env_var(shell, args[i]))
-			ret = 1;
+		{
+			if (ret != 2)
+				ret = 1;
+		}
 		i++;
 	}
 	return (ret);

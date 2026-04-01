@@ -22,11 +22,11 @@ static int	get_child_status(int status)
 	{
 		if (WTERMSIG(status) == SIGQUIT)
 			ft_dprintf(STDERR_FILENO, "Quit (core dumped)\n");
-		return (128 + WTERMSIG(status));
+		return (EXIT_STATUS_FROM_SIGNAL(WTERMSIG(status)));
 	}
 	if (WIFEXITED(status))
 		return (WEXITSTATUS(status));
-	return (1);
+	return (FAILURE);
 }
 
 /** Fork child: redirs + execve PATH lookup; parent waits, restores signals. */
@@ -44,7 +44,7 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	{
 		set_signals_default();
 		if (apply_redirections(cmd) != 0)
-			clean_exit(shell, 1);
+			clean_exit(shell, FAILURE);
 		execute_in_child(cmd, shell);
 	}
 	set_signals_ignore();

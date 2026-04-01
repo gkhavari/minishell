@@ -20,6 +20,8 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
+**Exit-status macros (code):** **`includes/defines.h`** names bash/POSIX meanings: **`SUCCESS`** / **`FAILURE`** (0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128+signal number, use with **`WTERMSIG`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`READ_INPUT_OOM`** is a **`read_input()`** status sentinel, not a shell exit code.
+
 ---
 
 ## 0. Map to [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md)
@@ -32,7 +34,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 | Tokenizer loop, operators, heredoc delimiter mode | §3 (e.g. §3.2.1) |
 | Expansion vs heredoc body, **`~`** | §4 |
 | **`parse_input`**: **`syntax_check`** then **`parse_tokens`** → **`finalize`** | §5 |
-| Heredoc pipes, SIGINT during heredoc → **`last_exit = 130`**, no **`execute_commands`** | §6 |
+| Heredoc pipes, SIGINT during heredoc → **`last_exit = EXIT_SIGINT`** (130), no **`execute_commands`** | §6 |
 | **`execute_commands`**, single vs pipeline, **`must_run_in_parent`**, not-found fast path | §7 |
 | Exit codes, who sets **`last_exit`**, **`reset_shell` does not clear `last_exit`** | §8, §11 |
 
@@ -45,7 +47,7 @@ For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DA
 - **Pass** requires: stdout identical (`diff -q`), normalized stderr identical (`diff -q`), and exit code identical.
 - **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** in **`main.c`** (byte **`read`**, not readline) for non-TTY stdin — one logical line per block (no trailing newline in the buffer; EOF after text returns a final partial line).
 - **Per-line gate:** an **empty** line (**`input[0] == '\0'`**) runs **`reset_shell`** only—no tokenize/parse/execute for that iteration (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §2**).
-- After a **syntax error** (**`last_exit == 2`**), **non-TTY** mode may **exit the shell** on the **next** line even if that line is empty (**`reset_shell`** does not clear **`last_exit`**—same §2).
+- After a **syntax error** (**`last_exit == EXIT_SYNTAX_ERROR`**), **non-TTY** mode may **exit the shell** on the **next** line even if that line is empty (**`reset_shell`** does not clear **`last_exit`**—same §2).
 - The tester runs minishell first, then bash, in the same temporary test directory for each block. Blocks with filesystem side effects can expose order-sensitive differences.
 
 So “expected behavior” here is **bash-like** unless the **subject** or **documented deltas** say otherwise. The tables summarize bash-oriented expectations and point to the 42 script(s) that cover them.
@@ -128,9 +130,9 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `exit 42 world` (too many args) | — | "too many arguments" or similar | **1** (shell does **not** exit) |
 | `exit 1 2`, `exit 1 2 3` | — | "too many arguments" | **1** (shell does not exit) |
 
-**Implementation note (this repo):** For non-numeric `exit`, **`exit.c` exits with 2**, not bash’s **255**. Mandatory tester will disagree with bash on **EXIT_CODE** for those blocks until the code matches bash.
+**Implementation note (this repo):** For non-numeric `exit`, **`exit.c` exits with `EXIT_SYNTAX_ERROR` (2)**, not bash’s **255**. Mandatory tester will disagree with bash on **EXIT_CODE** for those blocks until the code matches bash.
 
-**Test-design note:** Numeric: exit with `n % 256`. Non-numeric (bash): stderr + exit **255**. Too many args: stderr + exit 1, **no exit**. See `1_builtins_exit.sh`.
+**Test-design note:** Numeric: exit with `n % 256`. Non-numeric (bash): stderr + exit **255**. Too many args: stderr + **`FAILURE` (1)**, **no exit**. See `1_builtins_exit.sh`.
 
 ---
 
@@ -178,7 +180,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Test-design note:** Quoted delimiter → no expansion in body. Unquoted → expand variables. See `1_redirs.sh`, `10_parsing_hell.sh`.
 
-**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = 130`**, and **does not** run **`execute_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
+**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = EXIT_SIGINT`**, and **does not** run **`execute_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
 
 ---
 
@@ -246,17 +248,17 @@ See `1_pipelines.sh`.
 
 ## 11. Exit Code Summary (Bash-Aligned)
 
-**Process exit:** **`main()`** returns **`shell.last_exit`** (bash-like “last foreground status”). **Ctrl+C** at the interactive prompt sets **130** via **`check_signal_received`** before the next prompt (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §1–§2, §8.2**).
+**Process exit:** **`main()`** returns **`shell.last_exit`** (bash-like “last foreground status”). **Ctrl+C** at the interactive prompt sets **`EXIT_SIGINT`** (typically **130**) via **`check_signal_received`** before the next prompt (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §1–§2, §8.2**).
 
-| Code | Meaning | Example |
-|------|---------|--------|
-| 0 | Success | Successful command, `exit 0`, `exit 256` |
-| 1 | General / builtin error | `cd` to bad dir, `export` invalid name, `exit 1 2` (too many args), pipeline last command failed |
-| 2 | Syntax error | Lone pipe, pipe at end, redirect with no file |
-| 126 | Not executable | Running a directory as command |
-| 127 | Command not found | Unknown command name |
-| 128+N | Killed by signal N | e.g. 130 = SIGINT, 131 = SIGQUIT |
-| 255 | Bash: non-numeric `exit` | Bash exits 255 after "numeric argument required" (**this minishell: 2** — see §4) |
+| Code | Macro(s) in `defines.h` | Meaning | Example |
+|------|-------------------------|--------|--------|
+| 0 | `SUCCESS` | Success | Successful command, `exit 0`, `exit 256` |
+| 1 | `FAILURE` | General / builtin error | `cd` to bad dir, `export` invalid name, `exit 1 2` (too many args), pipeline last command failed |
+| 2 | `EXIT_SYNTAX_ERROR` | Syntax error | Lone pipe, pipe at end, redirect with no file |
+| 126 | `EXIT_CMD_CANNOT_EXECUTE` | Not executable | Running a directory as command |
+| 127 | `EXIT_CMD_NOT_FOUND` | Command not found | Unknown command name |
+| 128+N | `EXIT_STATUS_FROM_SIGNAL(n)` | Killed by signal N | e.g. **130** = `EXIT_SIGINT` / SIGINT, **131** = SIGQUIT |
+| 255 | — (bash only) | Bash: non-numeric `exit` | Bash exits 255 after "numeric argument required" (**this minishell: `EXIT_SYNTAX_ERROR`** — see §4) |
 
 ---
 

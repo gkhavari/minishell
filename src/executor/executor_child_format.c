@@ -20,7 +20,7 @@ static int	needs_dollar_quote(char *cmd_name)
 	while (cmd_name && cmd_name[i])
 	{
 		if ((unsigned char)cmd_name[i] < 32
-			|| (unsigned char)cmd_name[i] == 127)
+			|| (unsigned char)cmd_name[i] == MSH_ASCII_DEL)
 			return (1);
 		i++;
 	}
@@ -69,7 +69,8 @@ static char	*format_cmd_name_for_error(char *cmd_name)
 	j = 2;
 	while (cmd_name[i])
 	{
-		if ((unsigned char)cmd_name[i] < 32 || (unsigned char)cmd_name[i] == 127
+		if ((unsigned char)cmd_name[i] < 32
+			|| (unsigned char)cmd_name[i] == MSH_ASCII_DEL
 			|| cmd_name[i] == '\\' || cmd_name[i] == '\'')
 			j = append_escaped_char(out, j, cmd_name[i]);
 		else

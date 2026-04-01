@@ -25,7 +25,7 @@ void	process_input(t_shell *shell)
 		if (g_signum == SIGINT)
 			shell->last_exit = EXIT_SIGINT;
 		else
-			shell->last_exit = 1;
+			shell->last_exit = FAILURE;
 		return ;
 	}
 	shell->last_exit = execute_commands(shell);

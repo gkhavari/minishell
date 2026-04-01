@@ -45,7 +45,7 @@ static void	ensure_default_envs(t_shell *shell)
 void	init_runtime_fields(t_shell *shell)
 {
 	ensure_default_envs(shell);
-	shell->last_exit = 0;
+	shell->last_exit = SUCCESS;
 	shell->barrier_write_fd = -1;
 	shell->tokens = NULL;
 	shell->commands = NULL;

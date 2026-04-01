@@ -21,7 +21,7 @@ static t_command	*new_command(t_shell *shell)
 	cmd = ft_calloc(1, sizeof(t_command));
 	if (!cmd)
 	{
-		shell->last_exit = 1;
+		shell->last_exit = FAILURE;
 		return (NULL);
 	}
 	if (cmd)
@@ -96,7 +96,7 @@ void	parse_input(t_shell *shell)
 	shell->tokens = NULL;
 	if (!shell->commands)
 	{
-		shell->last_exit = 1;
+		shell->last_exit = FAILURE;
 		return ;
 	}
 	finalize_all_commands(shell, shell->commands);

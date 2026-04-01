@@ -21,7 +21,7 @@ int	builtin_env(char **args, t_shell *shell)
 	{
 		ft_dprintf(STDERR_FILENO,
 			"env: '%s': No such file or directory\n", args[1]);
-		return (127);
+		return (EXIT_CMD_NOT_FOUND);
 	}
 	if (!shell->envp)
 		return (FAILURE);

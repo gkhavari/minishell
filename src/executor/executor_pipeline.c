@@ -31,7 +31,7 @@ static int	consume_wait_result(pid_t pid, int status, pid_t last_pid,
 		if (WIFEXITED(status))
 			*last_status = WEXITSTATUS(status);
 		else if (WIFSIGNALED(status))
-			*last_status = 128 + WTERMSIG(status);
+			*last_status = EXIT_STATUS_FROM_SIGNAL(WTERMSIG(status));
 	}
 	return (1);
 }
@@ -45,7 +45,7 @@ static int	wait_children_last(pid_t last_pid, int n)
 	int		step;
 	pid_t	pid;
 
-	last_status = 1;
+	last_status = FAILURE;
 	i = 0;
 	while (i < n)
 	{
@@ -95,10 +95,10 @@ int	execute_pipeline(t_command *cmds, t_shell *shell)
 	sync_fd[1] = -1;
 	shell->barrier_write_fd = -1;
 	if (handle_all_not_found_pipeline(cmds, shell))
-		return (127);
+		return (EXIT_CMD_NOT_FOUND);
 	set_signals_ignore();
 	n = run_pipeline_loop(cmds, shell, &last_pid, sync_fd);
-	result = 1;
+	result = FAILURE;
 	if (n > 0)
 		result = wait_children_last(last_pid, n);
 	set_signals_interactive();

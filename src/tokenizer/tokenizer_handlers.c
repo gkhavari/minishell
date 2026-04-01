@@ -23,7 +23,7 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 		*word = NULL;
 		ft_dprintf(STDERR_FILENO,
 			"minishell: syntax error: unclosed quote\n");
-		shell->last_exit = 2;
+		shell->last_exit = EXIT_SYNTAX_ERROR;
 	}
 	else
 	{

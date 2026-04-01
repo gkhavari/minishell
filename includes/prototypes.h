@@ -146,6 +146,7 @@ int			builtin_exit(char **args, t_shell *shell);
 int			parse_exit_value(char *str, long long *value);
 
 /* export_utils.c */
+void		export_invalid_identifier_err(const char *arg);
 int			is_valid_export_name(char *name);
 int			find_export_key_index(t_shell *shell, char *key, int key_len);
 int			append_export_env(t_shell *shell, char *entry);

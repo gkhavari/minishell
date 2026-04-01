@@ -12,36 +12,44 @@
 
 #include "minishell.h"
 
-/** Non-TTY: read one line from stdin byte-by-byte into a growing buffer. */
-static char	*read_line_stdin(t_shell *shell)
+/* read_input status — not $? / exit codes */
+# define MSH_READ_LINE 1
+# define MSH_READ_EOF 0
+# define MSH_READ_SIG -1
+
+/**
+ * Non-TTY: one line from stdin byte-by-byte into *out.
+ * On EOF with no bytes, *out is NULL. On OOM after partial read, *out is NULL.
+ * Returns MSH_READ_LINE, MSH_READ_EOF, or MSH_OOM.
+ */
+static int	read_line_stdin(t_shell *shell, char **out)
 {
-	char	*line;
 	char	c;
 	int		ret;
 
-	line = ft_strdup("");
-	if (!line)
-		return (NULL);
+	*out = ft_strdup("");
+	if (!*out)
+		return (MSH_OOM);
 	while (1)
 	{
 		ret = read(STDIN_FILENO, &c, 1);
 		if (ret <= 0)
 		{
-			if (!line || ft_strlen(line) == 0)
-				return (free(line), NULL);
-			return (line);
+			if (ft_strlen(*out) == 0)
+				return (free(*out), *out = NULL, MSH_READ_EOF);
+			return (MSH_READ_LINE);
 		}
 		if (c == '\n')
-			return (line);
-		if (append_char(shell, &line, c) == MSH_OOM)
-		{
-			shell->oom = 1;
-			return (NULL);
-		}
+			return (MSH_READ_LINE);
+		if (append_char(shell, out, c) == MSH_OOM)
+			return (MSH_OOM);
 	}
 }
 
-/** TTY: readline; else read_line_stdin. Returns 1, 0 (EOF), or -1 (signal). */
+/**
+ * TTY: readline; else read_line_stdin.
+ * Returns MSH_READ_LINE, MSH_READ_EOF, MSH_READ_SIG, or MSH_OOM.
+ */
 static int	read_input(t_shell *shell)
 {
 	char	*prompt;
@@ -49,24 +57,20 @@ static int	read_input(t_shell *shell)
 
 	tty = isatty(STDIN_FILENO);
 	if (tty != 1)
-		shell->input = read_line_stdin(shell);
-	else
-	{
-		prompt = build_prompt(shell);
-		if (!prompt)
-			return (0);
-		shell->input = readline(prompt);
-		free(prompt);
-	}
+		return (read_line_stdin(shell, &shell->input));
+	prompt = build_prompt(shell);
+	if (!prompt)
+		return (MSH_OOM);
+	shell->input = readline(prompt);
+	free(prompt);
 	if (!shell->input)
 	{
-		if (tty == 1)
-			ft_printf("exit\n");
-		return (0);
+		ft_printf("exit\n");
+		return (MSH_READ_EOF);
 	}
 	if (check_signal_received(shell))
-		return (free(shell->input), shell->input = NULL, -1);
-	return (1);
+		return (free(shell->input), shell->input = NULL, MSH_READ_SIG);
+	return (MSH_READ_LINE);
 }
 
 /** REPL: read line, process_input, reset state on syntax error. */
@@ -79,19 +83,19 @@ static void	shell_loop(t_shell *shell)
 	{
 		check_signal_received(shell);
 		status = read_input(shell);
-		if (status == 0)
+		if (status == MSH_READ_EOF)
 			break ;
-		if (status == -1)
+		if (status == MSH_READ_SIG)
 			continue ;
-		if (status == READ_INPUT_OOM)
+		if (status == MSH_OOM)
 		{
-			shell->last_exit = 1;
+			shell->last_exit = FAILURE;
 			continue ;
 		}
 		syntax_err = 0;
 		if (shell->input[0])
 			process_input(shell);
-		if (!shell->commands && shell->last_exit == 2)
+		if (!shell->commands && shell->last_exit == EXIT_SYNTAX_ERROR)
 			syntax_err = 1;
 		reset_shell(shell);
 		if (isatty(STDIN_FILENO) != 1 && syntax_err)

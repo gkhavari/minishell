@@ -6,11 +6,18 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/30 20:29:40 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/28 01:46:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
+
+/** export(1) message for invalid identifiers (shared by export.c). */
+void	export_invalid_identifier_err(const char *arg)
+{
+	ft_dprintf(STDERR_FILENO,
+		"export: `%s': not a valid identifier\n", arg);
+}
 
 /** Valid export variable name (letter/underscore + alnum/_). */
 int	is_valid_export_name(char *name)

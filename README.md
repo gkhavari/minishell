@@ -10,7 +10,7 @@ This repository implements the **mandatory** scope: prompt and **readline** hist
 
 The subject does **not** require `\`, `;`, **`&&` / `||`**, or wildcard `*` in the mandatory part; this project follows that scope. **Bonus** (logical operators with parentheses and `*` wildcards) is only evaluated if the mandatory part is perfect—see subject **Chapter VI**.
 
-For behavior details (exit codes, edge cases, tester alignment), see **[docs/BEHAVIOR.md](docs/BEHAVIOR.md)**. For architecture and data flow, see **[docs/MINISHELL_ARCHITECTURE.md](docs/MINISHELL_ARCHITECTURE.md)**.
+For behavior details (exit codes, edge cases, tester alignment), see **[docs/BEHAVIOR.md](docs/BEHAVIOR.md)**. For architecture and data flow, see **[docs/MINISHELL_ARCHITECTURE.md](docs/MINISHELL_ARCHITECTURE.md)**. Exit-status names in C (**`EXIT_SIGINT`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_CMD_NOT_FOUND`**, etc.) live in **[includes/defines.h](includes/defines.h)** (see docs §8 / BEHAVIOR §11).
 
 ---
 

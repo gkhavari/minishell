@@ -56,7 +56,7 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 		expanded = expand_var(shell, i);
 		if (!expanded)
 		{
-			shell->last_exit = 1;
+			shell->last_exit = FAILURE;
 			return (1);
 		}
 		append_expansion_quoted(word, expanded);

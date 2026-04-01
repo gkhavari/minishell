@@ -41,7 +41,7 @@ void	msh_lex_abort(t_shell *shell, char **word)
 	if (shell->input)
 		free(shell->input);
 	shell->input = NULL;
-	shell->last_exit = 1;
+	shell->last_exit = FAILURE;
 	shell->oom = 0;
 }
 

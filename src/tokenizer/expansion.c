@@ -97,7 +97,7 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	expanded = expand_var(shell, i);
 	if (!expanded)
 	{
-		shell->last_exit = 1;
+		shell->last_exit = FAILURE;
 		return (1);
 	}
 	if (expanded[0] == '\0')
