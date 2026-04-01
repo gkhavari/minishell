@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Map command name to builtin id or NOT_BUILTIN. */
 t_builtin	get_builtin_type(char *cmd)
 {
 	if (!cmd)
@@ -45,6 +46,7 @@ int	must_run_in_parent(t_builtin type)
 		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT);
 }
 
+/** Dispatch argv[0] to the matching builtin implementation. */
 int	run_builtin(char **argv, t_shell *shell)
 {
 	t_builtin	type;

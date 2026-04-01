@@ -12,16 +12,19 @@
 
 #include "minishell.h"
 
+/** Next flushed WORD token is marked quoted. */
 void	mark_word_quoted(t_shell *shell)
 {
 	shell->word_quoted = 1;
 }
 
+/** After <<, suppress $ expansion in delimiter word. */
 void	set_heredoc_mode(t_shell *shell, int mode)
 {
 	shell->heredoc_mode = mode;
 }
 
+/** True while lexing heredoc delimiter token. */
 int	is_heredoc_mode(t_shell *shell)
 {
 	return (shell->heredoc_mode);

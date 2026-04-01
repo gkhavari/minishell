@@ -91,6 +91,7 @@ static void	shell_loop(t_shell *shell)
 	}
 }
 
+/** Program entry: init shell/env, interactive signals, REPL, exit with last status. */
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;

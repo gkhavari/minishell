@@ -53,6 +53,7 @@ static void	cmd_not_found(t_shell *shell, char *cmd_name)
 	clean_exit(shell, 127);
 }
 
+/** After fork: builtin, execve, or errors with clean_exit (never returns). */
 void	execute_in_child(t_command *cmd, t_shell *shell)
 {
 	char	*path;

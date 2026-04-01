@@ -99,6 +99,7 @@ static int	set_env_var(t_shell *shell, char *arg)
 	return (handle_append(shell, key, eq));
 }
 
+/** export with no args prints sorted env; else set/export each argument. */
 int	builtin_export(char **args, t_shell *shell)
 {
 	int	i;

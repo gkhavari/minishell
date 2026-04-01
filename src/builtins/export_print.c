@@ -81,6 +81,7 @@ static void	maybe_print_oldpwd(t_shell *shell, int *printed_oldpwd,
 	*printed_oldpwd = 1;
 }
 
+/** declare -x style listing of envp (sorted), with OLDPWD quirks for no-PATH. */
 int	print_sorted_env(t_shell *shell)
 {
 	int		count;

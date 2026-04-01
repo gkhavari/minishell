@@ -37,6 +37,7 @@ static int	install_sig(int signum, void (*handler)(int), int flags,
 	return (sigaction(signum, &sa, NULL));
 }
 
+/** Child/exec: restore SIGINT, SIGQUIT, SIGPIPE, SIGTERM to default. */
 int	set_signals_default(void)
 {
 	if (install_sig(SIGINT, SIG_DFL, 0, NULL) != 0)
@@ -50,6 +51,7 @@ int	set_signals_default(void)
 	return (0);
 }
 
+/** Parent waiting on child: ignore SIGINT and SIGQUIT. */
 int	set_signals_ignore(void)
 {
 	if (install_sig(SIGINT, SIG_IGN, 0, NULL) != 0)

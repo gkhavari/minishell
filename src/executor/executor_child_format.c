@@ -19,6 +19,7 @@ static void	write_err_line(char *msg)
 	write(STDERR_FILENO, msg, ft_strlen(msg));
 }
 
+/** Concatenate up to three strings to stderr (no alloc). */
 void	write_err3(char *a, char *b, char *c)
 {
 	if (a)
@@ -66,6 +67,7 @@ static int	append_escaped_char(char *out, int j, char c)
 	return (j);
 }
 
+/** $'...' style quoting for cmd not found when name has special bytes. */
 char	*format_cmd_name_for_error(char *cmd_name)
 {
 	char	*out;

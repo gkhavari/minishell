@@ -112,6 +112,7 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	return (1);
 }
 
+/** Leading ~ at word start: expand HOME (or empty) before / or boundary. */
 int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 {
 	char	next;

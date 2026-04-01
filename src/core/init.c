@@ -66,6 +66,7 @@ static void	update_shlvl(t_shell *shell)
 	set_shlvl_entry(shell, entry);
 }
 
+/** Dup env, user, cwd, runtime fields; bump SHLVL on interactive TTY. */
 void	init_shell(t_shell *shell, char **envp)
 {
 	char	*user;

@@ -41,6 +41,7 @@ static void	ensure_default_envs(t_shell *shell)
 		append_export_env(shell, uscore);
 }
 
+/** Default env keys, per-run flags, NULL command/token pointers. */
 void	init_runtime_fields(t_shell *shell)
 {
 	ensure_default_envs(shell);

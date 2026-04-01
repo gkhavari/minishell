@@ -29,6 +29,7 @@ static int	get_child_status(int status)
 	return (1);
 }
 
+/** Fork child: redirs + execve PATH lookup; parent waits, restores signals. */
 int	execute_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
@@ -102,6 +103,7 @@ static char	*search_in_path(const char *path_env, char *cmd,
 	return (NULL);
 }
 
+/** Resolve argv[0] to executable path; static buffer, NULL if not found. */
 char	*find_command_path(char *cmd, t_shell *shell)
 {
 	static char	resolved[PATH_MAX];

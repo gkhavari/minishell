@@ -93,6 +93,7 @@ static int	do_chdir(char *target, char *old_pwd)
 	return (SUCCESS);
 }
 
+/** chdir with HOME, OLDPWD (-), or path; updates PWD/OLDPWD and shell->cwd. */
 int	builtin_cd(char **args, t_shell *shell)
 {
 	char	*target;

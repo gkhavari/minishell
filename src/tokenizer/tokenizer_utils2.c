@@ -35,6 +35,7 @@ t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 	return (token);
 }
 
+/** Append new at end of singly-linked token list. */
 void	add_token(t_token **head, t_token *new)
 {
 	t_token	*tmp;

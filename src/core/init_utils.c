@@ -12,6 +12,7 @@
 
 #include "../../includes/minishell.h"
 
+/** Value after KEY= in envp, or NULL. */
 char	*get_env_value(char **envp, const char *key)
 {
 	size_t	key_len;
@@ -33,6 +34,7 @@ char	*get_env_value(char **envp, const char *key)
 	return (NULL);
 }
 
+/** user + cwd prompt string; caller frees (readline). */
 char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;
@@ -60,6 +62,7 @@ char	*build_prompt(t_shell *shell)
 	return (prompt);
 }
 
+/** Move envp[last] to envp[0] and shift the rest down by one. */
 void	move_last_env_to_front(t_shell *shell)
 {
 	int		count;

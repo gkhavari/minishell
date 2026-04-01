@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Bash-style EOF warning before wanted closing delimiter. */
 void	print_heredoc_eof_warning(int line_no, char *delim)
 {
 	int	display_line;
@@ -26,6 +27,7 @@ void	print_heredoc_eof_warning(int line_no, char *delim)
 	ft_putstr_fd("')\n", 2);
 }
 
+/** Write line to heredoc pipe, optionally expanding variables. */
 void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 {
 	char	*expanded;

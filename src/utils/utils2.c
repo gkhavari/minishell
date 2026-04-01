@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** free_all, clear readline history, close std fds, exit(status). */
 void	clean_exit(t_shell *shell, int exit_status)
 {
 	free_all(shell);
@@ -22,6 +23,7 @@ void	clean_exit(t_shell *shell, int exit_status)
 	exit(exit_status);
 }
 
+/** ft_strdup or clean_exit if malloc fails. */
 char	*msh_strdup(t_shell *shell, char *s)
 {
 	char	*res;

@@ -40,6 +40,7 @@ static void	print_cmd_not_found_parent(char *cmd_name)
 		free(display);
 }
 
+/** If every cmd is a simple missing PATH lookup, print errors in parent; else 0. */
 int	handle_all_not_found_pipeline(t_command *cmds, t_shell *shell)
 {
 	t_command	*cmd;

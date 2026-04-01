@@ -88,6 +88,7 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 	return (SUCCESS);
 }
 
+/** Remove valid identifiers from envp; ignore invalid names and bad options. */
 int	builtin_unset(char **args, t_shell *shell)
 {
 	int	i;

@@ -79,6 +79,7 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
 	return (SUCCESS);
 }
 
+/** Open pipe, read lines until delim; set cmd->heredoc_fd to read end. */
 int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 {
 	t_heredoc_ctx	ctx;
@@ -93,6 +94,7 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 	return (heredoc_read_loop(&ctx, line_no, start_line));
 }
 
+/** For each command with a delimiter, read_heredoc; FAILURE on error/SIGINT. */
 int	process_heredocs(t_shell *shell)
 {
 	t_command	*cmd;

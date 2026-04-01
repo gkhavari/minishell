@@ -35,6 +35,7 @@ static int	is_redir_target(t_shell *shell, char *word)
 	);
 }
 
+/** Empty $ expansion at word boundary: empty token or ambiguous redirect msg. */
 int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 		size_t end, char **word)
 {
