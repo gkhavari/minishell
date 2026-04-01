@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 21:01:22 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/28 02:41:15 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,54 +14,73 @@
 
 volatile sig_atomic_t	g_signum = 0;
 
+/*
+** Async-signal-safe: only write(2) and sig_atomic_t assignment.
+** Matches subject: Ctrl-C shows a newline; readline hook clears line + prompt.
+*/
 static void	interactive_sigint_handler(int signum)
 {
 	(void)signum;
 	g_signum = SIGINT;
-	ft_putstr_fd("\n", STDOUT_FILENO);
+	(void)write(STDOUT_FILENO, "\n", 1);
 }
 
-int	set_signals_default(void)
+static int	install_sig(int signum, void (*handler)(int), int flags,
+		const sigset_t *mask)
 {
 	struct sigaction	sa;
 
 	ft_bzero(&sa, sizeof(sa));
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-	sa.sa_handler = SIG_DFL;
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGQUIT, &sa, NULL);
-	sigaction(SIGPIPE, &sa, NULL);
-	sigaction(SIGTERM, &sa, NULL);
+	if (mask)
+		sa.sa_mask = *mask;
+	else
+		sigemptyset(&sa.sa_mask);
+	sa.sa_flags = flags;
+	sa.sa_handler = handler;
+	return (sigaction(signum, &sa, NULL));
+}
+
+int	set_signals_default(void)
+{
+	if (install_sig(SIGINT, SIG_DFL, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGQUIT, SIG_DFL, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGPIPE, SIG_DFL, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGTERM, SIG_DFL, 0, NULL) != 0)
+		return (-1);
 	return (0);
 }
 
 int	set_signals_ignore(void)
 {
-	struct sigaction	sa;
-
-	ft_bzero(&sa, sizeof(sa));
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
-	sa.sa_handler = SIG_IGN;
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGQUIT, &sa, NULL);
+	if (install_sig(SIGINT, SIG_IGN, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGQUIT, SIG_IGN, 0, NULL) != 0)
+		return (-1);
 	return (0);
 }
 
+/*
+** Interactive (readline): ignore SIGQUIT (Ctrl-\), block SIGQUIT during
+** SIGINT handler to avoid races with the global flag.
+*/
 int	set_signals_interactive(void)
 {
-	struct sigaction	sa;
+	sigset_t	mask_during_int;
 
 	g_signum = 0;
-	ft_bzero(&sa, sizeof(sa));
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
-	sa.sa_handler = SIG_IGN;
-	sigaction(SIGQUIT, &sa, NULL);
-	sigaction(SIGTERM, &sa, NULL);
-	sigaction(SIGPIPE, &sa, NULL);
-	sa.sa_handler = interactive_sigint_handler;
-	sigaction(SIGINT, &sa, NULL);
+	sigemptyset(&mask_during_int);
+	sigaddset(&mask_during_int, SIGQUIT);
+	if (install_sig(SIGQUIT, SIG_IGN, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGTERM, SIG_IGN, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGPIPE, SIG_IGN, 0, NULL) != 0)
+		return (-1);
+	if (install_sig(SIGINT, interactive_sigint_handler, SA_RESTART,
+			&mask_during_int) != 0)
+		return (-1);
 	return (0);
 }

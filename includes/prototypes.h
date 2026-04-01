@@ -44,7 +44,7 @@ void		set_heredoc_mode(t_shell *shell, int mode);
 int			is_heredoc_mode(t_shell *shell);
 
 /* tokenizer_handlers.c */
-int			handle_end_of_string(t_shell *shell, t_state *state);
+void		handle_end_of_string(t_shell *shell, t_state *state, char **word);
 int			handle_backslash(t_shell *shell, size_t *i,
 				char **word, t_state *state);
 int			process_quote(t_shell *shell, char c, t_state *state);
@@ -75,9 +75,6 @@ void		append_expansion_unquoted(t_shell *shell, char **word,
 				const char *exp, t_token **tokens);
 int			handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 				size_t end, char **word);
-
-/* continuation.c */
-int			append_continuation(t_shell *shell, char **s, t_state state);
 
 /* parser.c */
 void		parse_input(t_shell *shell);

@@ -16,9 +16,9 @@
 * Allocates and initializes a new t_command structure.
 * Everything is initiallized to 0/NULL.
 
-RETURN VALUE:
-* A pointer to a newly allocated and initialized t_command structure.
-* NULL if memory allocation fails.
+ RETURN:
+* Pointer to a newly allocated and initialized t_command structure.
+* NULL on failure.
 **/
 static t_command	*new_command(t_shell *shell)
 {
@@ -35,6 +35,22 @@ static t_command	*new_command(t_shell *shell)
 	return (cmd);
 }
 
+/**
+ DESCRIPTION:
+* Parses a single token and adds it to the command structure.
+* Returns 1 if the token was consumed, 2 if it was a redirection,
+* or PARSE_ERR if there was an error.
+
+PARAMETERS:
+* shell: Pointer to the shell structure.
+* cmd: Pointer to the command structure.
+* token: Pointer to the token structure.
+* head: Pointer to the head of the command structure.
+
+RETURN:
+* 1 if the token was consumed, 2 if it was a redirection,
+* or PARSE_ERR if there was an error.
+**/
 static int	parse_token_step(t_shell *shell, t_command **cmd,
 		t_token **token, t_command *head)
 {
@@ -99,6 +115,11 @@ BEHAVIOR:
 **/
 void	parse_input(t_shell *shell)
 {
+	if (!shell->tokens)
+	{
+		shell->commands = NULL;
+		return ;
+	}
 	if (syntax_check(shell->tokens) == SYNTAX_ERR)
 	{
 		shell->last_exit = EXIT_SYNTAX_ERROR;
