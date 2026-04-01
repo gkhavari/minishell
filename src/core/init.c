@@ -12,10 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** process_input - Run lexer/parser/heredoc/executor for one input line
-** This isolates the front-end pipeline from the REPL loop in main.c.
-*/
+/** Tokenize, parse, heredocs, then execute_commands. */
 void	process_input(t_shell *shell)
 {
 	tokenize_input(shell);

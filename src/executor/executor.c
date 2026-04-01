@@ -74,11 +74,7 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	return (run_builtin(cmd->argv, shell));
 }
 
-/*
-** execute_commands - Entry point: decide single vs pipeline execution
-** If there is only one command, run it directly (builtins stay in parent).
-** If there are multiple commands, run the full pipeline with pipes.
-*/
+/** Run one command or a pipeline; return last exit status. */
 int	execute_commands(t_shell *shell)
 {
 	t_command	*cmd;

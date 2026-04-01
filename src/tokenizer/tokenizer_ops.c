@@ -13,37 +13,16 @@
 #include "minishell.h"
 
 /**
- DESCRIPTION:
- * Checks whether a character is the beginning of a shell operator token (| < >)
-
- PARAMETERS:
- * c: the char to check
-
- RETURN VALUE:
- * 1 if c is an operator character
- * 0 if not
-**/
+ * True if c starts an operator (| < >).
+ */
 int	is_op_char(char c)
 {
 	return (c == '|' || c == '<' || c == '>');
 }
 
 /**
- DESCRIPTION:
- * Parses an operator token starting at position s.
- * This function identifies single and double character operators 
- 	and produces the appropriate token.
- * Supported operators: | << >> < >
-
- PARAMETERS:
- * s: Pointer to the input string at the operator position.
- * list: Pointer to the token list where the created operator token 
- 	will be appended.
-
- RETURN VALUE:
- * 1 or 2: number of characters that form the operator.
- * 0: no operator found
- **/
+ * Classify operator at s; set *type and return consumed length (0 if none).
+ */
 static size_t	get_op_len_type(const char *s, t_tokentype *type)
 {
 	if (s[0] == '|')
@@ -74,6 +53,9 @@ static char	*get_op_value(t_tokentype type)
 	return (">");
 }
 
+/**
+ * Lex one operator at s, push token to list; return char count consumed.
+ */
 size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 {
 	t_token		*tok;

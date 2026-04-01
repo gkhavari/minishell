@@ -14,10 +14,7 @@
 
 volatile sig_atomic_t	g_signum = 0;
 
-/*
-** Async-signal-safe: only write(2) and sig_atomic_t assignment.
-** Matches subject: Ctrl-C shows a newline; readline hook clears line + prompt.
-*/
+/** SIGINT: set g_signum, write newline (readline hook clears line). */
 static void	interactive_sigint_handler(int signum)
 {
 	(void)signum;
@@ -62,10 +59,7 @@ int	set_signals_ignore(void)
 	return (0);
 }
 
-/*
-** Interactive (readline): ignore SIGQUIT (Ctrl-\), block SIGQUIT during
-** SIGINT handler to avoid races with the global flag.
-*/
+/** Readline mode: ignore SIGQUIT/SIGTERM/SIGPIPE; SIGINT with SA_RESTART. */
 int	set_signals_interactive(void)
 {
 	sigset_t	mask_during_int;

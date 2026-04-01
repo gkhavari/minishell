@@ -12,12 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** builtin_env - Print all environment variables
-** @args: unused
-** @shell: shell state containing envp
-** Return: 0 on success, 1 if envp is NULL
-*/
+/** Print envp lines; error if extra arg or NULL envp. */
 int	builtin_env(char **args, t_shell *shell)
 {
 	int	i;

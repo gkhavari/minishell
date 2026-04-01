@@ -12,9 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** check_exit_value - Validate and convert exit argument
-*/
+/** Validate args[1] as exit code; 2 if non-numeric, 1 if too many args. */
 static int	check_exit_value(char **args, long long *value)
 {
 	if (!parse_exit_value(args[1], value))
@@ -32,11 +30,7 @@ static int	check_exit_value(char **args, long long *value)
 	return (0);
 }
 
-/*
-** builtin_exit - Exit the shell with an optional exit code.
-** Non-numeric arg: prints error and exits 2 (bash uses 255; see docs).
-** Too many args: prints error, does NOT exit.
-*/
+/** Exit shell; optional numeric code; errors without exit if too many args. */
 int	builtin_exit(char **args, t_shell *shell)
 {
 	long long	value;

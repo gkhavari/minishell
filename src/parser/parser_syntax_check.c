@@ -12,10 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** get_token_str - Return the printable string for a token type
-** Used in syntax error messages to show which token was unexpected.
-*/
+/** Token type as string for syntax_error messages. */
 static const char	*get_token_str(t_tokentype type)
 {
 	if (type == PIPE)
@@ -31,11 +28,7 @@ static const char	*get_token_str(t_tokentype type)
 	return ("newline");
 }
 
-/*
-** check_redir_syntax - Validate that a redirection is followed by a WORD
-** If the next token is missing, error is "newline".
-** If the next token is an operator, error shows that operator.
-*/
+/** Redir must be followed by WORD; else syntax_error ("newline" or token). */
 static int	check_redir_syntax(t_token *token)
 {
 	if (!token->next)
@@ -52,31 +45,8 @@ static int	is_redirection(t_tokentype type)
 }
 
 /**
- * DESCRIPTION:
-* Checks the token list for syntax errors.
-* It checks for invalid pipe placement (e.g., starting or ending with a pipe,
-	or two consecutive pipes) and improper redirection usage (redirection not
-	followed by a WORD token).
-
-PARAMETERS:
-* token: Pointer to the first token in the lexed token list.
-
-RETURNS:
-* SYNTAX_OK if the syntax is valid.
-* SYNTAX_ERR if a syntax error is found (returned from syntax_error()).
-
-VALIDATION RULES:
-* empty input is valid
-* pipe rules:
-	* no leading pipes
-	* no trailing pipes
-	* no consecutive pipes
-* redirections must be followed by a WORD token
-
-BEHAVIOR:
-* When an error is detected, the function calls syntax_error() with the 
-	appropriate message.
- **/
+ * Validate pipes and redir+WORD; SYNTAX_ERR via syntax_error() on failure.
+ */
 int	syntax_check(t_token *token)
 {
 	if (!token)
@@ -98,12 +68,7 @@ int	syntax_check(t_token *token)
 	return (SYNTAX_OK);
 }
 
-/*
-** syntax_error - Print a syntax error message to stderr
-** Format matches bash output used by tester:
-** syntax error near unexpected token `X'
-** Always returns 1 so callers can "return (syntax_error(...))".
-*/
+/** Print bash-style unexpected-token message to stderr; return SYNTAX_ERR. */
 int	syntax_error(const char *msg)
 {
 	ft_putstr_fd("syntax error near unexpected token `", 2);

@@ -75,11 +75,7 @@ static int	apply_output_redir(t_redir *r)
 	return (SUCCESS);
 }
 
-/*
-** apply_one_redir - Open one redirection and dup2 to stdin or stdout.
-** Sets *had_input if it's an input redirect.
-** Returns 0 on success, 1 on error.
-*/
+/** Open r, dup2 to stdin/out; set *had_input for input redir. */
 static int	apply_one_redir(t_redir *r, int *had_input)
 {
 	size_t	prefix_len;
@@ -97,11 +93,7 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 	return (apply_output_redir(r));
 }
 
-/*
-** apply_redirections - Apply all redirections in their original order.
-** Processes cmd->redirs list in order, stopping on first failure.
-** Applies heredoc only if no input file redirection exists.
-*/
+/** Walk cmd->redirs; wire heredoc fd to stdin if no input redir. */
 int	apply_redirections(t_command *cmd)
 {
 	t_redir	*r;

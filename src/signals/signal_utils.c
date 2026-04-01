@@ -12,10 +12,7 @@
 
 #include "minishell.h"
 
-/*
-** readline_event_hook - called periodically during readline input
-** Returns: 0 to continue readline operation
-*/
+/** If SIGINT pending: clear line and end readline input. */
 int	readline_event_hook(void)
 {
 	if (g_signum == SIGINT)
@@ -27,10 +24,7 @@ int	readline_event_hook(void)
 	return (0);
 }
 
-/*
-** check_signal_received - check for pending signal after readline
-** Returns: 1 if SIGINT was handled, 0 otherwise
-*/
+/** After readline: if SIGINT, set last_exit and clear flag; return 1. */
 int	check_signal_received(t_shell *shell)
 {
 	if (g_signum == SIGINT)
