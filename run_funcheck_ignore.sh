@@ -15,7 +15,10 @@ if [ ! -f "$IGNORE_FILE" ]; then
     exit 1
 fi
 
-IGNORE_FUNCTIONS="$(grep -v '^[[:space:]]*#' "$IGNORE_FILE" | awk 'NF {print $1}' | tr '\n' ' ')"
+# Normalize potential CRLF and keep only non-comment symbols.
+IGNORE_FUNCTIONS="$(
+    tr -d '\r' < "$IGNORE_FILE" | awk '!/^[[:space:]]*#/ && NF {print $1}' | tr '\n' ' '
+)"
 
 if [ -z "$IGNORE_FUNCTIONS" ]; then
     echo "Error: no functions loaded from $IGNORE_FILE" >&2

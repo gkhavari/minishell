@@ -46,7 +46,7 @@ Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed 
 | `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
-| `src/tokenizer/` | Lexer: tokenizer.c, expansion, continuation, utils |
+| `src/tokenizer/` | Lexer: tokenizer.c, expansion, quote/operator handlers, utils |
 | `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc, heredoc_utils, heredoc_warning |
 | `src/executor/` | Execution: executor.c, executor_utils, executor_cmd_utils, executor_external, executor_pipeline, executor_pipeline_steps, executor_pipeline_not_found, executor_child, executor_child_exec, executor_child_format |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
@@ -81,7 +81,6 @@ graph TB
         tok_quotes[tokenizer_quotes.c]
         expansion[expansion.c]
         expansion_utils[expansion_utils.c]
-        continuation[continuation.c]
     end
     subgraph Parser
         parser[parser.c]
@@ -161,7 +160,7 @@ flowchart LR
 ```
 
 - **main.c** (src/): `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
-- **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, `tokenizer_ops.c`, `continuation.c`.
+- **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
 - **Executor** (src/executor/): `execute_commands()` in `executor.c`; single command → `execute_single_command()` (builtin in parent, external forked); pipeline → `execute_pipeline()` in `executor_pipeline.c`; children run `execute_in_child()` in `executor_child.c`.
 
@@ -1212,7 +1211,7 @@ Covered by **42_minishell_tester** (`make -C tests test`). See [BEHAVIOR.md](BEH
 
 - [x] Empty input (just Enter)
 - [x] Only spaces/tabs
-- [x] Unclosed quotes (continuation or no crash)
+- [x] Unclosed quotes rejected with syntax error (no continuation)
 - [x] Invalid pipe syntax error
 - [x] Non-existent command error
 
@@ -1230,8 +1229,8 @@ Phase 1: Foundation
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
 Phase 2: Lexer & Parser
-├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c, continuation.c)
-├── [x] Quote handling (tokenizer/continuation.c for unclosed quotes)
+├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c)
+├── [x] Quote handling (unclosed quote -> syntax error, no continuation)
 ├── [x] Syntax validation (parser/parser_syntax_check.c)
 └── [x] Command table construction (parser/parser.c, add_token_to_cmd.c, argv_build.c)
 
