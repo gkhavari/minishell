@@ -61,9 +61,7 @@ int	append_char(t_shell *shell, char **dst, char c)
 	if (!new)
 	{
 		free(*dst);
-		*dst = NULL;
-		shell->last_exit = 1;
-		return (FAILURE);
+		clean_exit(shell, EXIT_FAILURE);
 	}
 	if (*dst)
 		ft_memcpy(new, *dst, len);
@@ -101,11 +99,7 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 		if (!tok)
 		{
 			free(*word);
-			*word = NULL;
-			shell->word_quoted = 0;
-			shell->heredoc_mode = 0;
-			shell->last_exit = 1;
-			return ;
+			clean_exit(shell, EXIT_FAILURE);
 		}
 		tok->quoted = shell->word_quoted;
 		add_token(token, tok);

@@ -113,7 +113,7 @@ make -C tests clean      # Remove test binaries if present
 
 ### Input mode
 
-When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it reads stdin line-by-line in shell code (no readline dependency in non-interactive mode). Heredoc reads use a non-readline path in non-interactive runs.  
+When stdin is a TTY the shell uses **readline(prompt)**; when not (e.g. the tester) it reads stdin line-by-line in shell code (no readline dependency in non-interactive mode). Heredoc uses non-readline reads when `!isatty(stdin)`, and unclosed quotes produce an immediate syntax error (no multiline continuation).  
 
 Scripts under `scripts/` require **git** and work on **macOS and Linux**. If git is missing, set `AUTO_INSTALL_DEPS=1` to try installing it.
 
@@ -140,7 +140,7 @@ minishell/
 │   │   ├── tokenizer.c
 │   │   ├── tokenizer_utils.c, tokenizer_utils2.c
 │   │   ├── tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c
-│   │   ├── expansion.c, expansion_utils.c
+│   │   └── expansion.c, expansion_utils.c
 │   ├── parser/
 │   │   ├── parser.c
 │   │   ├── parser_syntax_check.c

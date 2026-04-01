@@ -13,19 +13,6 @@
 #include "minishell.h"
 
 /*
-** clean_exit - Free all shell resources and exit with given code.
-*/
-static void	clean_exit(t_shell *shell, int code)
-{
-	rl_clear_history();
-	free_all(shell);
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-	exit(code);
-}
-
-/*
 ** check_exit_value - Validate and convert exit argument
 */
 static int	check_exit_value(char **args, long long *value)

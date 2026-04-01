@@ -135,12 +135,7 @@ void	parse_input(t_shell *shell)
 		shell->last_exit = 1;
 		return ;
 	}
-	if (finalize_all_commands(shell, shell->commands) == FAILURE)
-	{
-		free_commands(shell->commands);
-		shell->commands = NULL;
-		shell->last_exit = 1;
-	}
+	finalize_all_commands(shell, shell->commands);
 }
 
 /*

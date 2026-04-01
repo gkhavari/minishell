@@ -15,12 +15,12 @@ if [ ! -f "$IGNORE_FILE" ]; then
     exit 1
 fi
 
-# Normalize potential CRLF and keep only non-comment symbols.
-IGNORE_FUNCTIONS="$(
-    tr -d '\r' < "$IGNORE_FILE" | awk '!/^[[:space:]]*#/ && NF {print $1}' | tr '\n' ' '
-)"
+# Normalize CRLF and load non-comment function names.
+readarray -t IGNORE_FUNCS < <(
+    tr -d '\r' < "$IGNORE_FILE" | awk '!/^[[:space:]]*#/ && NF {print $1}'
+)
 
-if [ -z "$IGNORE_FUNCTIONS" ]; then
+if [ "${#IGNORE_FUNCS[@]}" -eq 0 ]; then
     echo "Error: no functions loaded from $IGNORE_FILE" >&2
     exit 1
 fi
@@ -31,4 +31,11 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-exec funcheck -a -i "$IGNORE_FUNCTIONS" "$@"
+# Build the argument list: one `-i` per ignored function, then the program args
+ARGS=(funcheck -ac)
+for fn in "${IGNORE_FUNCS[@]}"; do
+    ARGS+=(-i "$fn")
+done
+ARGS+=("$@")
+
+exec "${ARGS[@]}"

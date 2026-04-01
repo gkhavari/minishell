@@ -31,7 +31,8 @@ SRCS		+=	$(SRC_DIR)/core/init_runtime.c
 SRCS		+=	$(SRC_DIR)/core/init_utils.c
 
 # utils
-SRCS		+=	$(SRC_DIR)/utils/utils.c
+SRCS		+=	$(SRC_DIR)/utils/utils.c \
+				$(SRC_DIR)/utils/utils2.c
 
 # free
 SRCS		+=	$(SRC_DIR)/free/free_utils.c \
@@ -64,14 +65,12 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \
 			   $(SRC_DIR)/executor/executor_utils.c \
-			   $(SRC_DIR)/executor/executor_cmd_utils.c \
 			   $(SRC_DIR)/executor/executor_external.c \
 			   $(SRC_DIR)/executor/executor_pipeline.c \
 			   $(SRC_DIR)/executor/executor_pipeline_not_found.c \
 			   $(SRC_DIR)/executor/executor_pipeline_steps.c \
 			   $(SRC_DIR)/executor/executor_child_format.c \
 			   $(SRC_DIR)/executor/executor_child_exec.c \
-			   $(SRC_DIR)/executor/executor_child.c
 
 # builtins
 SRCS        += $(SRC_DIR)/builtins/cd.c \

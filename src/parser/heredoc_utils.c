@@ -29,6 +29,11 @@ static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
 	while (ft_isalnum(line[start + len]) || line[start + len] == '_')
 		len++;
 	name = ft_strndup(line + start, len);
+	if (name == NULL)
+	{
+		free(line);
+		clean_exit(shell, EXIT_FAILURE);
+	}
 	val = get_env_value(shell->envp, name);
 	free(name);
 	*i = start + len;
@@ -44,6 +49,11 @@ char	*expand_heredoc_line(char *line, t_shell *shell)
 	size_t	i;
 
 	result = ft_strdup("");
+	if (result == NULL)
+	{
+		free(line);
+		clean_exit(shell, EXIT_FAILURE);
+	}
 	i = 0;
 	while (line[i])
 	{

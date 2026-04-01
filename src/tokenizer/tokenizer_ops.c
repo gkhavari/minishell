@@ -86,7 +86,7 @@ size_t	read_operator(t_shell *shell, const char *s, t_token **list)
 		return (0);
 	tok = new_token(shell, type, get_op_value(type));
 	if (!tok)
-		shell->last_exit = 1;
+		clean_exit(shell, EXIT_FAILURE);
 	else
 		add_token(list, tok);
 	return (len);

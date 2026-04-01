@@ -64,8 +64,7 @@ void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
 	if (!res)
 	{
 		perror("minishell");
-		free_all(shell);
-		exit(EXIT_FAILURE);
+		clean_exit(shell, EXIT_FAILURE);
 	}
 	return (res);
 }

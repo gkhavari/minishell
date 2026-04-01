@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 14:11:01 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 19:55:18 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 21:07:51 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,8 @@ char		*ft_strcat(char *dest, const char *src);
 char		*ft_realloc(char *ptr, const size_t new_size);
 char		**ft_arrdup(char **envp);
 void		*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
+void		clean_exit(t_shell *shell, int exit_status);
+char		*msh_strdup(t_shell *shell, char *s);
 
 /* tokenizer.c */
 void		tokenize_input(t_shell *shell);
@@ -84,8 +86,7 @@ int			add_token_to_command(t_shell *shell, t_command *cmd,
 				t_token *token);
 
 /* argv_build.c */
-int			finalize_all_commands(t_shell *shell, t_command *cmd);
-int			finalize_argv(t_shell *shell, t_command *cmd);
+void			finalize_all_commands(t_shell *shell, t_command *cmd);
 
 /* parser_syntax_check.c */
 int			syntax_check(t_token *token);
@@ -105,6 +106,7 @@ void		free_args(t_arg *arg);
 
 /* free_utils.c */
 void		free_tokens(t_token *token);
+void		free_array(char **arr);
 
 /* free_shell.c */
 void		reset_shell(t_shell *shell);
@@ -112,21 +114,13 @@ void		free_all(t_shell *shell);
 
 /* executor.c */
 int			execute_commands(t_shell *shell);
-int			execute_single_command(t_command *cmd, t_shell *shell);
 
 /* executor_utils.c */
 int			apply_redirections(t_command *cmd);
-void		restore_fds(int stdin_backup, int stdout_backup);
-int			execute_builtin(t_command *cmd, t_shell *shell);
-void		set_underscore(t_shell *shell, char *path);
 
 /* executor_external.c */
 int			execute_external(t_command *cmd, t_shell *shell);
 char		*find_command_path(char *cmd, t_shell *shell);
-
-/* executor_child.c */
-void		exit_child(t_shell *shell, int status);
-void		free_array(char **arr);
 
 /* executor_child_exec.c */
 void		execute_in_child(t_command *cmd, t_shell *shell);

@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 17:38:38 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 00:31:36 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 17:24:03 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 static void	run_builtin_child(t_command *cmd, t_shell *shell)
 {
 	signal(SIGPIPE, SIG_IGN);
-	exit_child(shell, run_builtin(cmd->argv, shell));
+	clean_exit(shell, run_builtin(cmd->argv, shell));
 }
 
 static void	check_is_dir(t_shell *shell, char *cmd_name, char *path)
@@ -25,7 +25,7 @@ static void	check_is_dir(t_shell *shell, char *cmd_name, char *path)
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
 	{
 		write_err3("", cmd_name, ": Is a directory\n");
-		exit_child(shell, 126);
+		clean_exit(shell, 126);
 	}
 }
 
@@ -34,10 +34,10 @@ static void	handle_exec_error(t_shell *shell, char *cmd_name)
 	if (errno == ENOENT)
 	{
 		write_err3("", cmd_name, ": No such file or directory\n");
-		exit_child(shell, 127);
+		clean_exit(shell, 127);
 	}
 	write_err3("", cmd_name, ": Permission denied\n");
-	exit_child(shell, 126);
+	clean_exit(shell, 126);
 }
 
 static void	cmd_not_found(t_shell *shell, char *cmd_name)
@@ -50,7 +50,7 @@ static void	cmd_not_found(t_shell *shell, char *cmd_name)
 	write_err3("", display, ": command not found\n");
 	if (display != cmd_name)
 		free(display);
-	exit_child(shell, 127);
+	clean_exit(shell, 127);
 }
 
 void	execute_in_child(t_command *cmd, t_shell *shell)
@@ -60,7 +60,7 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 	if (cmd->is_builtin)
 		run_builtin_child(cmd, shell);
 	if (!cmd->argv || !cmd->argv[0])
-		exit_child(shell, 0);
+		clean_exit(shell, 0);
 	path = find_command_path(cmd->argv[0], shell);
 	if (!path)
 		cmd_not_found(shell, cmd->argv[0]);

@@ -25,36 +25,6 @@ static void	cleanup_partial_argv(char **argv, size_t count)
 
 /**
  DESCRIPTION:
-* Completes the setup of each command in a linked list of t_command structures.
-* For every command, this function:
-** Builds the argv array from the linked list of arguments.
-** Determines whether the command’s executable name corresponds to a builtin.
-
-PARAMETERS:
-* cmd: Pointer to the first command in the command list.
-
-BEHAVIOR:
-* Iterates through every command node in the list.
-* Calls finalize_argv(shell, cmd) to construct cmd->argv.
-* Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
-**/
-int	finalize_all_commands(t_shell *shell, t_command *cmd)
-{
-	while (cmd)
-	{
-		if (finalize_argv(shell, cmd) == FAILURE)
-			return (FAILURE);
-		cmd->is_builtin = is_builtin(cmd->argv[0]);
-		if (cmd->is_builtin && cmd->argv[1]
-			&& ft_strcmp(cmd->argv[0], "env") == 0)
-			cmd->is_builtin = 0;
-		cmd = cmd->next;
-	}
-	return (SUCCESS);
-}
-
-/**
- DESCRIPTION:
 * Constructs the argv array for a command from its linked list of
 	arguments (cmd->args).
 * The resulting array is NULL-terminated
@@ -78,7 +48,7 @@ argv[1] = second argument
 argv[count-1] = last argument  
 argv[count] = NULL  
 **/
-static int	build_argv_array(t_command *cmd, t_arg *tmp, size_t count)
+static void	build_argv_array(t_shell *shell, t_command *cmd, t_arg *tmp, size_t count)
 {
 	size_t	i;
 
@@ -90,16 +60,15 @@ static int	build_argv_array(t_command *cmd, t_arg *tmp, size_t count)
 		{
 			cleanup_partial_argv(cmd->argv, i);
 			cmd->argv = NULL;
-			return (FAILURE);
+			clean_exit(shell, EXIT_FAILURE);
 		}
 		tmp = tmp->next;
 		i++;
 	}
 	cmd->argv[count] = NULL;
-	return (SUCCESS);
 }
 
-int	finalize_argv(t_shell *shell, t_command *cmd)
+static void	finalize_argv(t_shell *shell, t_command *cmd)
 {
 	t_arg	*tmp;
 	size_t	count;
@@ -114,6 +83,34 @@ int	finalize_argv(t_shell *shell, t_command *cmd)
 	}
 	cmd->argv = ft_calloc(count + 1, sizeof(char *));
 	if (!cmd->argv)
-		return (FAILURE);
-	return (build_argv_array(cmd, cmd->args, count));
+		clean_exit(shell, EXIT_FAILURE);
+	build_argv_array(shell, cmd, cmd->args, count);
+}
+
+/**
+ DESCRIPTION:
+* Completes the setup of each command in a linked list of t_command structures.
+* For every command, this function:
+** Builds the argv array from the linked list of arguments.
+** Determines whether the command’s executable name corresponds to a builtin.
+
+PARAMETERS:
+* cmd: Pointer to the first command in the command list.
+
+BEHAVIOR:
+* Iterates through every command node in the list.
+* Calls finalize_argv(cmd) to construct cmd->argv.
+* Sets cmd->is_builtin by calling is_builtin(cmd->argv[0]).
+**/
+void	finalize_all_commands(t_shell *shell, t_command *cmd)
+{
+	while (cmd)
+	{
+		finalize_argv(shell, cmd);
+		cmd->is_builtin = is_builtin(cmd->argv[0]);
+		if (cmd->is_builtin && cmd->argv[1]
+			&& ft_strcmp(cmd->argv[0], "env") == 0)
+			cmd->is_builtin = 0;
+		cmd = cmd->next;
+	}
 }

@@ -1,35 +1,34 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_child.c                                   :+:      :+:    :+:   */
+/*   utils2.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:34:11 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 17:37:57 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/03/31 20:27:39 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/03/31 20:27:39 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void	exit_child(t_shell *shell, int status)
+void	clean_exit(t_shell *shell, int exit_status)
 {
 	free_all(shell);
 	rl_clear_history();
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-	exit(status);
+	exit(exit_status);
 }
 
-void	free_array(char **arr)
+char	*msh_strdup(t_shell *shell, char *s)
 {
-	int	i;
+	char	*res;
 
-	if (!arr)
-		return ;
-	i = 0;
-	while (arr[i])
-		free(arr[i++]);
-	free(arr);
+	res = NULL;
+	res = ft_strdup(s);
+	if (res == NULL)
+		clean_exit(shell, EXIT_FAILURE);
+	return (res);
 }

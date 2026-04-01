@@ -10,10 +10,8 @@ rl_event_hook
 
 # Project functions that directly call readline/history APIs
 read_input
-read_continuation_line
 read_heredoc_line
 handle_end_of_string
 readline_event_hook
 clean_exit
-exit_child
 main
