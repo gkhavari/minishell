@@ -1,37 +1,47 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   signal_utils.c                                     :+:      :+:    :+:   */
+/*   ft_printf_hex.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
+/*   Created: 2025/08/06 21:52:13 by thanh-ng          #+#    #+#             */
 /*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "minishell.h"
+#include "ft_printf.h"
 
-/** Readline hook: if SIGINT pending, discard line and finish this read. */
-int	readline_event_hook(void)
+static int	put_hex_fd(int fd, unsigned int num, char c)
 {
-	if (g_signum == SIGINT)
+	char	buf[20];
+	int		i;
+	int		count;
+	int		digit;
+
+	if (!num)
+		return (print_chr_fd(fd, '0'));
+	i = 0;
+	count = 0;
+	while (num)
 	{
-		rl_replace_line("", 0);
-		rl_on_new_line();
-		rl_done = 1;
+		digit = num % 16;
+		if (digit < 10)
+			buf[i++] = digit + '0';
+		else
+			buf[i++] = digit - 33 + c;
+		num /= 16;
 	}
-	return (0);
+	while (i--)
+	{
+		if (print_chr_fd(fd, buf[i]) < 0)
+			return (-1);
+		count++;
+	}
+	return (count);
 }
 
-/** After readline returns: if SIGINT, set exit status 130 and clear flag. */
-int	check_signal_received(t_shell *shell)
+int	print_hex_fd(int fd, unsigned int n, char c)
 {
-	if (g_signum == SIGINT)
-	{
-		shell->last_exit = EXIT_SIGINT;
-		g_signum = 0;
-		return (1);
-	}
-	return (0);
+	return (put_hex_fd(fd, n, c));
 }

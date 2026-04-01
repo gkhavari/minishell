@@ -15,13 +15,17 @@
 /** Tokenize, parse, heredocs, then execute_commands. */
 void	process_input(t_shell *shell)
 {
-	tokenize_input(shell);
+	if (tokenize_input(shell) == MSH_OOM)
+		return ;
 	parse_input(shell);
 	if (!shell->commands)
 		return ;
 	if (process_heredocs(shell))
 	{
-		shell->last_exit = 130;
+		if (g_signum == SIGINT)
+			shell->last_exit = EXIT_SIGINT;
+		else
+			shell->last_exit = 1;
 		return ;
 	}
 	shell->last_exit = execute_commands(shell);

@@ -37,8 +37,11 @@ static char	*read_heredoc_line(t_shell *shell)
 		}
 		if (c == '\n')
 			return (line);
-		if (append_char(shell, &line, c) == FAILURE)
+		if (append_char(shell, &line, c) == MSH_OOM)
+		{
+			shell->oom = 1;
 			return (NULL);
+		}
 	}
 }
 
@@ -60,6 +63,11 @@ static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
 		line = read_heredoc_line(ctx->shell);
 		if (g_signum == SIGINT)
 			return (heredoc_interrupted(ctx, line));
+		if (ctx->shell->oom)
+		{
+			ctx->shell->oom = 0;
+			return (heredoc_interrupted(ctx, line));
+		}
 		if (!line)
 		{
 			print_heredoc_eof_warning(start_line, ctx->cmd->heredoc_delim);

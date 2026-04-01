@@ -32,12 +32,13 @@ char		**ft_arrdup(char **envp);
 void		*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size);
 void		clean_exit(t_shell *shell, int exit_status);
 char		*msh_strdup(t_shell *shell, char *s);
+void		msh_lex_abort(t_shell *shell, char **word);
 
 /* tokenizer.c */
-void		tokenize_input(t_shell *shell);
+int			tokenize_input(t_shell *shell);
 
 /* tokenizer_utils.c */
-void		flush_word(t_shell *shell, char **word, t_token **token);
+int			flush_word(t_shell *shell, char **word, t_token **token);
 void		add_token(t_token **head, t_token *new);
 t_token		*new_token(t_shell *shell, t_tokentype type, char *value);
 int			append_char(t_shell *shell, char **dst, char c);
@@ -63,7 +64,7 @@ int			handle_double_quote(t_shell *shell, size_t *i,
 
 /* tokenizer_ops.c */
 int			is_op_char(char c);
-size_t		read_operator(t_shell *shell, const char *s, t_token **list);
+int			read_operator(t_shell *shell, const char *s, t_token **list);
 
 /* expansion.c */
 int			handle_variable_expansion(t_shell *shell, size_t *i,
@@ -73,7 +74,7 @@ char		*expand_var(t_shell *shell, size_t *i);
 
 /* expansion_utils.c */
 void		append_expansion_quoted(char **word, const char *exp);
-void		append_expansion_unquoted(t_shell *shell, char **word,
+int			append_expansion_unquoted(t_shell *shell, char **word,
 				const char *exp, t_token **tokens);
 int			handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 				size_t end, char **word);
@@ -86,7 +87,7 @@ int			add_token_to_command(t_shell *shell, t_command *cmd,
 				t_token *token);
 
 /* argv_build.c */
-void			finalize_all_commands(t_shell *shell, t_command *cmd);
+void		finalize_all_commands(t_shell *shell, t_command *cmd);
 
 /* parser_syntax_check.c */
 int			syntax_check(t_token *token);
@@ -126,8 +127,7 @@ char		*find_command_path(char *cmd, t_shell *shell);
 void		execute_in_child(t_command *cmd, t_shell *shell);
 
 /* executor_child_format.c */
-void		write_err3(char *a, char *b, char *c);
-char		*format_cmd_name_for_error(char *cmd_name);
+void		dprintf_cmd_not_found(char *cmd_name);
 
 /* executor_pipeline.c */
 int			execute_pipeline(t_command *cmds, t_shell *shell);
@@ -153,12 +153,12 @@ int			append_export_env(t_shell *shell, char *entry);
 /* export_print.c */
 int			print_sorted_env(t_shell *shell);
 
-/* signal_handler.c */
+/* signal_handler.c (install, g_signum) */
 int			set_signals_default(void);
 int			set_signals_ignore(void);
 int			set_signals_interactive(void);
 
-/* signal_utils.c */
+/* signal_utils.c (readline hook consumes g_signum) */
 int			check_signal_received(t_shell *shell);
 int			readline_event_hook(void);
 

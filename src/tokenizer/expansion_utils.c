@@ -35,18 +35,26 @@ static int	is_redir_target(t_shell *shell, char *word)
 	);
 }
 
-/** Empty $ expansion at word boundary: empty token or ambiguous redirect msg. */
+/**
+ * Empty $ expansion at word boundary: empty token or ambiguous redirect.
+ */
 int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 		size_t end, char **word)
 {
 	char	*raw;
 	char	*value;
+	t_token	*tok;
 
 	if (*word || !is_word_boundary(shell->input[end]))
 		return (0);
 	if (!is_redir_target(shell, *word))
-		return (add_token(&shell->tokens,
-				new_token(shell, WORD, MSH_EMPTY_EXPAND_TOKEN)), 1);
+	{
+		tok = new_token(shell, WORD, MSH_EMPTY_EXPAND_TOKEN);
+		if (!tok)
+			return (MSH_OOM);
+		add_token(&shell->tokens, tok);
+		return (1);
+	}
 	raw = ft_strndup(shell->input + start, end - start);
 	if (!raw)
 		return (1);
@@ -54,8 +62,14 @@ int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 	free(raw);
 	if (!value)
 		return (1);
-	add_token(&shell->tokens, new_token(shell, WORD, value));
+	tok = new_token(shell, WORD, value);
+	if (!tok)
+	{
+		free(value);
+		return (MSH_OOM);
+	}
 	free(value);
+	add_token(&shell->tokens, tok);
 	return (1);
 }
 
@@ -86,25 +100,30 @@ void	append_expansion_quoted(char **word, const char *exp)
 
 /**
  * Append exp to *word; flush words on spaces/tabs into tokens.
+ * Returns MSH_OOM on allocation failure.
  */
-void	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
+int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		t_token **tokens)
 {
 	size_t	i;
 
 	i = 0;
 	if (exp == NULL)
-		return ;
+		return (SUCCESS);
 	while (exp[i])
 	{
 		if (exp[i] == ' ' || exp[i] == '\t')
 		{
-			if (*word)
-				flush_word(shell, word, tokens);
+			if (*word && flush_word(shell, word, tokens) == MSH_OOM)
+				return (MSH_OOM);
 			while (exp[i] == ' ' || exp[i] == '\t')
 				i++;
 		}
 		else
-			process_normal_char(shell, exp[i], &i, word);
+		{
+			if (process_normal_char(shell, exp[i], &i, word) == MSH_OOM)
+				return (MSH_OOM);
+		}
 	}
+	return (SUCCESS);
 }

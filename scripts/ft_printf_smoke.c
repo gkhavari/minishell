@@ -1,37 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   signal_utils.c                                     :+:      :+:    :+:   */
+/*   ft_printf_smoke.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
+/*   Created: 2026/04/01 00:00:00 by thanh-ng          #+#    #+#             */
 /*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "minishell.h"
+#include "ft_printf.h"
 
-/** Readline hook: if SIGINT pending, discard line and finish this read. */
-int	readline_event_hook(void)
+int	main(void)
 {
-	if (g_signum == SIGINT)
-	{
-		rl_replace_line("", 0);
-		rl_on_new_line();
-		rl_done = 1;
-	}
-	return (0);
-}
-
-/** After readline returns: if SIGINT, set exit status 130 and clear flag. */
-int	check_signal_received(t_shell *shell)
-{
-	if (g_signum == SIGINT)
-	{
-		shell->last_exit = EXIT_SIGINT;
-		g_signum = 0;
-		return (1);
-	}
+	ft_printf("stdout %%s %s %d\n", "ok", 42);
+	ft_dprintf(2, "stderr %s\n", "ok");
 	return (0);
 }

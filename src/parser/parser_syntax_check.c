@@ -71,8 +71,7 @@ int	syntax_check(t_token *token)
 /** Print bash-style unexpected-token message to stderr; return SYNTAX_ERR. */
 int	syntax_error(const char *msg)
 {
-	ft_putstr_fd("syntax error near unexpected token `", 2);
-	ft_putstr_fd((char *)msg, 2);
-	ft_putstr_fd("'\n", 2);
+	ft_dprintf(STDERR_FILENO,
+		"syntax error near unexpected token `%s'\n", msg);
 	return (SYNTAX_ERR);
 }

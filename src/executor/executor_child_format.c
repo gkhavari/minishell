@@ -6,29 +6,11 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 17:38:49 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 20:51:59 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-static void	write_err_line(char *msg)
-{
-	if (!msg)
-		return ;
-	write(STDERR_FILENO, msg, ft_strlen(msg));
-}
-
-/** Concatenate up to three strings to stderr (no alloc). */
-void	write_err3(char *a, char *b, char *c)
-{
-	if (a)
-		write_err_line(a);
-	if (b)
-		write_err_line(b);
-	if (c)
-		write_err_line(c);
-}
 
 static int	needs_dollar_quote(char *cmd_name)
 {
@@ -67,8 +49,10 @@ static int	append_escaped_char(char *out, int j, char c)
 	return (j);
 }
 
-/** $'...' style quoting for cmd not found when name has special bytes. */
-char	*format_cmd_name_for_error(char *cmd_name)
+/**
+ * $'...' form when cmd_name has control bytes (exec error / not-found line).
+ */
+static char	*format_cmd_name_for_error(char *cmd_name)
 {
 	char	*out;
 	int		i;
@@ -95,4 +79,17 @@ char	*format_cmd_name_for_error(char *cmd_name)
 	out[j++] = '\'';
 	out[j] = '\0';
 	return (out);
+}
+
+/** One line to stderr: optional $'…' quoting, then ": command not found". */
+void	dprintf_cmd_not_found(char *cmd_name)
+{
+	char	*display;
+
+	display = format_cmd_name_for_error(cmd_name);
+	if (!display)
+		display = cmd_name;
+	ft_dprintf(STDERR_FILENO, "%s: command not found\n", display);
+	if (display != cmd_name)
+		free(display);
 }

@@ -17,14 +17,13 @@ static int	check_exit_value(char **args, long long *value)
 {
 	if (!parse_exit_value(args[1], value))
 	{
-		ft_putstr_fd("exit: ", 2);
-		ft_putstr_fd(args[1], 2);
-		ft_putendl_fd(": numeric argument required", 2);
+		ft_dprintf(STDERR_FILENO,
+			"exit: %s: numeric argument required\n", args[1]);
 		return (2);
 	}
 	if (args[2])
 	{
-		ft_putendl_fd("exit: too many arguments", 2);
+		ft_dprintf(STDERR_FILENO, "exit: too many arguments\n");
 		return (1);
 	}
 	return (0);
@@ -36,7 +35,7 @@ int	builtin_exit(char **args, t_shell *shell)
 	long long	value;
 
 	if (isatty(STDIN_FILENO) == 1)
-		ft_putendl_fd("exit", STDERR_FILENO);
+		ft_dprintf(STDERR_FILENO, "exit\n");
 	if (!args[1])
 		clean_exit(shell, shell->last_exit);
 	shell->last_exit = check_exit_value(args, &value);

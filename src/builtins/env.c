@@ -19,9 +19,8 @@ int	builtin_env(char **args, t_shell *shell)
 
 	if (args[1])
 	{
-		ft_putstr_fd("env: '", 2);
-		ft_putstr_fd(args[1], 2);
-		ft_putendl_fd("': No such file or directory", 2);
+		ft_dprintf(STDERR_FILENO,
+			"env: '%s': No such file or directory\n", args[1]);
 		return (127);
 	}
 	if (!shell->envp)
@@ -30,7 +29,7 @@ int	builtin_env(char **args, t_shell *shell)
 	while (shell->envp[i])
 	{
 		if (ft_strchr(shell->envp[i], '='))
-			ft_putendl_fd(shell->envp[i], 1);
+			ft_printf("%s\n", shell->envp[i]);
 		i++;
 	}
 	return (SUCCESS);

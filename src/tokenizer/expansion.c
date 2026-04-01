@@ -100,14 +100,28 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 		shell->last_exit = 1;
 		return (1);
 	}
-	if (expanded[0] == '\0' && handle_empty_unquoted_expansion(shell,
-			start, *i, word))
+	if (expanded[0] == '\0')
+	{
+		int	he;
+
+		he = handle_empty_unquoted_expansion(shell, start, *i, word);
+		if (he == MSH_OOM)
+		{
+			free(expanded);
+			return (MSH_OOM);
+		}
+		if (he)
+		{
+			free(expanded);
+			return (1);
+		}
+	}
+	if (append_expansion_unquoted(shell, word, expanded, &shell->tokens)
+		== MSH_OOM)
 	{
 		free(expanded);
-		return (1);
+		return (MSH_OOM);
 	}
-	else
-		append_expansion_unquoted(shell, word, expanded, &shell->tokens);
 	free(expanded);
 	return (1);
 }
@@ -127,7 +141,9 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	home = get_env_value(shell->envp, "HOME");
 	if (!home)
 		home = "";
-	append_expansion_unquoted(shell, word, home, &shell->tokens);
+	if (append_expansion_unquoted(shell, word, home, &shell->tokens)
+		== MSH_OOM)
+		return (MSH_OOM);
 	(*i)++;
 	return (1);
 }

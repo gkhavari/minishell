@@ -52,5 +52,6 @@ void	init_runtime_fields(t_shell *shell)
 	shell->input = NULL;
 	shell->word_quoted = 0;
 	shell->heredoc_mode = 0;
+	shell->oom = 0;
 	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
 }

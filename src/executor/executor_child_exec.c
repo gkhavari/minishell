@@ -24,7 +24,7 @@ static void	check_is_dir(t_shell *shell, char *cmd_name, char *path)
 
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
 	{
-		write_err3("", cmd_name, ": Is a directory\n");
+		ft_dprintf(STDERR_FILENO, "%s: Is a directory\n", cmd_name);
 		clean_exit(shell, 126);
 	}
 }
@@ -33,24 +33,12 @@ static void	handle_exec_error(t_shell *shell, char *cmd_name)
 {
 	if (errno == ENOENT)
 	{
-		write_err3("", cmd_name, ": No such file or directory\n");
+		ft_dprintf(STDERR_FILENO, "%s: No such file or directory\n",
+			cmd_name);
 		clean_exit(shell, 127);
 	}
-	write_err3("", cmd_name, ": Permission denied\n");
+	ft_dprintf(STDERR_FILENO, "%s: Permission denied\n", cmd_name);
 	clean_exit(shell, 126);
-}
-
-static void	cmd_not_found(t_shell *shell, char *cmd_name)
-{
-	char	*display;
-
-	display = format_cmd_name_for_error(cmd_name);
-	if (!display)
-		display = cmd_name;
-	write_err3("", display, ": command not found\n");
-	if (display != cmd_name)
-		free(display);
-	clean_exit(shell, 127);
 }
 
 /** After fork: builtin, execve, or errors with clean_exit (never returns). */
@@ -64,11 +52,17 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 		clean_exit(shell, 0);
 	path = find_command_path(cmd->argv[0], shell);
 	if (!path)
-		cmd_not_found(shell, cmd->argv[0]);
+	{
+		dprintf_cmd_not_found(cmd->argv[0]);
+		clean_exit(shell, 127);
+	}
 	if (!shell->had_path && !get_env_value(shell->envp, "PATH")
 		&& !ft_strchr(cmd->argv[0], '/') && cmd->argv[1]
 		&& access(path, X_OK) != 0)
-		cmd_not_found(shell, cmd->argv[0]);
+	{
+		dprintf_cmd_not_found(cmd->argv[0]);
+		clean_exit(shell, 127);
+	}
 	check_is_dir(shell, cmd->argv[0], path);
 	execve(path, cmd->argv, shell->envp);
 	handle_exec_error(shell, cmd->argv[0]);

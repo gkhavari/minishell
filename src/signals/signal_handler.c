@@ -12,9 +12,13 @@
 
 #include "minishell.h"
 
+/*
+ * Subject (minishell v10): at most one global for the received signal number.
+ * Async-safe: only SIGINT is stored; readline hook and main loop consume it.
+ */
 volatile sig_atomic_t	g_signum = 0;
 
-/** SIGINT: set g_signum, write newline (readline hook clears line). */
+/** SIGINT: record signal; newline so the next prompt starts on a fresh line. */
 static void	interactive_sigint_handler(int signum)
 {
 	(void)signum;

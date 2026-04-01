@@ -35,8 +35,10 @@ static void	print_export_entry(char *entry, int bump_shlvl)
 
 	eq = ft_strchr(entry, '=');
 	if (!eq)
-		return (ft_putstr_fd("export ", 1), ft_putstr_fd(entry, 1),
-			ft_putchar_fd('\n', 1));
+	{
+		ft_printf("export %s\n", entry);
+		return ;
+	}
 	key = ft_substr(entry, 0, eq - entry);
 	out = NULL;
 	ft_putstr_fd("export ", 1);
@@ -77,11 +79,14 @@ static void	maybe_print_oldpwd(t_shell *shell, int *printed_oldpwd,
 		return ;
 	if (ft_strncmp(entry, "LD_PRELOAD=", 11) != 0)
 		return ;
-	ft_putendl_fd("export OLDPWD", 1);
+	ft_putendl_fd("export OLDPWD", STDOUT_FILENO);
 	*printed_oldpwd = 1;
 }
 
-/** declare -x style listing of envp (sorted), with OLDPWD quirks for no-PATH. */
+/**
+ * declare -x style listing of envp (sorted),
+ * with OLDPWD quirks for no-PATH.
+ */
 int	print_sorted_env(t_shell *shell)
 {
 	int		count;
@@ -106,7 +111,7 @@ int	print_sorted_env(t_shell *shell)
 		maybe_print_oldpwd(shell, &printed_oldpwd, sorted[i]);
 	}
 	if (!printed_oldpwd && shell->had_path == 0)
-		(ft_putendl_fd("export OLDPWD", 1));
+		ft_putendl_fd("export OLDPWD", STDOUT_FILENO);
 	free_array(sorted);
 	return (SUCCESS);
 }

@@ -28,19 +28,10 @@ static int	is_simple_not_found_cmd(t_command *cmd, t_shell *shell)
 	return (1);
 }
 
-static void	print_cmd_not_found_parent(char *cmd_name)
-{
-	char	*display;
-
-	display = format_cmd_name_for_error(cmd_name);
-	if (!display)
-		display = cmd_name;
-	write_err3("", display, ": command not found\n");
-	if (display != cmd_name)
-		free(display);
-}
-
-/** If every cmd is a simple missing PATH lookup, print errors in parent; else 0. */
+/**
+ * If every cmd is a simple missing PATH lookup, print errors in parent.
+ * Else return 0.
+ */
 int	handle_all_not_found_pipeline(t_command *cmds, t_shell *shell)
 {
 	t_command	*cmd;
@@ -55,7 +46,7 @@ int	handle_all_not_found_pipeline(t_command *cmds, t_shell *shell)
 	cmd = cmds;
 	while (cmd)
 	{
-		print_cmd_not_found_parent(cmd->argv[0]);
+		dprintf_cmd_not_found(cmd->argv[0]);
 		cmd = cmd->next;
 	}
 	return (1);

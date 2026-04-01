@@ -56,11 +56,8 @@ void	add_token(t_token **head, t_token *new)
  */
 int	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
 {
-	if (append_char(shell, word, c) == FAILURE)
-	{
-		(*i)++;
-		return (FAILURE);
-	}
+	if (append_char(shell, word, c) == MSH_OOM)
+		return (MSH_OOM);
 	(*i)++;
 	return (SUCCESS);
 }

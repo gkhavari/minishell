@@ -19,12 +19,14 @@ int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
 		return (0);
-	process_normal_char(shell, shell->input[*i], i, word);
+	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
+		return (MSH_OOM);
 	return (1);
 }
 
 /**
- * In ST_DQUOTE: expand $ (unless heredoc/next quote), handle \\$, or append char.
+ * In ST_DQUOTE: expand $ (unless heredoc/next quote),
+ * handle \\$, or append char.
  */
 static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
 {
@@ -63,6 +65,7 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 	}
 	if (handle_escaped_dollar(shell, i, word))
 		return (1);
-	process_normal_char(shell, shell->input[*i], i, word);
+	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
+		return (MSH_OOM);
 	return (1);
 }

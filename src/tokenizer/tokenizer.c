@@ -16,32 +16,54 @@
 static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		char **word, t_state *state)
 {
+	int	r;
+
 	if (process_quote(shell, shell->input[*i], state))
 	{
 		if (!*word)
 		{
 			*word = ft_strdup("");
 			if (!*word)
-				shell->last_exit = 1;
+				return (MSH_OOM);
 		}
 		(*i)++;
 		return (1);
 	}
-	if (handle_single_quote(shell, i, word, state))
+	r = handle_single_quote(shell, i, word, state);
+	if (r == MSH_OOM)
+		return (MSH_OOM);
+	if (r)
 		return (1);
-	if (handle_double_quote(shell, i, word, state))
+	r = handle_double_quote(shell, i, word, state);
+	if (r == MSH_OOM)
+		return (MSH_OOM);
+	if (r)
 		return (1);
-	if (!is_heredoc_mode(shell) && handle_variable_expansion(shell, i, word))
-		return (1);
-	if (!is_heredoc_mode(shell) && handle_tilde_expansion(shell, i, word))
-		return (1);
+	if (!is_heredoc_mode(shell))
+	{
+		r = handle_variable_expansion(shell, i, word);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
+		if (r)
+			return (1);
+	}
+	if (!is_heredoc_mode(shell))
+	{
+		r = handle_tilde_expansion(shell, i, word);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
+		if (r)
+			return (1);
+	}
 	return (0);
 }
 
 /** One pass over shell->input until NUL; dispatches handlers. */
-static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
+static int	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 		char **word)
 {
+	int	r;
+
 	while (1)
 	{
 		if (!shell->input[*i])
@@ -49,36 +71,72 @@ static void	tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 			handle_end_of_string(shell, state, word);
 			break ;
 		}
-		if (handle_quotes_and_expand(shell, i, word, state))
+		r = handle_quotes_and_expand(shell, i, word, state);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
+		if (r)
 			continue ;
-		if (handle_backslash(shell, i, word, state))
+		r = handle_backslash(shell, i, word, state);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
+		if (r)
 			continue ;
-		if (handle_operator(shell, i, word))
+		r = handle_operator(shell, i, word);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
+		if (r)
 			continue ;
-		if (handle_whitespace(shell, i, word))
+		r = handle_whitespace(shell, i, word);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
+		if (r)
 			continue ;
-		process_normal_char(shell, shell->input[*i], i, word);
+		r = process_normal_char(shell, shell->input[*i], i, word);
+		if (r == MSH_OOM)
+			return (MSH_OOM);
 	}
+	return (SUCCESS);
 }
 
-/** Lex shell->input into shell->tokens; frees input; clears tokens on quote error. */
-void	tokenize_input(t_shell *shell)
+/**
+ * Lex shell->input into shell->tokens; frees input;
+ * clears tokens on quote error. Returns MSH_OOM on malloc failure (unwound).
+ */
+int	tokenize_input(t_shell *shell)
 {
 	t_state	state;
 	char	*word;
 	size_t	i;
+	int		err;
 
 	state = ST_NORMAL;
 	word = NULL;
 	i = 0;
-	tokenizer_loop(shell, &i, &state, &word);
-	if (state == ST_NORMAL)
-		flush_word(shell, &word, &shell->tokens);
-	else if (shell->tokens)
+	err = tokenizer_loop(shell, &i, &state, &word);
+	if (err == MSH_OOM)
 	{
-		free_tokens(shell->tokens);
-		shell->tokens = NULL;
+		msh_lex_abort(shell, &word);
+		return (MSH_OOM);
+	}
+	if (state == ST_NORMAL)
+	{
+		if (flush_word(shell, &word, &shell->tokens) == MSH_OOM)
+		{
+			msh_lex_abort(shell, &word);
+			return (MSH_OOM);
+		}
+	}
+	else
+	{
+		free(word);
+		word = NULL;
+		if (shell->tokens)
+		{
+			free_tokens(shell->tokens);
+			shell->tokens = NULL;
+		}
 	}
 	free(shell->input);
 	shell->input = NULL;
+	return (SUCCESS);
 }

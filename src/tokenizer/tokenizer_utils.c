@@ -31,7 +31,7 @@ int	is_heredoc_mode(t_shell *shell)
 }
 
 /**
- * Grow *dst and append c; exits on alloc failure.
+ * Grow *dst and append c. On failure frees *dst, sets NULL, returns MSH_OOM.
  */
 int	append_char(t_shell *shell, char **dst, char c)
 {
@@ -47,7 +47,8 @@ int	append_char(t_shell *shell, char **dst, char c)
 	if (!new)
 	{
 		free(*dst);
-		clean_exit(shell, EXIT_FAILURE);
+		*dst = NULL;
+		return (MSH_OOM);
 	}
 	if (*dst)
 		ft_memcpy(new, *dst, len);
@@ -60,8 +61,9 @@ int	append_char(t_shell *shell, char **dst, char c)
 
 /**
  * If *word non-empty: emit WORD token, clear buffer and quote/heredoc flags.
+ * Returns MSH_OOM if new_token fails.
  */
-void	flush_word(t_shell *shell, char **word, t_token **token)
+int	flush_word(t_shell *shell, char **word, t_token **token)
 {
 	t_token	*tok;
 
@@ -71,7 +73,8 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 		if (!tok)
 		{
 			free(*word);
-			clean_exit(shell, EXIT_FAILURE);
+			*word = NULL;
+			return (MSH_OOM);
 		}
 		tok->quoted = shell->word_quoted;
 		add_token(token, tok);
@@ -80,4 +83,5 @@ void	flush_word(t_shell *shell, char **word, t_token **token)
 		shell->word_quoted = 0;
 		shell->heredoc_mode = 0;
 	}
+	return (SUCCESS);
 }

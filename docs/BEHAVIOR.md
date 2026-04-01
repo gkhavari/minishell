@@ -4,29 +4,48 @@ This document defines **expected behavior** for minishell: what output and exit 
 
 **Primary harness:** **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** — same input as **bash**, compare stdout (`diff -q`), normalized stderr (`diff -q` after tester filters), and exit code. Mandatory mode: `tester.sh m` (see `scripts/run_minishell_tester.sh`).
 
-**Run mandatory tests (Docker dev container, from host):**
+**Run tests (Docker dev container, from host):**
 
 ```bash
-./scripts/run_minishell_tester.sh m       # mandatory
+./scripts/run_minishell_tester.sh m       # mandatory (default)
 ./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
+./scripts/run_minishell_tester.sh b       # bonus
+./scripts/run_minishell_tester.sh ne      # empty env
+./scripts/run_minishell_tester.sh a       # all
 ```
 
-Build runs inside the container (`make re` / `make debug`). CI clones the same repo (see `.github/workflows/test.yaml`).
+Build runs inside the container (`make re` / `make debug`). CI uses the same upstream tester (see `.github/workflows/test.yaml`, `regression_test.yaml`).
 
 **CI / baseline:** Use GitHub Actions workflow logs and local **`mstest_output_*`** directories after **`./scripts/run_minishell_tester.sh`**.
 
-**Subject vs bash:** Where the PDF says you **must not** interpret **`;`** or **`\`**, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo.
-
-For architecture and data structures, see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md).
+**Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
 ---
 
-## How the 42_minishell_tester Works
+## 0. Map to [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md)
+
+| What you need | Where in the architecture doc |
+|---------------|-------------------------------|
+| Tester layout, script map (`cmds/mand/`) | §0.1, §0.2 |
+| **readline** vs **`read_line_stdin`**, empty-line gate (**`input[0]`**), non-TTY syntax **break**, **`main` return `last_exit`** | §2 |
+| **`g_signum`**, **`check_signal_received`**, **`rl_event_hook`**, SIGPIPE install | §1 |
+| Tokenizer loop, operators, heredoc delimiter mode | §3 (e.g. §3.2.1) |
+| Expansion vs heredoc body, **`~`** | §4 |
+| **`parse_input`**: **`syntax_check`** then **`parse_tokens`** → **`finalize`** | §5 |
+| Heredoc pipes, SIGINT during heredoc → **`last_exit = 130`**, no **`execute_commands`** | §6 |
+| **`execute_commands`**, single vs pipeline, **`must_run_in_parent`**, not-found fast path | §7 |
+| Exit codes, who sets **`last_exit`**, **`reset_shell` does not clear `last_exit`** | §8, §11 |
+
+For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md).
+
+### How the 42_minishell_tester works
 
 - Reads test **blocks** from scripts under `cmds/mand/` (LeaYeh splits builtins into `1_builtins_echo.sh`, `1_builtins_cd.sh`, …; plus `8_syntax_errors.sh`, `1_redirs.sh`, etc.). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
 - For each block: sends the same input to **minishell** and to **bash** (with `enable -n .` prepended so bash runs the test as the last command).
 - **Pass** requires: stdout identical (`diff -q`), normalized stderr identical (`diff -q`), and exit code identical.
-- **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** (not readline) for non-TTY stdin — one logical line per tester block.
+- **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** in **`main.c`** (byte **`read`**, not readline) for non-TTY stdin — one logical line per block (no trailing newline in the buffer; EOF after text returns a final partial line).
+- **Per-line gate:** an **empty** line (**`input[0] == '\0'`**) runs **`reset_shell`** only—no tokenize/parse/execute for that iteration (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §2**).
+- After a **syntax error** (**`last_exit == 2`**), **non-TTY** mode may **exit the shell** on the **next** line even if that line is empty (**`reset_shell`** does not clear **`last_exit`**—same §2).
 - The tester runs minishell first, then bash, in the same temporary test directory for each block. Blocks with filesystem side effects can expose order-sensitive differences.
 
 So “expected behavior” here is **bash-like** unless the **subject** or **documented deltas** say otherwise. The tables summarize bash-oriented expectations and point to the 42 script(s) that cover them.
@@ -159,6 +178,8 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Test-design note:** Quoted delimiter → no expansion in body. Unquoted → expand variables. See `1_redirs.sh`, `10_parsing_hell.sh`.
 
+**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = 130`**, and **does not** run **`execute_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
+
 ---
 
 ## 8. Pipes (`1_pipelines.sh`)
@@ -225,6 +246,8 @@ See `1_pipelines.sh`.
 
 ## 11. Exit Code Summary (Bash-Aligned)
 
+**Process exit:** **`main()`** returns **`shell.last_exit`** (bash-like “last foreground status”). **Ctrl+C** at the interactive prompt sets **130** via **`check_signal_received`** before the next prompt (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §1–§2, §8.2**).
+
 | Code | Meaning | Example |
 |------|---------|--------|
 | 0 | Success | Successful command, `exit 0`, `exit 256` |
@@ -243,9 +266,9 @@ See `1_pipelines.sh`.
 |---------|--------|
 | `&&` / `\|\|` | ❌ Not implemented (optional **bonus** in subject — separate from mandatory) |
 | `;` (command separator) | ❌ Not implemented |
-| `\` (backslash) as a special escape outside quotes | ❌ Not required — subject: do **not** interpret `\` as a required metacharacter |
+| Full bash backslash-escape grammar | ❌ Not required — subject: do **not** interpret `\` as a *mandatory* metacharacter. This shell still handles **`\`** in **`ST_NORMAL`** for some cases (e.g. before **`$`**) — see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3. |
 
-Use multiple input lines to chain commands. The 42 subject does not require `;`, `\`, or logical **`&&`/`||`** for the **mandatory** part.
+Use multiple input lines to chain commands. The 42 subject does not require `;` or logical **`&&`/`||`** for the **mandatory** part.
 
 ---
 

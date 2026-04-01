@@ -21,7 +21,8 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 	{
 		free(*word);
 		*word = NULL;
-		ft_putendl_fd("minishell: syntax error: unclosed quote", STDERR_FILENO);
+		ft_dprintf(STDERR_FILENO,
+			"minishell: syntax error: unclosed quote\n");
 		shell->last_exit = 2;
 	}
 	else
@@ -47,23 +48,17 @@ int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 	{
 		*word = ft_strdup("");
 		if (!*word)
-		{
-			shell->last_exit = 1;
-			*i += 2;
-			return (1);
-		}
+			return (MSH_OOM);
 	}
-	if (append_char(shell, word, shell->input[*i + 1]) == FAILURE)
-	{
-		*i += 2;
-		return (1);
-	}
+	if (append_char(shell, word, shell->input[*i + 1]) == MSH_OOM)
+		return (MSH_OOM);
 	*i += 2;
 	return (1);
 }
 
 /**
- * Toggle ST_NORMAL <-> ST_SQUOTE/ST_DQUOTE on quote chars. Returns 1 if consumed.
+ * Toggle ST_NORMAL <-> ST_SQUOTE/ST_DQUOTE on quote chars.
+ * Returns 1 if consumed.
  */
 int	process_quote(t_shell *shell, char c, t_state *state)
 {
@@ -93,16 +88,23 @@ int	process_quote(t_shell *shell, char c, t_state *state)
 }
 
 /**
- * If op char: flush word, append operator token, advance i. Returns 1 if handled.
+ * If op char: flush word, append operator token, advance i.
+ * Returns 1 if handled.
  */
 int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
+	int	n;
+
 	if (!is_op_char(shell->input[*i]))
 		return (0);
-	flush_word(shell, word, &shell->tokens);
+	if (flush_word(shell, word, &shell->tokens) == MSH_OOM)
+		return (MSH_OOM);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
 		set_heredoc_mode(shell, 1);
-	*i += read_operator(shell, &shell->input[*i], &shell->tokens);
+	n = read_operator(shell, &shell->input[*i], &shell->tokens);
+	if (n == MSH_OOM)
+		return (MSH_OOM);
+	*i += (size_t)n;
 	return (1);
 }
 
@@ -113,7 +115,8 @@ int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
 	if (shell->input[*i] == ' ' || shell->input[*i] == '\t')
 	{
-		flush_word(shell, word, &shell->tokens);
+		if (flush_word(shell, word, &shell->tokens) == MSH_OOM)
+			return (MSH_OOM);
 		(*i)++;
 		return (1);
 	}

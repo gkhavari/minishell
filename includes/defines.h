@@ -17,6 +17,16 @@
 # define FAILURE   1
 # define PARSE_ERR -1
 
+/*
+ * MSH_OOM: propagate malloc failure up to a safe frame (e.g. tokenize_input,
+ * process_input) — do not clean_exit() from deep helpers; unwind and free there.
+ * Negative like PARSE_ERR (-1); avoids clashing with read_operator() return 1–2.
+ */
+# define MSH_OOM   -2
+
+/* read_input() return values (see main.c) */
+# define READ_INPUT_OOM 2
+
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"
 # define PROMPT_SUFFIX "$ "

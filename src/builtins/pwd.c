@@ -18,6 +18,6 @@ int	builtin_pwd(char **args, t_shell *shell)
 	(void)args;
 	if (!shell->cwd)
 		return (FAILURE);
-	ft_putendl_fd(shell->cwd, 1);
+	ft_printf("%s\n", shell->cwd);
 	return (SUCCESS);
 }

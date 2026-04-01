@@ -12,35 +12,6 @@
 
 #include "minishell.h"
 
-static void	print_redir_error(char *file, int err)
-{
-	char	*reason;
-	char	*msg;
-	size_t	file_len;
-	size_t	reason_len;
-	size_t	len;
-
-	reason = strerror(err);
-	file_len = ft_strlen(file);
-	reason_len = ft_strlen(reason);
-	len = file_len + 2 + reason_len + 1;
-	msg = malloc(len + 1);
-	if (!msg)
-	{
-		ft_putstr_fd(file, 2);
-		ft_putstr_fd(": ", 2);
-		ft_putstr_fd(reason, 2);
-		ft_putstr_fd("\n", 2);
-		return ;
-	}
-	ft_memcpy(msg, file, file_len);
-	ft_memcpy(msg + file_len, ": ", 2);
-	ft_memcpy(msg + file_len + 2, reason, reason_len);
-	msg[len - 1] = '\n';
-	write(2, msg, len);
-	free(msg);
-}
-
 static int	apply_input_redir(t_redir *r, int *had_input)
 {
 	int	fd;
@@ -48,7 +19,7 @@ static int	apply_input_redir(t_redir *r, int *had_input)
 	fd = open(r->file, O_RDONLY);
 	if (fd == -1)
 	{
-		print_redir_error(r->file, errno);
+		ft_dprintf(STDERR_FILENO, "%s: %s\n", r->file, strerror(errno));
 		return (FAILURE);
 	}
 	dup2(fd, STDIN_FILENO);
@@ -67,7 +38,7 @@ static int	apply_output_redir(t_redir *r)
 		fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (fd == -1)
 	{
-		print_redir_error(r->file, errno);
+		ft_dprintf(STDERR_FILENO, "%s: %s\n", r->file, strerror(errno));
 		return (FAILURE);
 	}
 	dup2(fd, r->fd);
@@ -84,8 +55,8 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 	if (r->file && ft_strncmp(r->file, MSH_AMBIG_REDIR_PREFIX,
 			prefix_len) == 0)
 	{
-		ft_putstr_fd(r->file + prefix_len, 2);
-		ft_putstr_fd(": ambiguous redirect\n", 2);
+		ft_dprintf(STDERR_FILENO, "%s: ambiguous redirect\n",
+			r->file + prefix_len);
 		return (FAILURE);
 	}
 	if (r->fd == STDIN_FILENO)

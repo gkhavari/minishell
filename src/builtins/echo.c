@@ -27,7 +27,7 @@ static int	check_n_flag(char *arg)
 	return (0);
 }
 
-/** Print args[start..] separated by single spaces. */
+/** Print args[start..] separated by spaces (ft_printf writes fd 1 only). */
 static void	print_args(char **args, int start)
 {
 	int	i;
@@ -35,9 +35,9 @@ static void	print_args(char **args, int start)
 	i = start;
 	while (args[i])
 	{
-		ft_putstr_fd(args[i], 1);
-		if (args[i + 1])
-			ft_putchar_fd(' ', 1);
+		if (i > start)
+			ft_printf(" ");
+		ft_printf("%s", args[i]);
 		i++;
 	}
 }
@@ -58,6 +58,6 @@ int	builtin_echo(char **args, t_shell *shell)
 	}
 	print_args(args, i);
 	if (newline)
-		ft_putchar_fd('\n', 1);
+		ft_printf("\n");
 	return (SUCCESS);
 }

@@ -34,9 +34,8 @@ static int	export_no_value(t_shell *shell, char *arg)
 {
 	if (!is_valid_export_name(arg))
 	{
-		ft_putstr_fd("export: `", 2);
-		ft_putstr_fd(arg, 2);
-		ft_putendl_fd("': not a valid identifier", 2);
+		ft_dprintf(STDERR_FILENO,
+			"export: `%s': not a valid identifier\n", arg);
 		return (FAILURE);
 	}
 	if (find_export_key_index(shell, arg, ft_strlen(arg)) < 0)
@@ -44,31 +43,37 @@ static int	export_no_value(t_shell *shell, char *arg)
 	return (SUCCESS);
 }
 
-static int	handle_append(t_shell *shell, char *key, char *eq)
+/**
+ * VAR+=suffix: build new value, then replace/append by variable name (key_name).
+ * replace_or_append() looks up env keys using key_name length only — not full entry.
+ */
+static int	handle_append(t_shell *shell, char *key_name, char *eq)
 {
 	char	*old_val;
-	char	*tmp;
-	char	*new_entry;
+	char	*suff;
+	char	*pfx;
+	char	*full;
 	int		ret;
 
-	old_val = get_env_value(shell->envp, key);
+	old_val = get_env_value(shell->envp, key_name);
 	if (old_val)
-		tmp = ft_strjoin(old_val, eq + 1);
+		suff = ft_strjoin(old_val, eq + 1);
 	else
-		tmp = ft_strdup(eq + 1);
-	if (!tmp)
-		return (free(key), FAILURE);
-	new_entry = ft_strjoin(key, "=");
-	free(key);
-	if (!new_entry)
-		return (free(tmp), FAILURE);
-	key = ft_strjoin(new_entry, tmp);
-	free(new_entry);
-	free(tmp);
-	if (!key)
-		return (FAILURE);
-	ret = replace_or_append(shell, key, key);
-	return (free(key), ret);
+		suff = ft_strdup(eq + 1);
+	if (!suff)
+		return (free(key_name), FAILURE);
+	pfx = ft_strjoin(key_name, "=");
+	if (!pfx)
+		return (free(key_name), free(suff), FAILURE);
+	full = ft_strjoin(pfx, suff);
+	free(pfx);
+	free(suff);
+	if (!full)
+		return (free(key_name), FAILURE);
+	ret = replace_or_append(shell, full, key_name);
+	free(key_name);
+	free(full);
+	return (ret);
 }
 
 static int	set_env_var(t_shell *shell, char *arg)
@@ -76,6 +81,7 @@ static int	set_env_var(t_shell *shell, char *arg)
 	char	*eq;
 	char	*key;
 	int		append_mode;
+	int		ret;
 
 	eq = ft_strchr(arg, '=');
 	if (!eq)
@@ -89,13 +95,16 @@ static int	set_env_var(t_shell *shell, char *arg)
 		return (FAILURE);
 	if (!is_valid_export_name(key))
 	{
-		ft_putstr_fd("export: `", 2);
-		ft_putstr_fd(arg, 2);
-		ft_putendl_fd("': not a valid identifier", 2);
+		ft_dprintf(STDERR_FILENO,
+			"export: `%s': not a valid identifier\n", arg);
 		return (free(key), FAILURE);
 	}
 	if (!append_mode)
-		return (replace_or_append(shell, arg, key), free(key), SUCCESS);
+	{
+		ret = replace_or_append(shell, arg, key);
+		free(key);
+		return (ret);
+	}
 	return (handle_append(shell, key, eq));
 }
 
@@ -113,9 +122,8 @@ int	builtin_export(char **args, t_shell *shell)
 	{
 		if (args[i][0] == '-')
 		{
-			ft_putstr_fd("minishell: export: ", 2);
-			ft_putstr_fd(args[i], 2);
-			ft_putendl_fd(": invalid option", 2);
+			ft_dprintf(STDERR_FILENO,
+				"minishell: export: %s: invalid option\n", args[i]);
 			ret = 2;
 		}
 		else if (set_env_var(shell, args[i]))

@@ -89,6 +89,7 @@ typedef struct s_shell
 	char		*input;
 	int			word_quoted;
 	int			heredoc_mode;
+	int			oom;
 }	t_shell;
 
 typedef struct s_heredoc_ctx

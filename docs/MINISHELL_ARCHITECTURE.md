@@ -765,7 +765,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/executor.c` (`execute_commands`, static `run_empty_command` / `run_builtin_command`), `executor/executor_utils.c` (`apply_redirections`), `executor/executor_external.c` (`execute_external`, `find_command_path`), `executor/executor_pipeline.c` + `executor_pipeline_steps.c` (`run_pipe_step`, barrier-ready child setup), `executor/executor_pipeline_not_found.c`, `executor/executor_child_exec.c` (`execute_in_child`), `executor/executor_child_format.c` (`write_err3`, `format_cmd_name_for_error`).
+**Implementation:** `executor/executor.c` (`execute_commands`, static `run_empty_command` / `run_builtin_command`), `executor/executor_utils.c` (`apply_redirections`), `executor/executor_external.c` (`execute_external`, `find_command_path`), `executor/executor_pipeline.c` + `executor_pipeline_steps.c` (`run_pipe_step`, barrier-ready child setup), `executor/executor_pipeline_not_found.c`, `executor/executor_child_exec.c` (`execute_in_child`), `executor/executor_child_format.c` (`dprintf_cmd_not_found`).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -909,7 +909,7 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 ```
 
 **Supporting files:**
-- **`executor_child_format.c`**: `write_err3`, `format_cmd_name_for_error` — errors and `$'…'` display for not found.
+- **`executor_child_format.c`**: `dprintf_cmd_not_found` — not-found line to stderr (`$'…'` when name has control bytes).
 - **`executor_pipeline_not_found.c`**: `handle_all_not_found_pipeline` — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent and return **127** without forking.
 
 ### 7.7 Path Resolution (actual: `executor_external.c`)

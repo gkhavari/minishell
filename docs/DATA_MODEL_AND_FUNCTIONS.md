@@ -1,6 +1,6 @@
 # Data Model & Function Reference
 
-This document explains **why** we chose the current data structures and lists **every function** in the codebase with a one-line description. Use it for onboarding, refactors, and debugging. See [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) for flow and [BEHAVIOR.md](BEHAVIOR.md) for semantics.
+This document explains **why** we chose the current data structures and lists **every function** in the codebase with a one-line description. Use it for onboarding, refactors, and debugging. See [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) for flow (including Mermaid figures: §0–§8, §11) and [BEHAVIOR.md](BEHAVIOR.md) for tester-facing semantics; **§0** in BEHAVIOR maps topics to architecture sections.
 
 ---
 
@@ -99,7 +99,7 @@ typedef struct s_command {
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
-| **is_builtin** | Set in `finalize_all_commands()` from `is_builtin(argv[0])`; decides run in parent vs fork. |
+| **is_builtin** | Set in `finalize_all_commands()` from `is_builtin(argv[0])`. The executor uses it with **`must_run_in_parent()`**: **`cd` / `export` / `unset` / `exit`** always run in the **parent**; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`execute_external`** (fork) like an external command. |
 | **next** | Pipeline: `cmd1 | cmd2 | cmd3` → list of three commands. |
 
 **Why both `args` and `argv`:** Parsing produces `args` incrementally; execution (and `execve`) need `argv`. One conversion step keeps parsing and execution clearly separated.
@@ -133,8 +133,8 @@ typedef struct s_shell {
 | **envp** | We own it so `export`/`unset`/`cd` can change it; passed to `execve`. |
 | **user, cwd** | Prompt construction; updated by `cd`. |
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
-| **had_path** | Set in `init_shell`: whether `PATH` was present at startup. Used by `find_command_path()` when resolving commands without `/` in the name. |
-| **barrier_write_fd** | Write FD for the pipeline launch barrier (or -1). Children block on reading the barrier pipe until the parent releases it — reduces non-deterministic stderr ordering in pipelines. |
+| **had_path** | Set in **`init_runtime_fields()`**: whether **`PATH`** was present in the environment **after** dup (used by **`find_command_path()`** and edge cases when **`PATH`** is unset later). |
+| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`execute_pipeline()`** currently sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`**. The all-not-found fast path (**`executor_pipeline_not_found.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **commands** | Output of parser; input to heredoc + executor; freed after execution or on error. |
 | **input** | Current line from `readline` (TTY) or `read_line_stdin` in `main.c` (non-TTY); freed in tokenizer or in `reset_shell()`. |
@@ -208,14 +208,15 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **main.c** (src/) | `main(argc, argv, envp)` | Entry point: zero shell, `init_shell()`, set signals, `shell_loop()`, then `free_all()` and return `last_exit`. |
-| **main.c** (src/) | `process_input(shell)` | Runs tokenize → parse → process_heredocs → execute_commands; sets `shell->last_exit`. (static) |
-| **main.c** (src/) | `read_input(shell)` | Reads one line: TTY → `build_prompt()` + `readline()`; non-TTY → `get_next_line(STDIN_FILENO)` (from libft). Returns 1=ok, 0=EOF, -1=signal. (static) |
-| **main.c** (src/) | `shell_loop(shell)` | REPL: while(1) { check_signal, read_input, process_input if non-empty, reset_shell }. (static) |
-| **core/init.c** | `get_env_value(envp, key)` | Returns pointer to value part of `KEY=value` in `envp`, or NULL. |
-| **core/init.c** | `build_prompt(shell)` | Builds `"USER@minishell:CWD$ "` from shell->user/cwd; uses defaults if NULL. |
-| **core/init.c** | `init_shell(shell, envp)` | Sets envp (dup), user (NULL-safe if no USER), cwd, `had_path`, `update_shlvl`, last_exit=0, tokens/commands/input=NULL; calls `init_runtime_fields`. |
-| **core/init_runtime.c** | `init_runtime_fields(shell)` | Initializes runtime fields: `barrier_write_fd=-1`, `word_quoted=0`, `heredoc_mode=0`. Also adjusts env ordering for CI compatibility. |
+| **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, `shell_loop()`, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
+| **main.c** (src/) | `read_line_stdin(shell)` | Non-TTY: read one byte at a time until `\n` or EOF; returns line without newline (static). |
+| **main.c** (src/) | `read_input(shell)` | TTY: `build_prompt` + `readline`; else `read_line_stdin`. EOF → 0 (prints `exit` on TTY). After non-NULL line: `check_signal_received` may return -1 (SIGINT). Else 1. (static) |
+| **main.c** (src/) | `shell_loop(shell)` | Loop: `check_signal_received`, `read_input`; on 0 break; on -1 continue; if `input[0]` then `process_input`; detect syntax_err (`!commands && last_exit==2`); `reset_shell`; non-TTY + syntax_err → break. (static) |
+| **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure sets `last_exit=130` and returns) → `execute_commands` → assigns `last_exit`. |
+| **core/init.c** | `init_shell(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` → `cwd`, `init_runtime_fields`, optional `update_shlvl` on interactive TTY. |
+| **core/init.c** | `get_env_value(envp, key)` | Returns pointer into `envp[i]` at value after `=`, or NULL. |
+| **core/init.c** | `build_prompt(shell)` | Builds prompt string for `readline`; caller frees. |
+| **core/init_runtime.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=0`, `barrier_write_fd=-1`, null `tokens/commands/input`, `word_quoted`/`heredoc_mode` 0, **`had_path`** from **`PATH`**. |
 
 ---
 
@@ -226,7 +227,9 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **utils/utils.c** | `ft_strcat(dest, src)` | Appends `src` to `dest` in place. |
 | **utils/utils.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
 | **utils/utils.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
-| **utils/utils.c** | `msh_calloc(shell, nmemb, size)` | Like calloc; on failure calls `free_all(shell)` and exit. |
+| **utils/utils.c** | `msh_calloc(shell, nmemb, size)` | Like calloc; on failure calls `clean_exit(shell, EXIT_FAILURE)`. |
+| **utils/utils2.c** | `clean_exit(shell, status)` | `free_all`, close std fds, `_exit(status)` — normal process exit from child or fatal paths. |
+| **utils/utils2.c** | `msh_strdup(shell, s)` | `ft_strdup` or `clean_exit` on failure. |
 
 ---
 
@@ -280,12 +283,12 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **parser/heredoc.c** | `process_heredocs(shell)` | For each command with heredoc_delim, calls read_heredoc; returns 1 on SIGINT. |
-| **parser/heredoc.c** | `read_heredoc(cmd, shell)` | Creates pipe, reads lines until delimiter, writes to pipe (with optional expansion); sets cmd->heredoc_fd to read end. |
+| **parser/heredoc.c** | `process_heredocs(shell)` | Walks commands; if `heredoc_delim`, `read_heredoc`; returns **FAILURE** on interrupt/error. |
+| **parser/heredoc.c** | `read_heredoc(cmd, shell, line_no)` | `pipe`, `heredoc_read_loop`: TTY `readline("> ")` else byte-read like `main`; sets `cmd->heredoc_fd`. |
 | **parser/heredoc_utils.c** | `is_quoted_delimiter(delim)` | Returns 1 if delimiter is quoted (e.g. `'EOF'` or `"EOF"`) so body is not expanded. |
 | **parser/heredoc_utils.c** | `expand_heredoc_line(line, shell)` | Expands `$VAR` and `$?` in line; returns new string (caller frees). |
-| **parser/heredoc_warning.c** | `print_heredoc_eof_warning(line_count, delim)` | Prints bash-style "warning: here-document delimited by end-of-file" with line number. |
-| **parser/heredoc_warning.c** | `write_heredoc_line(line, write_fd, expand, shell)` | Writes one heredoc line to the pipe, optionally expanding variables. |
+| **parser/heredoc_warning.c** | `print_heredoc_eof_warning(line_no, delim)` | Bash-style EOF-before-delim warning. |
+| **parser/heredoc_warning.c** | `write_heredoc_line(line, fd, expand, shell)` | Writes one line to pipe write end; optional expansion. |
 
 ---
 
@@ -293,25 +296,25 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **executor/executor.c** | `execute_commands(shell)` | If single command → execute_single_command; else execute_pipeline. Returns exit status. |
-| **executor/executor.c** | `execute_single_command(cmd, shell)` | Backs up stdin/stdout, apply_redirections, then execute_builtin or execute_external; restores fds; returns status. |
-| **executor/executor_utils.c** | `apply_redirections(cmd)` | Applies cmd->redirs in order (`r->fd` stdin/stdout); then if heredoc_fd >= 0, dup2 to stdin. Returns 0/1. |
-| **executor/executor_cmd_utils.c** | `restore_fds(stdin_backup, stdout_backup)` | Restores stdin/stdout from backups and closes backups. |
-| **executor/executor_cmd_utils.c** | `execute_builtin(cmd, shell)` | Calls run_builtin(cmd->argv, shell). |
-| **executor/executor_cmd_utils.c** | `set_underscore(shell, path)` | Updates `_` in envp after resolving executable path (child before execve). |
-| **executor/executor_external.c** | `execute_external(cmd, shell)` | Forks; child runs execute_in_child; parent waits and returns child exit status. |
-| **executor/executor_external.c** | `find_command_path(cmd, shell)` | Absolute path → strdup; else search PATH from env (if missing and `had_path`, may use a built-in default list—see source). Returns path or NULL (127 for caller). |
-| **executor/executor_child.c** | `exit_child(shell, status)` | Clean child exit: calls `free_all(shell)`, closes standard FDs, exits with status. |
-| **executor/executor_child.c** | `free_array(arr)` | Frees each element and the array (used for PATH split). |
-| **executor/executor_child_exec.c** | `execute_in_child(cmd, shell)` | In child: if builtin → `run_builtin_child`; else find path, check dir/exec, execve or exit 127/126. |
-| **executor/executor_child_format.c** | `write_err3(prefix, name, msg)` | Writes 3-part error message ("prefix: name: msg") to stderr. |
-| **executor/executor_child_format.c** | `format_cmd_name_for_error(name)` | Escapes special characters in command name for error display (e.g. `$'\n'` quoting). |
-| **executor/executor_pipeline.c** | `execute_pipeline(cmds, shell)` | Handles all-not-found fast path, forks all children connected by pipes, waits for all, returns last exit status. |
-| **executor/executor_pipeline.c** | `wait_children_last(last_pid, n)` | Waitpids n children; returns exit status of the last pipeline command (bash convention). |
-| **executor/executor_pipeline.c** | `run_pipeline_loop(cmds, shell, last_pid, sync_fd)` | Forks each command via `run_pipe_step`; returns count of children forked. |
-| **executor/executor_pipeline_steps.c** | `run_pipe_step(cmd, shell, prev_fd, sync_fd)` | Forks one pipeline step: creates pipe, sets up child FDs, calls `execute_in_child`. |
-| **executor/executor_pipeline_steps.c** | `fork_pipeline_cmd(cmd, shell, prev_fd, pipe_fd)` | Forks child; in child calls `setup_child_fds`, `apply_redirections`, `execute_in_child`. |
-| **executor/executor_pipeline_not_found.c** | `handle_all_not_found_pipeline(cmds, shell)` | Fast-path: if every pipeline stage is a not-found external with no redirs, prints errors in parent and returns 1 (skips forking). |
+| **executor/executor.c** | `execute_commands(shell)` | No commands → success; single cmd → empty / `run_builtin_command` / `execute_external`; else `execute_pipeline`. Returns last status. |
+| **executor/executor.c** | *(static)* `run_empty_command` | Redirs/heredoc only: backup fds, `apply_redirections`, restore. |
+| **executor/executor.c** | *(static)* `run_builtin_command` | If builtin with redirs and **not** `must_run_in_parent` → `execute_external`; else dup/apply/restore and `run_builtin`. |
+| **executor/executor.c** | *(static)* `backup_fds` / `restore_fds` | Dup stdin/stdout for builtin redir in parent. |
+| **executor/executor_utils.c** | `apply_redirections(cmd)` | Walk `redirs`, open/dup2; then dup `heredoc_fd` to stdin if ≥ 0. |
+| **executor/executor_external.c** | `execute_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirections`, `execute_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `get_child_status`. |
+| **executor/executor_external.c** | *(static)* `get_child_status` | `WIFEXITED` / `WIFSIGNALED` → 128+sig; SIGQUIT prints “Quit (core dumped)”. |
+| **executor/executor_external.c** | *(static)* `search_in_path` / `build_candidate` | Colon-scan PATH with `stat` (regular file). |
+| **executor/executor_external.c** | `find_command_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
+| **executor/executor_child_exec.c** | *(static)* `run_builtin_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
+| **executor/executor_child_exec.c** | *(static)* `cmd_not_found` / `check_is_dir` / `handle_exec_error` | Error messages + `clean_exit` 127/126. |
+| **executor/executor_child_exec.c** | `execute_in_child(cmd, shell)` | Builtin branch, empty argv, `find_command_path`, `execve` or errors. |
+| **executor/executor_child_format.c** | `dprintf_cmd_not_found` (static `$'…'` helper) | one stderr line for not-found, incl. special bytes. |
+| **executor/executor_pipeline.c** | *(static)* `wait_children_last` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins. |
+| **executor/executor_pipeline.c** | *(static)* `run_pipeline_loop` | Chains `run_pipe_step`, closes trailing `prev_fd`. |
+| **executor/executor_pipeline.c** | `execute_pipeline(cmds, shell)` | `sync_fd` inactive (-1); `handle_all_not_found_pipeline` → **127**; ignore signals, loop, wait, restore interactive. |
+| **executor/executor_pipeline_steps.c** | *(static)* `setup_child_fds` / `fork_pipeline_cmd` | Pipe wiring between stages. |
+| **executor/executor_pipeline_steps.c** | `run_pipe_step(cmd, shell, prev_fd, sync_fd)` | Public wrapper used by `executor_pipeline.c` (declared in `.c` file). |
+| **executor/executor_pipeline_not_found.c** | `handle_all_not_found_pipeline(cmds, shell)` | If every stage is simple missing-PATH external (no redir/heredoc), print all “not found” in parent; returns **non-zero** so caller returns **127**. |
 
 ---
 
@@ -321,6 +324,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 |------|----------|-------------|
 | **builtins/builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (BUILTIN_ECHO, etc.) or NOT_BUILTIN. |
 | **builtins/builtin_dispatcher.c** | `is_builtin(cmd)` | Returns 1 if cmd is a builtin name, 0 otherwise. |
+| **builtins/builtin_dispatcher.c** | `must_run_in_parent(type)` | True for **cd / export / unset / exit** (must mutate parent shell or exit process). |
 | **builtins/builtin_dispatcher.c** | `run_builtin(argv, shell)` | Dispatches to the correct builtin by name; returns builtin return value. |
 | **builtins/echo.c** | `builtin_echo(args, shell)` | Prints args to stdout with spaces; handles -n (no newline). Returns 0. |
 | **builtins/cd.c** | `builtin_cd(args, shell)` | Changes directory (arg or HOME); updates PWD/OLDPWD in envp; returns 0/1. |
@@ -341,68 +345,42 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **signals/signal_handler.c** | `set_signals_default()` | Sets SIGINT/SIGQUIT/SIGTERM/SIGPIPE to SIG_DFL (for child). |
-| **signals/signal_handler.c** | `set_signals_ignore()` | Sets SIGINT/SIGQUIT to SIG_IGN (parent during pipeline). |
-| **signals/signal_handler.c** | `set_signals_interactive()` | SIGQUIT/SIGTERM/SIGPIPE ignored; SIGINT → sets g_signum and prints newline. |
-| **signals/signal_handler.c** | `handle_child_exit(last_exit_status, pid)` | Waitpid; sets *last_exit_status from WEXITSTATUS or 128+signal. |
-| **signals/signal_utils.c** | `readline_event_hook()` | Readline hook: sets g_signum on SIGINT. |
-| **signals/signal_utils.c** | `check_signal_received(shell)` | If g_signum==SIGINT, sets shell->last_exit=130 and clears g_signum; returns 1 if signal was seen. |
-| **free/free_utils.c** | `free_tokens(token)` | Frees entire token list and their values. |
-| **free/free_utils.c** | `free_args(arg)` | Frees entire t_arg list and their values. |
-| **free/free_runtime.c** | `free_commands(cmd)` | Frees command list: args, argv, redirs, heredoc_delim, and nodes. |
-| **free/free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; sets pointers to NULL (per-line cleanup). |
-| **free/free_shell.c** | `free_all(shell)` | Full teardown: tokens, commands, envp, user, cwd, input. |
+| **signals/signal_handler.c** | `set_signals_default()` | SIGINT/SIGQUIT/SIGPIPE/SIGTERM → **SIG_DFL** (after fork, before exec). |
+| **signals/signal_handler.c** | `set_signals_ignore()` | SIGINT/SIGQUIT → **SIG_IGN** (parent while waiting on child/pipeline). |
+| **signals/signal_handler.c** | `set_signals_interactive()` | SIGQUIT/SIGTERM/SIGPIPE ignored; SIGINT → **`interactive_sigint_handler`** with **SA_RESTART** and mask **SIGQUIT**; clears **`g_signum`**. |
+| **signals/signal_utils.c** | `readline_event_hook()` | If **`g_signum == SIGINT`**: clear readline line, **`rl_done = 1`**. |
+| **signals/signal_utils.c** | `check_signal_received(shell)` | If **`g_signum == SIGINT`**: **`last_exit = EXIT_SIGINT` (130)**, clear flag, return 1. |
+| **free/free_utils.c** | `free_tokens(token)` | Frees token list and values. |
+| **free/free_utils.c** | `free_args(arg)` | Frees `t_arg` list and values. |
+| **free/free_runtime.c** | `free_commands(cmd)` | Frees commands: args, argv, redirs, heredoc_delim, closes `heredoc_fd` if set. |
+| **free/free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; **does not** clear **`last_exit`**, env, cwd. |
+| **free/free_shell.c** | `free_all(shell)` | Full teardown including **`envp`**, user, cwd, input, tokens, commands. |
 
 ---
 
 ## Part 3: Call flow (high level)
 
+Aligned with [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) **§0.4** and **§2**.
+
 ```mermaid
 flowchart TB
-    subgraph Main
-        main[main]
-        init[init_shell]
-        init_rt[init_runtime_fields]
-        loop[shell_loop]
-        read[read_input]
-        process[process_input]
-        reset[reset_shell]
-        free_all[free_all]
-    end
-    subgraph Process
-        tokenize[tokenize_input]
-        parse[parse_input]
-        heredocs[process_heredocs]
-        exec[execute_commands]
-    end
-    subgraph Exec
-        single[execute_single_command]
-        pipeline[execute_pipeline]
-        pipe_step[run_pipe_step]
-        builtin[execute_builtin / run_builtin]
-        external[execute_external]
-        child_exec[execute_in_child]
-        exit_child[exit_child]
-    end
-    main --> init
-    init --> init_rt
-    main --> loop
-    loop --> read
-    loop --> process
-    loop --> reset
-    main --> free_all
-    process --> tokenize
-    process --> parse
-    process --> heredocs
-    process --> exec
-    exec --> single
-    exec --> pipeline
-    pipeline --> pipe_step
-    single --> builtin
-    single --> external
-    external --> child_exec
-    pipe_step --> child_exec
-    child_exec --> exit_child
+    main[main → init_shell] --> loop[shell_loop]
+    loop --> chk[check_signal_received]
+    chk --> ri[read_input]
+    ri --> gate{input[0]?}
+    gate -->|yes| proc[process_input]
+    gate -->|no| rs[reset_shell]
+    proc --> tok[tokenize_input]
+    tok --> par[parse_input]
+    par --> hd[process_heredocs]
+    hd --> ex[execute_commands]
+    ex --> br{single vs pipeline}
+    br --> emp[run_empty / run_builtin_command / execute_external]
+    br --> pl[execute_pipeline → run_pipe_step]
+    emp --> ich[execute_in_child / clean_exit in child]
+    pl --> ich
+    proc --> rs
+    rs --> loop
 ```
 
 ---

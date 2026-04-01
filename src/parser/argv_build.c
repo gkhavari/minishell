@@ -26,7 +26,8 @@ static void	cleanup_partial_argv(char **argv, size_t count)
 /**
  * Build cmd->argv from cmd->args (NULL-terminated); exit on strdup failure.
  */
-static void	build_argv_array(t_shell *shell, t_command *cmd, t_arg *tmp, size_t count)
+static void	build_argv_array(t_shell *shell, t_command *cmd,
+		t_arg *tmp, size_t count)
 {
 	size_t	i;
 

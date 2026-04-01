@@ -81,7 +81,7 @@ int	execute_commands(t_shell *shell)
 	int			stdin_backup;
 	int			stdout_backup;
 	int			status;
-		
+
 	if (!shell->commands)
 		return (SUCCESS);
 	if (!shell->commands->next)
@@ -90,7 +90,8 @@ int	execute_commands(t_shell *shell)
 		if (!cmd->argv || !cmd->argv[0])
 			return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
 		if (cmd->is_builtin)
-			return (run_builtin_command(cmd, shell, &stdin_backup, &stdout_backup));
+			return (run_builtin_command(cmd, shell,
+					&stdin_backup, &stdout_backup));
 		status = execute_external(cmd, shell);
 		return (status);
 	}

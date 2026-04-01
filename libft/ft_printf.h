@@ -1,37 +1,32 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   signal_utils.c                                     :+:      :+:    :+:   */
+/*   ft_printf.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
+/*   Created: 2025/08/06 21:49:26 by thanh-ng          #+#    #+#             */
 /*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "minishell.h"
+#ifndef FT_PRINTF_H
+# define FT_PRINTF_H
 
-/** Readline hook: if SIGINT pending, discard line and finish this read. */
-int	readline_event_hook(void)
-{
-	if (g_signum == SIGINT)
-	{
-		rl_replace_line("", 0);
-		rl_on_new_line();
-		rl_done = 1;
-	}
-	return (0);
-}
+# include <stdarg.h>
+# include <unistd.h>
 
-/** After readline returns: if SIGINT, set exit status 130 and clear flag. */
-int	check_signal_received(t_shell *shell)
-{
-	if (g_signum == SIGINT)
-	{
-		shell->last_exit = EXIT_SIGINT;
-		g_signum = 0;
-		return (1);
-	}
-	return (0);
-}
+# define HEXBASE "0123456789abcdef"
+# define DECBASE "0123456789"
+
+int	ft_printf(const char *format, ...);
+int	ft_dprintf(int fd, const char *format, ...);
+
+int	print_chr_fd(int fd, char c);
+int	print_str_fd(int fd, char *s);
+int	print_nbr_fd(int fd, int n);
+int	print_hex_fd(int fd, unsigned int n, char c);
+int	print_unsigned_fd(int fd, unsigned int n);
+int	print_pointer_fd(int fd, unsigned long long addr);
+
+#endif

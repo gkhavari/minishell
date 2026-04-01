@@ -41,6 +41,9 @@ mstest_*/
 # 42 project checker artifacts (if using)
 *.out
 
+# Local reference clones (e.g. other minishell projects for study only)
+.reference/
+
 # Test binaries
 test_builtins
 minishell_tester/
@@ -72,3 +75,6 @@ build
 __pycache__
 *.pem
 *.key
+
+# libft local ft_printf smoke binary (make -C libft smoke_printf)
+libft/ft_printf_smoke

@@ -20,11 +20,10 @@ void	print_heredoc_eof_warning(int line_no, char *delim)
 	display_line = line_no;
 	if (display_line < 1)
 		display_line = 1;
-	ft_putstr_fd("warning: here-document at line ", 2);
-	ft_putnbr_fd(display_line, 2);
-	ft_putstr_fd(" delimited by end-of-file (wanted `", 2);
-	ft_putstr_fd(delim, 2);
-	ft_putstr_fd("')\n", 2);
+	ft_dprintf(STDERR_FILENO,
+		"warning: here-document at line %d delimited by end-of-file "
+		"(wanted `%s')\n",
+		display_line, delim);
 }
 
 /** Write line to heredoc pipe, optionally expanding variables. */
@@ -35,9 +34,9 @@ void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 	if (expand)
 	{
 		expanded = expand_heredoc_line(line, shell);
-		ft_putendl_fd(expanded, fd);
+		ft_dprintf(fd, "%s\n", expanded);
 		free(expanded);
 	}
 	else
-		ft_putendl_fd(line, fd);
+		ft_dprintf(fd, "%s\n", line);
 }

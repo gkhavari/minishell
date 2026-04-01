@@ -33,8 +33,11 @@ static char	*read_line_stdin(t_shell *shell)
 		}
 		if (c == '\n')
 			return (line);
-		if (append_char(shell, &line, c) == FAILURE)
+		if (append_char(shell, &line, c) == MSH_OOM)
+		{
+			shell->oom = 1;
 			return (NULL);
+		}
 	}
 }
 
@@ -58,7 +61,7 @@ static int	read_input(t_shell *shell)
 	if (!shell->input)
 	{
 		if (tty == 1)
-			ft_putstr_fd("exit\n", STDOUT_FILENO);
+			ft_printf("exit\n");
 		return (0);
 	}
 	if (check_signal_received(shell))
@@ -80,6 +83,11 @@ static void	shell_loop(t_shell *shell)
 			break ;
 		if (status == -1)
 			continue ;
+		if (status == READ_INPUT_OOM)
+		{
+			shell->last_exit = 1;
+			continue ;
+		}
 		syntax_err = 0;
 		if (shell->input[0])
 			process_input(shell);
@@ -91,7 +99,10 @@ static void	shell_loop(t_shell *shell)
 	}
 }
 
-/** Program entry: init shell/env, interactive signals, REPL, exit with last status. */
+/**
+ * Program entry: init shell/env, interactive signals, REPL,
+ * exit with last status.
+ */
 int	main(int argc, char **argv, char **envp)
 {
 	t_shell	shell;
