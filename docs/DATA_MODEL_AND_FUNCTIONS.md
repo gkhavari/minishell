@@ -1,6 +1,6 @@
 # Data Model & Function Reference
 
-This document explains **why** we chose the current data structures and lists **every function** in the codebase with a one-line description. Use it for onboarding, refactors, and debugging. See [minishell_architecture.md](minishell_architecture.md) for flow and [BEHAVIOR.md](BEHAVIOR.md) for semantics.
+This document explains **why** we chose the current data structures and lists **every function** in the codebase with a one-line description. Use it for onboarding, refactors, and debugging. See [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) for flow and [BEHAVIOR.md](BEHAVIOR.md) for semantics.
 
 ---
 
@@ -411,7 +411,7 @@ flowchart TB
 
 | Document | Content |
 |----------|---------|
-| [minishell_architecture.md](minishell_architecture.md) | Pipeline stages, signals, source layout, testing. |
+| [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
 | [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | What we changed and why (data, functions, defensive, 42); recent fix list. |
 | [42_tester_failures.md](42_tester_failures.md) | 42 tester status and root-cause fixes. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |

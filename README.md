@@ -83,33 +83,34 @@ exit
 
 ## Testing
 
-Automated tests live under `tests/`. Run them from the **repository root** (so `./minishell` exists).
+Primary harness: **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** — same as **GitHub Actions** (`.github/workflows/test.yaml`).
 
 ### Run tests (recommended)
 
-The project relies on **[42_minishell_tester](https://github.com/zstenger93/42_minishell_tester)** (cozyGarage fork) as the primary test suite. From the project root:
+From the repo root, with the **Docker dev container** running (`docker compose up -d`):
 
 ```bash
-make -C tests test
-```
-
-This runs the **mandatory** tests from the 42_minishell_tester. If `minishell_tester/` is missing, the script clones the [cozyGarage fork](https://github.com/cozyGarage/42_minishell_tester) for you.
-
-```bash
-./scripts/run_minishell_tester.sh m       # mandatory (same as make -C tests test)
+./scripts/run_minishell_tester.sh m       # mandatory (default)
 ./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
-./scripts/run_minishell_tester.sh m b     # mandatory, builtins only
+./scripts/run_minishell_tester.sh b         # bonus
+./scripts/run_minishell_tester.sh ne        # empty-env
+./scripts/run_minishell_tester.sh a         # all
 ```
 
-To use a different fork: `export COZYGARAGE_TESTER_REPO="https://github.com/.../42_minishell_tester.git"` then run the script. To push changes to the fork: `./scripts/push_tester_fork.sh`.
+The script builds inside the container (`make re` or `make debug` for valgrind modes) and runs `tester.sh --no-update <mode>`. The tester is cloned once into the container at `/root/42_minishell_tester` if missing.
 
-### Other targets
+To use another fork, edit the `git clone` URL in `scripts/run_minishell_tester.sh` (or maintain a local clone and mount it). Optional: `./scripts/push_tester_fork.sh` if you track a personal tester fork.
+
+### Optional `tests/` Makefile
+
+If your tree includes a `tests/` directory with a Makefile (some clones add it), you can still run:
 
 ```bash
-make -C tests test_42     # Same as test
-make -C tests help        # List targets
-make -C tests clean      # Remove test binaries if present
+make -C tests test        # wrapper, if present
+make -C tests help
 ```
+
+That path is **not** required when using only `run_minishell_tester.sh`.
 
 ### Input mode
 
@@ -124,14 +125,17 @@ Scripts under `scripts/` require **git** and work on **macOS and Linux**. If git
 ```
 minishell/
 ├── src/
-│   ├── main.c              # REPL loop, read_input, process_input (only file in src/ root)
+│   ├── main.c              # REPL loop, read_input (only file in src/ root)
 │   ├── core/
-│   │   └── init.c          # init_shell, build_prompt, get_env_value
+│   │   ├── init.c          # init_shell, process_input
+│   │   ├── init_runtime.c
+│   │   └── init_utils.c    # get_env_value, build_prompt
 │   ├── utils/
-│   │   └── utils.c         # ft_arrdup, msh_calloc, ft_strcat, ft_realloc
+│   │   ├── utils.c         # ft_arrdup, msh_calloc, ft_strcat, ft_realloc
+│   │   └── utils2.c        # clean_exit, msh_strdup
 │   ├── free/
 │   │   ├── free_utils.c    # free_tokens, free_args
-│   │   ├── free_runtime.c  # free_commands, redirs
+│   │   ├── free_runtime.c  # free_commands
 │   │   └── free_shell.c    # reset_shell, free_all
 │   ├── signals/
 │   │   ├── signal_handler.c
@@ -146,35 +150,35 @@ minishell/
 │   │   ├── parser_syntax_check.c
 │   │   ├── add_token_to_cmd.c
 │   │   ├── argv_build.c
-│   │   ├── heredoc.c
-│   │   └── heredoc_utils.c
+│   │   ├── heredoc.c, heredoc_utils.c, heredoc_warning.c
+│   │   └── ...
 │   ├── executor/
-│   │   ├── executor.c
-│   │   ├── executor_utils.c
-│   │   ├── executor_external.c
-│   │   ├── executor_pipeline.c
-│   │   └── executor_child.c
+│   │   ├── executor.c, executor_utils.c, executor_external.c
+│   │   ├── executor_pipeline.c, executor_pipeline_steps.c
+│   │   ├── executor_pipeline_not_found.c
+│   │   ├── executor_child_exec.c, executor_child_format.c
+│   │   └── ...
 │   └── builtins/
 │       ├── builtin_dispatcher.c
 │       ├── echo.c, cd.c, pwd.c, env.c
 │       ├── export.c, export_utils.c, export_print.c
-│       ├── unset.c, exit.c
+│       ├── unset.c, exit.c, exit_utils.c
 ├── includes/
 │   ├── minishell.h
 │   ├── structs.h
 │   └── prototypes.h
 ├── libft/                   # Static library (submodule or vendored)
-├── tests/
-│   └── Makefile             # make test (= 42 mandatory), test_42
+├── tests/                   # optional: Makefile wrapper for tester, if present
 ├── scripts/
-│   ├── run_minishell_tester.sh  # 42_minishell_tester runner (mandatory, valgrind)
-│   ├── push_tester_fork.sh      # Push tester changes to fork
-│   └── ensure_deps.sh           # Git check; optional install (AUTO_INSTALL_DEPS=1)
+│   ├── run_minishell_tester.sh  # LeaYeh tester in Docker (m, vm, …)
+│   ├── push_tester_fork.sh
+│   └── ensure_deps.sh
 ├── docs/
-│   ├── minishell_architecture.md   # Design, flow, Mermaid diagrams
-│   ├── DATA_MODEL_AND_FUNCTIONS.md # Struct/enum rationale + function reference
-│   ├── TECHNICAL_DECISIONS.md      # What we changed and why (data, functions, defensive, 42)
-│   └── BEHAVIOR.md                 # Edge cases and bash-aligned behavior
+│   ├── MINISHELL_ARCHITECTURE.md # Design, flow, Mermaid diagrams
+│   ├── DATA_MODEL_AND_FUNCTIONS.md
+│   ├── TECHNICAL_DECISIONS.md
+│   ├── BEHAVIOR.md
+│   └── 42_tester_failures.md
 ├── Makefile
 └── README.md
 ```
@@ -185,7 +189,7 @@ minishell/
 
 | Doc | Description |
 |-----|-------------|
-| [docs/minishell_architecture.md](docs/minishell_architecture.md) | Architecture, source layout, main loop, parser, executor; Mermaid diagrams; implementation status. |
+| [docs/MINISHELL_ARCHITECTURE.md](docs/MINISHELL_ARCHITECTURE.md) | Architecture, source layout, main loop, parser, executor; Mermaid diagrams; implementation status. |
 | [docs/DATA_MODEL_AND_FUNCTIONS.md](docs/DATA_MODEL_AND_FUNCTIONS.md) | Data model (why each struct/enum); function reference (every function by file). |
 | [docs/TECHNICAL_DECISIONS.md](docs/TECHNICAL_DECISIONS.md) | What we changed and why: data, functions, defensive/bug prevention, 42 constraints. |
 | [docs/BEHAVIOR.md](docs/BEHAVIOR.md) | Redirections, pipes, expansion, builtins, exit codes, signals. |

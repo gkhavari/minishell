@@ -1,6 +1,6 @@
 # 42 Minishell Tester - Failure Tracking
 
-This document tracks the current state of mandatory test failures from the [42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester).
+This document tracks the current state of mandatory test failures from **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** (same harness as CI and `./scripts/run_minishell_tester.sh`).
 
 **Purpose:** Monitor test progress, identify regressions, and document known issues.
 

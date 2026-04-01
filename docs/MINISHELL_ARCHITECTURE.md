@@ -2,7 +2,7 @@
 
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
 >
-> **Test-backed behavior:** The test suite is **42_minishell_tester** (mandatory). For expected behavior per input, exit codes, and test-design guidance, see **[BEHAVIOR.md](BEHAVIOR.md)**.
+> **Test-backed behavior:** Primary harness is **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** (`tester.sh`, mandatory mode `m`). For expected I/O and exit codes, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 
 ---
 
@@ -10,30 +10,48 @@
 
 This section reflects the **actual codebase** as built: source layout, data flow, and test status.
 
-### 0.1 Test Status (as of last run)
+### 0.1 Test harness (current repo)
 
-| Suite | Description | Status |
-|-------|-------------|--------|
-| 42_minishell_tester (mandatory) | `make -C tests test` runs [42_minishell_tester](https://github.com/cozyGarage/42_minishell_tester) mandatory | ✅ |
+| Where | What runs | Notes |
+|-------|-----------|--------|
+| **Local (Docker)** | `./scripts/run_minishell_tester.sh [mode]` | Clones [LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester) into the dev container (`/root/42_minishell_tester`), builds `/app`, then `tester.sh --no-update <mode>`. Default mode `m` = mandatory. Common: `m`, `vm`, `b`, `ne`, `a`, `va` (see script header). |
+| **GitHub Actions** | `.github/workflows/test.yaml` + `regression_test.yaml` | Same upstream: `git clone https://github.com/LeaYeh/42_minishell_tester.git`. Regression matrix: `m` (mandatory), `b` (bonus), `ne` (empty env). Crash: `a` / `a --no-env`. Valgrind: one job per `cmds/**/*.sh` with `tester.sh va`. |
+| **Optional wrapper** | `make -C tests test` | Documented in [README.md](../README.md) if a `tests/` Makefile is present; not required if you only use the Docker script. |
 
-Run from repo root: `make -C tests test`.
+```mermaid
+flowchart LR
+    subgraph local["Local dev"]
+        A[./scripts/run_minishell_tester.sh] --> B[docker exec 42-Docker-DevEnv]
+        B --> C[LeaYeh tester.sh]
+    end
+    subgraph ci["GitHub Actions"]
+        D[checkout + make re] --> E[clone LeaYeh 42_minishell_tester]
+        E --> F[tester.sh m / b / ne / a / va]
+    end
+```
 
-### 0.2 Test coverage map (what the suite verifies)
+Pass/fail is **not** pinned here (depends on branch and last CI run). Use workflow logs or `mstest_output_*` from the tester for results.
 
-Behavior described in this document and in [BEHAVIOR.md](BEHAVIOR.md) is backed by **42_minishell_tester** (scripts in `cmds/mand/`):
+### 0.2 Test coverage map (LeaYeh `cmds/mand/`)
 
-| Area | Coverage |
-|------|----------|
-| **Echo** | 1_builtins.sh — echo, -n, quotes, $?, backslash escaping |
-| **PWD / CD** | 1_builtins.sh — pwd, cd, cd -, extra args ignored |
-| **Env / Export / Unset** | 1_builtins.sh — env, export, unset, invalid names |
-| **Exit** | 1_builtins.sh — exit 0/42/255/256/257, non-numeric, too many args |
-| **Expansion** | 0_compare_parsing.sh, 1_builtins.sh, 1_variables.sh — $VAR, $?, quotes |
-| **Redirections** | 1_redirs.sh — >, >>, <, <<, combined, missing file |
-| **Pipes** | 1_pipelines.sh — pipelines, heredocs in pipes |
-| **Syntax** | 8_syntax_errors.sh — \|, \| \|, >, >>, <<, invalid tokens |
-| **Path / 127 / 126** | 1_scmds.sh, 2_path_check.sh, 9_go_wild.sh |
-| **Parsing** | 0_compare_parsing.sh, 10_parsing_hell.sh |
+Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** (mandatory part). Behavior detail stays in [BEHAVIOR.md](BEHAVIOR.md).
+
+| Area | Scripts (indicative) |
+|------|----------------------|
+| **Echo** | `1_builtins_echo.sh` |
+| **pwd** | `1_builtins_pwd.sh` |
+| **cd** | `1_builtins_cd.sh` |
+| **env** | `1_builtins_env.sh` |
+| **export** | `1_builtins_export.sh` |
+| **unset** | `1_builtins_unset.sh` |
+| **exit** | `1_builtins_exit.sh` |
+| **Variables / expansion** | `1_variables.sh`, `11_expansion.sh`, plus parsing/compare scripts |
+| **Redirections** | `1_redirs.sh` |
+| **Pipes** | `1_pipelines.sh` |
+| **Syntax** | `8_syntax_errors.sh` |
+| **Path / 127 / 126 / stress** | `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh` |
+| **Parsing / compare** | `0_compare_parsing.sh`, `10_parsing_hell.sh` |
+| **Misc correction-style** | `2_correction.sh` |
 
 ### 0.3 Source Layout (real files)
 
@@ -1010,7 +1028,7 @@ void safe_free(void **ptr)
 
 ## 12. Testing Checklist
 
-Covered by **42_minishell_tester** (`make -C tests test`). See [BEHAVIOR.md](BEHAVIOR.md) for expected behavior and test-design guidance.
+Covered by **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** (e.g. `./scripts/run_minishell_tester.sh m`). See [BEHAVIOR.md](BEHAVIOR.md) for expected behavior and test-design guidance.
 
 ### 12.1 Basic Commands
 
