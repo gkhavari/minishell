@@ -13,7 +13,7 @@ This document defines **expected behavior** for minishell: what output and exit 
 
 Build runs inside the container (`make re` / `make debug`). CI clones the same repo (see `.github/workflows/test.yaml`).
 
-**CI / baseline:** Failure notes in [42_tester_failures.md](42_tester_failures.md).
+**CI / baseline:** Use GitHub Actions workflow logs and local **`mstest_output_*`** directories after **`./scripts/run_minishell_tester.sh`**.
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** or **`\`**, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo.
 
@@ -175,7 +175,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Test-design note:** Pipeline exit = **last** command’s exit code. Builtins in the middle (e.g. `cd`) run in subshell; parent env unchanged.
 
-**SIGPIPE / Linux CI:** On many Linux runners (e.g. systemd), **SIGPIPE is ignored** in the parent. **Bash** does not reset it to default for pipeline children; they **inherit SIG_IGN**. Then **GNU** tools such as `ls` / `yes` may write **“write error: Broken pipe”** (or similar) to **stderr** when the pipe breaks. This shell **inherits the same rule** so mandatory **stderr presence** matches bash on Ubuntu. On macOS, the parent often has SIGPIPE **default**, so local stderr may differ from CI — **trust Linux** for tester alignment. See [42_tester_failures.md](42_tester_failures.md) and [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md).
+**SIGPIPE / Linux CI:** On many Linux runners (e.g. systemd), **SIGPIPE is ignored** in the parent. **Bash** does not reset it to default for pipeline children; they **inherit SIG_IGN**. Then **GNU** tools such as `ls` / `yes` may write **“write error: Broken pipe”** (or similar) to **stderr** when the pipe breaks. This shell **inherits the same rule** so mandatory **stderr presence** matches bash on Ubuntu. On macOS, the parent often has SIGPIPE **default**, so local stderr may differ from CI — **trust Linux** for tester alignment. See **[MINISHELL_ARCHITECTURE.md §1](MINISHELL_ARCHITECTURE.md)** (signal install).
 
 **Current local residual (Linux):** one stubborn long-pipeline case (`1_pipelines.sh:180`) can differ only by ordering of repeated `command not found` lines across many concurrent children.
 
@@ -219,7 +219,7 @@ See `1_pipelines.sh`.
 | Empty or minimal PATH (e.g. `env -i ./minishell` then `ls`) | — | "command not found" | **127** |
 | **`PATH` unset** but shell started with PATH present (`had_path`) | Match bash for default search list | Often includes **`.`**; non-executable file in cwd → **126** (not 127) when bash does | per bash |
 
-**Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. Resolution uses startup **`had_path`** and fallback paths — see [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) and [42_tester_failures.md](42_tester_failures.md) (PATH caveat). See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
+**Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. Resolution uses startup **`had_path`** and fallback paths — see **§7.7** in [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md). See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
 
 ---
 

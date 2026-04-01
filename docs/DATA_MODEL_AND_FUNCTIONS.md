@@ -412,6 +412,4 @@ flowchart TB
 | Document | Content |
 |----------|---------|
 | [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
-| [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | What we changed and why (data, functions, defensive, 42); recent fix list. |
-| [42_tester_failures.md](42_tester_failures.md) | 42 tester status and root-cause fixes. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |

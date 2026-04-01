@@ -3,6 +3,8 @@
 > **Philosophy:** Defensive programming means we validate every input, handle every error case explicitly, and never assume success. We use bash as our reference implementation but only implement what the 42 subject requires.
 >
 > **Test-backed behavior:** Primary harness is **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** (`tester.sh`, mandatory mode `m`). For expected I/O and exit codes, see **[BEHAVIOR.md](BEHAVIOR.md)**.
+>
+> **Figures (Mermaid):** §0.1 (harness), §0.3 (source graph), §0.4 (input→execute gate), §1.4 (Ctrl+C sequence), §2 (REPL), §3.2.1 (tokenizer loop), §4.1 (expansion vs heredoc), §5.2 (`parse_input` + token walk), §6.2 (heredoc), §7.1 / §7.2 / §7.5 (executor), §8.2 (`last_exit` writers).
 
 ---
 
@@ -163,20 +165,23 @@ graph TB
 
 ### 0.4 Pipeline: Input → Execution (real flow)
 
+**Gate:** **`tokenize_input` → … → `execute_commands`** run only when **`shell_loop`** calls **`process_input`**, i.e. when **`shell->input[0] != '\0'`** (see **§2**). Empty lines skip this entire chain; **`reset_shell`** still runs.
+
 ```mermaid
 flowchart LR
-    A[readline TTY / read_line_stdin non-TTY] --> B[tokenize_input]
+    A[readline / read_line_stdin] --> Q{input[0]?}
+    Q -->|no| R[reset_shell]
+    Q -->|yes| B[tokenize_input]
     B --> C[parse_input]
     C --> D[process_heredocs]
     D --> E[execute_commands]
-    E --> F[reset_shell]
-    B --> G[shell->tokens]
-    C --> H[shell->commands]
-    E --> I[run_empty / run_builtin_command / execute_external / execute_pipeline]
-    I --> J[run_builtin OR execute_in_child in child]
+    E --> R
+    B -.-> T[(tokens)]
+    C -.-> H[(commands)]
+    E -.-> I[empty / builtin / external / pipeline → child or parent]
 ```
 
-- **main.c** (src/): `shell_loop` → `read_input` → `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`.
+- **main.c** (src/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**).
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
 - **Executor** (src/executor/): `execute_commands()` in `executor.c` — empty argv, `run_empty_command`; else single command: `run_builtin_command` (parent with optional `dup`/`apply_redirections`/`restore_fds`, or `execute_external` if builtin has redirs and is not `must_run_in_parent`) or `execute_external`; pipeline → `execute_pipeline()` → `run_pipe_step` / `wait_children_last`; child path → `execute_in_child()` in `executor_child_exec.c`.
@@ -185,110 +190,139 @@ flowchart LR
 
 ## 1. Global State & Signal Handling
 
-### 1.1 The Global Variable Rule
+### 1.1 The only global: `g_signum`
 
 ```c
-/* ONLY global variable allowed in the entire project */
+/* signals/signal_handler.c — ONLY global in the project */
 volatile sig_atomic_t	g_signum = 0;
 ```
 
-| Value        | Meaning         | Action Required                                    |
-| ------------ | --------------- | -------------------------------------------------- |
-| `0`          | No signal       | Continue normally                                  |
-| `SIGINT (2)` | Ctrl+C received | Print newline, new prompt, set `last_exit = 130` |
+| `g_signum` | Meaning |
+| ---------- | ------- |
+| `0` | No signal pending |
+| `SIGINT` | Ctrl+C seen by handler; cleared after `check_signal_received()` or when the readline hook consumes it |
 
-**Critical Rules:**
+**`last_exit = 130`:** Set in **`check_signal_received()`** (`signal_utils.c`) via **`EXIT_SIGINT`** (`defines.h`, value **130**). The async handler does **not** set `t_shell->last_exit`.
 
-- ❌ Do NOT store structs, pointers, or flags in global
-- ❌ Do NOT access `t_shell` from signal handler
-- ✅ Only store the signal NUMBER
-- ✅ Check `g_signum` in main loop AFTER `readline()` returns
+**Rules:** No structs/pointers in globals; **never** use `t_shell` inside a handler. The SIGINT handler only sets **`g_signum`** and **`write(STDOUT_FILENO, "\n", 1)`** (async-signal-safe).
 
-**Why `volatile sig_atomic_t`?**
+**Why `volatile sig_atomic_t`:** The compiler must reload the value; writes from the handler must be atomic.
 
-- `volatile`: Tells compiler the value can change at any time (by signal handler)
-- `sig_atomic_t`: Guaranteed atomic read/write (no partial updates)
+### 1.2 Bash-oriented behavior (user-visible)
 
-### 1.2 Signal Behavior (Bash Reference)
+| Signal / input | At prompt (interactive) | While external/pipeline child runs | During heredoc input |
+| -------------- | ------------------------ | ----------------------------------- | -------------------- |
+| **SIGINT** (Ctrl+C) | New line, `$? = 130`, new prompt | Child receives default SIGINT; parent ignores while in **`waitpid`** | Loop stops, `process_input` sets failure (see §6) |
+| **SIGQUIT** (Ctrl+\) | Ignored (`SIG_IGN`) | Child: default → may print “Quit (core dumped)” | Ignored |
+| **EOF** (Ctrl+D) | `readline` returns NULL → exit shell | N/A | Line ends / EOF handling in **`read_heredoc_line`** |
 
-| Signal             | Interactive Mode     | During Execution                  | During Heredoc                     |
-| ------------------ | -------------------- | --------------------------------- | ---------------------------------- |
-| `SIGINT` (Ctrl+C)  | New prompt, `$?=130` | Kill child, new prompt            | Stop heredoc, new prompt, `$?=130` |
-| `SIGQUIT` (Ctrl+\) | Ignored              | Kill child + "Quit (core dumped)" | Ignored                            |
-| `EOF` (Ctrl+D)     | Exit shell           | N/A (not a signal)                | Close heredoc input                |
+See **[BEHAVIOR.md](BEHAVIOR.md)** for tables and tester-oriented notes (e.g. SIGPIPE / stderr on Linux).
 
-**Implementation Pattern:**
+### 1.3 Interactive installation (`set_signals_interactive`)
 
-```c
-/* In main loop, AFTER readline returns */
-if (g_signum == SIGINT)
-{
-    shell->last_exit = 130;
-    g_signum = 0;  /* Reset for next iteration */
-}
+**Call site:** `main()` after `init_shell()` (`signal_handler.c`).
+
+| Signal | Action |
+| ------ | ------ |
+| **SIGINT** | `interactive_sigint_handler`, **`SA_RESTART`**, **`sa_mask`** includes **SIGQUIT** (no re-entrancy race on Ctrl+\) |
+| **SIGQUIT** | `SIG_IGN` |
+| **SIGTERM** | `SIG_IGN` |
+| **SIGPIPE** | `SIG_IGN` (children inherit; common on Linux systemd sessions) |
+
+**TTY + readline:** `main()` sets **`rl_event_hook = readline_event_hook`**. While readline is active, the hook sees **`g_signum == SIGINT`**, clears the line, **`rl_on_new_line()`**, **`rl_done = 1`**, so readline returns.
+
+### 1.4 Ctrl+C at the prompt (control flow)
+
+1. Handler: **`g_signum = SIGINT`**, **`write(1, "\n", 1)`**.
+2. **`readline_event_hook`**: discard buffer, end readline.
+3. **`read_input()`** calls **`check_signal_received(shell)`**: **`last_exit = EXIT_SIGINT`**, **`g_signum = 0`**, return **`-1`** → **`shell_loop`** **`continue`** (no `process_input` on that line).
+4. **`shell_loop`** also calls **`check_signal_received`** at the **start** of each iteration.
+
+```mermaid
+sequenceDiagram
+    participant H as interactive_sigint_handler
+    participant RL as readline + event_hook
+    participant RI as read_input
+    participant CS as check_signal_received
+    H->>H: g_signum=SIGINT, write newline
+    RL->>RL: hook clears line, rl_done
+    RL->>RI: readline returns
+    RI->>CS: after line read
+    CS->>CS: last_exit=EXIT_SIGINT, g_signum=0
 ```
 
-### 1.3 Initialization (actual implementation)
+### 1.5 Dispositions around `fork` / `wait`
 
-**Current `init_shell()` behavior** (see `src/core/init.c`, `init_runtime.c`):
+| Phase | Function | Effect |
+| ----- | -------- | ------ |
+| Child after **`fork`** | **`set_signals_default`** | SIGINT, SIGQUIT, SIGPIPE, SIGTERM → **default** (`executor_external.c`, **`executor_pipeline_steps.c`**) |
+| Parent while waiting | **`set_signals_ignore`** | SIGINT, SIGQUIT → **ignore** so the waiting parent is not torn down by the same keystroke |
+| After wait returns | **`set_signals_interactive`** | Restore §1.3 |
 
-```
-init_shell(t_shell *shell, char **envp)
-├── 1. Caller zeros struct first: ft_bzero(shell) in main
-├── 2. shell->envp = ft_arrdup(envp); clean_exit if NULL
-├── 3. shell->user: USER in env → msh_strdup; else NULL
-├── 4. shell->cwd = getcwd(NULL, 0); if NULL → msh_strdup("/")
-├── 5. init_runtime_fields(shell) — ensure_default_envs (PWD, SHLVL, _), last_exit=0,
-│      tokens/commands/input NULL, word_quoted/heredoc_mode 0, barrier_write_fd=-1, had_path
-└── 6. if isatty(STDIN): update_shlvl(shell) — bump SHLVL in envp
-Signal handlers: main() calls set_signals_interactive() after init_shell
-```
+**Pipeline:** **`execute_pipeline`** calls **`set_signals_ignore`**, runs **`run_pipeline_loop`**, **`wait_children_last`**, then **`set_signals_interactive`**. **Single external:** same pattern inside **`execute_external`** around **`waitpid`**.
 
-**Shell struct fields** (see `includes/structs.h`): In addition to the core fields above, `t_shell` includes three internal flags:
-- **`barrier_write_fd`**: Write FD for the pipeline launch barrier (or -1 if not active). Used to synchronize child startup in pipelines to reduce stderr ordering variance.
-- **`word_quoted`**: Internal tokenizer flag — marks the current word as containing quoted content.
-- **`heredoc_mode`**: Internal tokenizer flag — suppresses `$` expansion inside heredoc delimiter parsing.
+### 1.6 `t_shell` (no further globals)
 
-See [BEHAVIOR.md](BEHAVIOR.md) for runtime semantics. For **42 tester–related fixes** (token list, USER, PATH, export/unset, etc.), see [42_tester_failures.md](42_tester_failures.md).
+All other state is in **`t_shell`** (`includes/structs.h`). **Env, cwd, tokens, commands, input:** filled by init/parser/lexer. **Extra fields:**
+
+- **`had_path`:** PATH was present when the shell started (PATH resolution).
+- **`barrier_write_fd`:** optional pipeline sync write FD, or **`-1`**.
+- **`word_quoted` / `heredoc_mode`:** tokenizer flags (quoted WORD; no `$` in `<<` delimiter).
+
+Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
 ---
 
 ## 2. Main Loop (REPL Cycle)
 
-**Implementation:** `main.c` → `shell_loop()` → `read_input()` → `process_input()`.
+**Implementation:** `src/main.c` → **`shell_loop()`** → **`read_input()`** → (optional) **`process_input()`** in `src/core/init.c`.
 
-**Input source:** When stdin is a TTY, `read_input()` uses `readline(prompt)` (history, editing). When stdin is not a TTY (e.g. pipe from the 42_minishell_tester), it uses **`read_line_stdin()`** in `main.c`: byte-by-byte `read()` until `\n` or EOF—no prompt, no readline. One call returns one logical line (without the newline).
+**Input source:** When stdin is a **TTY**, `read_input()` uses **`readline(prompt)`** after **`build_prompt(shell)`** (history, line editing). When stdin is **not** a TTY (e.g. **42_minishell_tester**), it uses **`read_line_stdin()`** (static in `main.c`): **`read(STDIN_FILENO, &c, 1)`** until **`'\n'`** or **EOF**—no prompt, no readline. The returned string **does not** include the newline. If **EOF** is read after at least one character without a newline, that partial line is still returned (then the next call may get **EOF** on an empty buffer → **`NULL`**, same as clean EOF on an empty line).
+
+**`read_input()` return values** (only `shell_loop` sees these):
+
+| Return | Meaning | `shell_loop` action |
+|--------|---------|---------------------|
+| **0** | **EOF** (`NULL` from readline / stdin path) | **TTY:** prints **`exit\n`** then **`break`**. **Non-TTY:** **`break`** without printing. |
+| **-1** | **SIGINT** path: **`check_signal_received()`** inside `read_input` fired; **`shell->input`** freed and cleared | **`continue`** (no `process_input`, no `reset_shell` for that iteration—nothing to free beyond what `read_input` already did). |
+| **1** | A non-**NULL** line was read | If **`shell->input[0] != '\0'`** → **`process_input(shell)`**; if the first byte is **`'\0'`** → skip **`process_input`** entirely (empty line: no tokenize, no history). Then **`reset_shell(shell)`** always runs. |
+
+**Inside `read_input()`** (after a line pointer is obtained): **`check_signal_received(shell)`** runs for **every** non-**NULL** line (**empty** `""` included) before returning **1**—same mechanism as Ctrl+C at the prompt (§1.4). **`build_prompt()`** failure returns **0** (loop exits as if EOF).
+
+**After `process_input()`** (when it was called): **`shell_loop`** sets **`syntax_err = 1`** if **`!shell->commands && shell->last_exit == 2`** (e.g. unclosed quote from tokenizer). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
+
+> **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->commands && shell->last_exit == 2`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
+
+**`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->commands`** return; else **`process_heredocs`** — on heredoc interrupt **`last_exit = 130`** and return **without** **`execute_commands`**; else **`last_exit = execute_commands(shell)`**.
+
+**Program exit:** **`main()`** returns **`shell.last_exit`** after **`rl_clear_history()`**, **`free_all()`**, and closing std fds.
 
 ```mermaid
 flowchart TD
-    START([shell_loop]) --> CHECK_SIG[check g_signum]
-    CHECK_SIG --> READ[read_input]
-    READ --> PROMPT{isatty?}
-    PROMPT -->|yes| BUILD[build_prompt, readline]
-    PROMPT -->|no| RLS[read_line_stdin]
-    BUILD --> GOT{input}
-    RLS --> GOT{input}
-    GOT -->|NULL| EXIT[print exit, break]
-    GOT -->|empty| RESET[reset_shell, continue]
-    GOT -->|string| CHECK_SIG2[check g_signum again]
-    CHECK_SIG2 --> PROCESS[process_input]
-    PROCESS --> TOKEN[tokenize_input]
-    TOKEN --> PARSE[parse_input]
-    PARSE --> HEREDOC[process_heredocs]
-    HEREDOC --> EXEC[execute_commands]
-    EXEC --> RESET
-    RESET --> CHECK_SIG
+    START([shell_loop iteration]) --> CHECK1["check_signal_received(shell)"]
+    CHECK1 --> READ["read_input(shell)"]
+    READ --> RVAL{read_input return}
+    RVAL -->|0| EXIT["break — EOF"]
+    RVAL -->|-1| START
+    RVAL -->|1| INEMPTY{shell->input[0] != 0?}
+    INEMPTY -->|no| RESET["reset_shell — empty line"]
+    INEMPTY -->|yes| PROC["process_input — tokenize → parse → heredocs → execute"]
+    PROC --> RESET
+    RESET --> SYNTAX{"!isatty(stdin) && syntax_err<br/>(no commands && last_exit==2)"}
+    SYNTAX -->|yes| EXIT
+    SYNTAX -->|no| START
 ```
 
 | Step | Code / behavior |
 |------|------------------|
-| 1 | `check_signal_received(shell)` — if SIGINT, set `last_exit=130`, reset `g_signum`. |
-| 2 | `read_input()`: if TTY → `build_prompt()`, `readline(prompt)`; else `read_line_stdin()` (one line per call, no prompt). |
-| 3 | NULL → print `"exit"` (TTY only), break; empty → skip processing; else continue. |
-| 4 | Check `g_signum` again (e.g. Ctrl+C during readline). |
-| 5 | **TTY:** non-empty input is added to readline history in `tokenizer_handlers.c` during tokenization (before `shell->input` is freed). **Non-TTY:** no history. |
-| 6 | `process_input()`: tokenize → parse → heredocs → execute. |
-| 7 | `reset_shell(shell)` frees tokens, commands, input. |
+| 1 | Top of loop: **`check_signal_received(shell)`** — if **`g_signum == SIGINT`**, set **`last_exit = EXIT_SIGINT` (130)**, clear **`g_signum`** (§1). |
+| 2 | **`read_input()`**: TTY → **`build_prompt`**, **`readline`**; non-TTY → **`read_line_stdin()`**. |
+| 3 | **`read_input`:** **`!shell->input`** → return **0** (see table above). |
+| 4 | **`read_input`:** **`check_signal_received`** on non-**NULL** line → may return **-1** (SIGINT). |
+| 5 | **`shell_loop`:** only if **`shell->input[0]`** → **`process_input()`** (tokenize → parse → heredocs → execute). |
+| 6 | **Readline history:** **`add_history(shell->input)`** in **`handle_end_of_string()`** (`tokenizer_handlers.c`) only if **`isatty(STDIN_FILENO)`** and **`shell->input[0]`** (non-empty line reached EOL without unclosed quote). Empty lines never enter tokenization, so no history entry. |
+| 7 | **`reset_shell(shell)`** frees tokens, commands, input string. |
+| 8 | Non-TTY **+** syntax error (**`last_exit == 2`** and no commands) → **break** loop. |
 
 ---
 
@@ -336,6 +370,28 @@ State: DOUBLE_QUOTED (")
         ├── $ → Mark for expansion (but still in WORD)
         └── Everything else literal until closing "
 ```
+
+### 3.2.1 `tokenizer_loop` dispatch (`tokenizer.c`)
+
+One pass over **`shell->input`**. **States** in code: **`ST_NORMAL`**, **`ST_SQUOTE`**, **`ST_DQUOTE`** (`structs.h`).
+
+```mermaid
+flowchart TD
+    L([tokenizer_loop]) --> E{end of string?}
+    E -->|yes| EOS[handle_end_of_string → history / unclosed quote]
+    E -->|no| Q[handle_quotes_and_expand]
+    Q -->|handled| L
+    Q -->|not| BS[handle_backslash]
+    BS -->|handled| L
+    BS -->|not| OP[handle_operator PIPE/redirs]
+    OP -->|handled| L
+    OP -->|not| WS[handle_whitespace → flush word]
+    WS -->|handled| L
+    WS -->|not| NORM[process_normal_char]
+    NORM --> L
+```
+
+After the loop: **`flush_word`** if **`ST_NORMAL`**; else free tokens on quote error.
 
 ### 3.3 Syntax Error Detection (Defensive Checks)
 
@@ -448,6 +504,20 @@ See [BEHAVIOR.md](BEHAVIOR.md) §1 for the full input-resilience table.
 └──────────────────────────────────────────────────────────────┘
 ```
 
+```mermaid
+flowchart LR
+    subgraph tok["During tokenization"]
+        A[$VAR / $? / ~] --> B[Quoted vs unquoted paths]
+        B --> C[append_expansion_quoted / unquoted]
+        C --> D[Word boundary → flush token]
+    end
+    subgraph hd["Heredoc body parser/heredoc_utils"]
+        H1[expand if delimiter unquoted] --> H2[write to pipe]
+    end
+```
+
+**Tilde `~`:** handled in **`handle_tilde_expansion()`** when not in heredoc mode (same tokenizer pass as **`$`**).
+
 ### 4.2 Variable Expansion Rules
 
 | Input        | Context         | Result             | Explanation                |
@@ -553,19 +623,30 @@ typedef struct s_command
 ### 5.2 Parsing Flow (actual: `parser/parser.c`, `parser/add_token_to_cmd.c`)
 
 ```mermaid
-flowchart LR
-    T[Tokens]
-    T --> P[parse_tokens]
-    P --> C1[cmd1: args]
-    P --> C2[cmd2: args + redirs]
-    C1 --> F[finalize_all_commands]
-    C2 --> F
-    F --> A1[argv + is_builtin]
-    F --> A2[argv + redirs]
+flowchart TD
+    PI[parse_input] --> T0{tokens?}
+    T0 -->|no| NULL[commands = NULL, return]
+    T0 -->|yes| SY[syntax_check]
+    SY -->|SYNTAX_ERR| E2[last_exit = 2, free tokens, return]
+    SY -->|OK| PT[parse_tokens → t_command list]
+    PT -->|NULL| E1[last_exit = 1]
+    PT -->|ok| FIN[finalize_all_commands]
+    FIN --> ARGV[finalize_argv + is_builtin per cmd]
 ```
 
-- **parser/parser.c**: `parse_tokens()` walks tokens; each step `parse_token_step()` — on `PIPE` appends a new `t_command`, else `add_token_to_command()` (WORD → `add_word_to_cmd`, redirs → `append_redir` / `handle_heredoc_token`).
-- **parser/argv_build.c**: `finalize_all_commands()` → `finalize_argv()` (args list → `argv[]`), then `is_builtin(cmd->argv[0])` → `cmd->is_builtin`.
+- **parser/parser.c**: **`parse_input()`** — **`syntax_check`** first; on success **`parse_tokens()`** walks tokens; each **`parse_token_step()`**: on **`PIPE`** append new **`t_command`**, else **`add_token_to_command()`** (WORD → **`add_word_to_cmd`**, redirs → **`append_redir`** / **`handle_heredoc_token`**).
+- **parser/argv_build.c**: **`finalize_all_commands()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`is_builtin(cmd->argv[0])`** → **`cmd->is_builtin`**.
+
+```mermaid
+flowchart LR
+    subgraph walk["parse_tokens walk"]
+        TK[token stream] --> STEP[parse_token_step]
+        STEP -->|PIPE| NC[new t_command]
+        STEP -->|WORD/redir| ADD[add_token_to_command]
+    end
+    NC --> STEP
+    ADD --> STEP
+```
 
 ### 5.3 Redirection Parsing (Right-to-Left for Multiple)
 
@@ -643,6 +724,16 @@ Command: cat << EOF << END
 ┌──────────────────────────────────────────────────────────────┐
 │  3. Last heredoc FD becomes stdin for command                │
 └──────────────────────────────────────────────────────────────┘
+```
+
+```mermaid
+flowchart LR
+    PH[process_heredocs] --> E[each << : pipe in parent]
+    E --> L[read_heredoc_line loop]
+    L -->|delimiter| F[cmd->heredoc_fd]
+    L -->|SIGINT| X[FAILURE → last_exit 130 in init.c]
+    L -->|EOF| W[heredoc_warning then continue]
+    F --> EX[execute: dup2 heredoc_fd → stdin]
 ```
 
 ### 6.3 Heredoc + Signals
@@ -736,6 +827,16 @@ flowchart TD
 - `exit`: Must exit the parent shell
 
 **Note:** For a **single** command, state-changing builtins (`cd`, `export`, `unset`, `exit`) always run in the parent. Other builtins run in the parent **unless** the command has redirections/heredoc — then they go through `execute_external` (fork) like a simple command with redirs.
+
+```mermaid
+flowchart TD
+    SC[Single command] --> MT{must_run_in_parent?}
+    MT -->|cd export unset exit| PAR[run_builtin in parent]
+    MT -->|no| RD{redirs or heredoc_fd?}
+    RD -->|yes| FK[fork via execute_external]
+    RD -->|no| PAR2[run_builtin in parent]
+    FK --> CH[child: apply_redirections, run_builtin_child or execve]
+```
 
 ### 7.3 Single command (actual: `executor/executor.c`)
 
@@ -838,6 +939,23 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 | `exit` with too many args    | (no exit)      | Print error to stderr, return 1, shell continues |
 
 ### 8.2 Where We Use Each Code
+
+```mermaid
+flowchart LR
+    subgraph set["Who sets last_exit"]
+        EX[execute_commands / builtins]
+        SY[syntax_check / tokenizer errors]
+        HD[heredoc SIGINT]
+        CS[check_signal_received SIGINT]
+        XT[builtin_exit / clean_exit]
+    end
+    EX --> LE[(shell->last_exit)]
+    SY --> LE
+    HD --> LE
+    CS --> LE
+    XT --> LE
+    LE --> MAIN[main return value]
+```
 
 - **0** – Successful builtin or external command.
 - **1** – Builtin failure (e.g. `exit` too many args **returns** 1), redirection failure, or generic error.
@@ -984,45 +1102,53 @@ ft_putstr_fd("\n", 2);
 ### 11.1 Per-Loop Cleanup (actual: `free/free_shell.c`)
 
 ```c
-void reset_shell(t_shell *shell)
+void	reset_shell(t_shell *shell)
 {
-    free(shell->input);
-    shell->input = NULL;
-    free_tokens(shell->tokens);
-    shell->tokens = NULL;
-    free_commands(shell->commands);
-    shell->commands = NULL;
+	if (shell->tokens)
+		free_tokens(shell->tokens);
+	shell->tokens = NULL;
+	if (shell->commands)
+		free_commands(shell->commands);
+	shell->commands = NULL;
+	if (shell->input)
+		free(shell->input);
+	shell->input = NULL;
 }
 ```
+
+**Does not** clear **`envp`**, **`user`**, **`cwd`**, or **`last_exit`** (see **§2**).
 
 ### 11.2 Exit Cleanup (actual: `free/free_shell.c`)
 
 ```c
-/* free/free_shell.c: free_all() — used at process exit (e.g. from builtin_exit) */
-void free_all(t_shell *shell)
+void	free_all(t_shell *shell)
 {
-    free_tokens(shell->tokens);
-    free_commands(shell->commands);
-    free_envp(shell->envp);
-    free(shell->user);
-    free(shell->cwd);
-    free(shell->input);
-    /* rl_clear_history() is called in builtin_exit before free_all */
+	if (shell->tokens)
+		free_tokens(shell->tokens);
+	shell->tokens = NULL;
+	if (shell->commands)
+		free_commands(shell->commands);
+	shell->commands = NULL;
+	if (shell->envp)
+		free_envp(shell->envp);
+	shell->envp = NULL;
+	if (shell->user)
+		free(shell->user);
+	shell->user = NULL;
+	if (shell->cwd)
+		free(shell->cwd);
+	shell->cwd = NULL;
+	if (shell->input)
+		free(shell->input);
+	shell->input = NULL;
 }
 ```
 
-### 11.3 Defensive Free Pattern
+**`main()`** calls **`rl_clear_history()`** before **`free_all()`**; **`builtin_exit`** → **`clean_exit`** → **`free_all`** on shell exit.
 
-```c
-void safe_free(void **ptr)
-{
-    if (ptr && *ptr)
-    {
-        free(*ptr);
-        *ptr = NULL;
-    }
-}
-```
+### 11.3 Defensive pattern
+
+Call sites **NULL** out pointers after freeing (as in **`reset_shell`** / **`free_all`**) so double-free paths are easier to spot. There is **no** shared **`safe_free`** helper in this repo—the pattern is applied **inline**.
 
 ---
 
@@ -1140,6 +1266,4 @@ Phase 6: Polish & Refactor
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)** | Record of what we changed and why: data, functions, defensive/bug prevention, 42 constraints; **recent critical fixes** table. |
-| **[42_tester_failures.md](42_tester_failures.md)** | Mandatory tester CI, session notes (e.g. 2026-03-19 fixes: `add_token`, USER, PATH, export/unset). |
 | **README.md** | Project overview, build, usage, how to run tests. |
