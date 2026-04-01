@@ -7,11 +7,3 @@ rl_replace_line
 rl_redisplay
 rl_done
 rl_event_hook
-
-# Project functions that directly call readline/history APIs
-read_input
-read_heredoc_line
-handle_end_of_string
-readline_event_hook
-clean_exit
-main
