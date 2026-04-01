@@ -1,0 +1,59 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ft_printf_dispatch.c                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/04/01 00:00:00 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "ft_printf.h"
+
+static int	try_basic(int fd, char f, va_list ap)
+{
+	if (f == '%')
+		return (print_chr_fd(fd, '%'));
+	if (f == 'c')
+		return (print_chr_fd(fd, (char)va_arg(ap, int)));
+	if (f == 's')
+		return (print_str_fd(fd, va_arg(ap, char *)));
+	return (PF_CONV_UNHANDLED);
+}
+
+static int	try_nums(int fd, char f, va_list ap)
+{
+	if (f == 'd' || f == 'i')
+		return (print_nbr_fd(fd, va_arg(ap, int)));
+	if (f == 'x' || f == 'X')
+		return (print_hex_fd(fd, va_arg(ap, unsigned int), f));
+	if (f == 'u')
+		return (print_unsigned_fd(fd, va_arg(ap, unsigned int)));
+	if (f == 'p')
+		return (print_pointer_fd(fd,
+				(unsigned long long)va_arg(ap, void *)));
+	return (PF_CONV_UNHANDLED);
+}
+
+int	dispatch_printf_conv(int fd, char format, va_list ap)
+{
+	int	a;
+	int	b;
+	int	r;
+
+	r = try_basic(fd, format, ap);
+	if (r != PF_CONV_UNHANDLED)
+		return (r);
+	r = try_nums(fd, format, ap);
+	if (r != PF_CONV_UNHANDLED)
+		return (r);
+	a = print_chr_fd(fd, '%');
+	if (a < 0)
+		return (-1);
+	b = print_chr_fd(fd, format);
+	if (b < 0)
+		return (-1);
+	return (a + b);
+}

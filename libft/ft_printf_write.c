@@ -1,20 +1,41 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_printf_chr.c                                    :+:      :+:    :+:   */
+/*   ft_printf_write.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/15 18:23:37 by thanh-ng          #+#    #+#             */
+/*   Created: 2026/04/01 00:00:00 by thanh-ng          #+#    #+#             */
 /*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ft_printf.h"
+#include <errno.h>
 
-int	print_chr_fd(int fd, char c)
+/**
+ * Write exactly n bytes (retries on EINTR; -1 on error or spurious 0 return).
+ */
+int	ft_write_all(int fd, const void *buf, size_t n)
 {
-	if (ft_write_all(fd, &c, 1) != 0)
-		return (-1);
-	return (1);
+	const char	*p;
+	size_t		done;
+	ssize_t		w;
+
+	p = (const char *)buf;
+	done = 0;
+	while (done < n)
+	{
+		w = write(fd, p + done, n - done);
+		if (w < 0)
+		{
+			if (errno == EINTR)
+				continue ;
+			return (-1);
+		}
+		if (w == 0)
+			return (-1);
+		done += (size_t)w;
+	}
+	return (0);
 }

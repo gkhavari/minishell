@@ -10,23 +10,16 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ft_printf.h"
+#include "libft.h"
 
 int	print_str_fd(int fd, char *s)
 {
-	int	count;
-	int	ret;
+	size_t	len;
 
 	if (!s)
 		s = "(null)";
-	count = 0;
-	while (*s)
-	{
-		ret = print_chr_fd(fd, *s);
-		if (ret < 0)
-			return (-1);
-		count += ret;
-		s++;
-	}
-	return (count);
+	len = ft_strlen(s);
+	if (ft_write_all(fd, s, len) != 0)
+		return (-1);
+	return ((int)len);
 }

@@ -12,41 +12,36 @@
 
 #include "ft_printf.h"
 
-static int	check_conversion_fd(int fd, const char format, va_list ap)
+static int	handle_fmt_char(int fd, const char *f, int *i, va_list ap)
 {
-	if (format == '%')
-		return (print_chr_fd(fd, '%'));
-	if (format == 'c')
-		return (print_chr_fd(fd, (char)va_arg(ap, int)));
-	if (format == 's')
-		return (print_str_fd(fd, va_arg(ap, char *)));
-	if (format == 'd' || format == 'i')
-		return (print_nbr_fd(fd, va_arg(ap, int)));
-	if (format == 'x' || format == 'X')
-		return (print_hex_fd(fd, va_arg(ap, unsigned int), format));
-	if (format == 'u')
-		return (print_unsigned_fd(fd, va_arg(ap, unsigned int)));
-	if (format == 'p')
-		return (print_pointer_fd(fd,
-				(unsigned long long)va_arg(ap, void *)));
-	return (print_chr_fd(fd, '%') + print_chr_fd(fd, format));
+	int	ret;
+
+	if (f[*i] == '%' && !f[*i + 1])
+		return (-1);
+	if (f[*i] == '%' && f[*i + 1])
+	{
+		(*i)++;
+		ret = dispatch_printf_conv(fd, f[*i], ap);
+	}
+	else
+		ret = print_chr_fd(fd, f[*i]);
+	return (ret);
 }
 
 static int	ft_vdprintf(int fd, const char *format, va_list ap)
 {
 	int		count;
 	int		i;
+	int		ret;
 
 	count = 0;
 	i = 0;
 	while (format[i])
 	{
-		if (format[i] == '%' && !format[i + 1])
+		ret = handle_fmt_char(fd, format, &i, ap);
+		if (ret < 0)
 			return (-1);
-		else if (format[i] == '%' && format[i + 1])
-			count += check_conversion_fd(fd, format[++i], ap);
-		else
-			count += print_chr_fd(fd, format[i]);
+		count += ret;
 		i++;
 	}
 	return (count);
