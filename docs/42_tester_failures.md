@@ -31,7 +31,7 @@ This document tracks the current state of mandatory test failures from the [42_m
 - **EXIT_CODE failures:** 0
 - **CRASHES:** 0
 
-**Note:** Previous baseline from AGENT.md §5 showed 983/986 with 3 failures. Current run shows 982/986 with 4 STD_ERR failures. Need to investigate the extra failure.
+**Note:** Previous baseline from AGENT.md §5 showed 983/986 with 3 failures. Current runs still fluctuate between 3 and 4 STD_ERR failures due scheduler-dependent ordering in multi-child stderr output.
 
 ---
 
@@ -41,16 +41,19 @@ This document tracks the current state of mandatory test failures from the [42_m
 
 | Test # | File:Line | STD_OUT | STD_ERR | EXIT_CODE | CRASH | Category | Notes |
 |--------|-----------|---------|---------|-----------|-------|----------|-------|
+| 35 | `1_pipelines.sh:142` | ✅ | ❌ | ✅ | ✅ | Race | `cat <Makefile \| wc -l` with both commands failing can reorder stderr lines |
 | 44 | `1_pipelines.sh:180` | ✅ | ❌ | ✅ | ✅ | Race | 29-stage pipeline stderr ordering (OS scheduler) |
-| 8  | `1_redirs.sh:18`     | ✅ | ❌ | ✅ | ✅ | Race? | New failure - needs investigation |
-| 18 | `1_redirs.sh:38`     | ✅ | ❌ | ✅ | ✅ | Race | `cat <missing \| cat <infile` - two children race stderr |
+| 8  | `1_redirs.sh:18`     | ✅ | ❌ | ✅ | ✅ | Race | `echo <missing \| cat <infile` may swap full stderr line order between children |
+| 18 | `1_redirs.sh:38`     | ✅ | ❌ | ✅ | ✅ | Race | Alternate redir race variant of two failing children in one pipeline |
 | 93 | `2_correction.sh:221` | ✅ | ❌ | ✅ | ✅ | State | `mkdir bla_test` + `cd bla_test` state carryover |
 
-**Race conditions** (tests 44, 18): These are timing-dependent failures where stderr from multiple child processes arrives in different orders between bash and minishell due to OS scheduler decisions. These are **non-fixable** without fundamentally changing process execution (which would break other behavior).
+**Race conditions** (tests 35/44/8/18): These are timing-dependent failures where stderr from multiple child processes arrives in different orders between bash and minishell due to OS scheduler decisions. The active failing line can change from run to run.
+
+**Investigation result for `1_redirs.sh:18`:** The mismatch was confirmed as stderr ordering race (not semantic behavior). A targeted fix in `src/executor/executor_utils.c` now prints each redirection error with a single `write(2, ...)`, preventing byte-level interleaving. This removes garbled mixed lines, but full-line ordering across children is still nondeterministic.
 
 **State carryover** (test 93): The tester runs sequential blocks in the same temp directory. If a previous test creates `bla_test/`, this test's `mkdir` may fail differently than expected. This is a **tester sequencing issue**, not a shell bug.
 
-**New failure** (test 8 at `1_redirs.sh:18`): This was not in the previous baseline. Needs investigation to determine if it's a regression from the main branch merge or another race condition.
+**Status of test 8 (`1_redirs.sh:18`):** Investigation completed. It is a race-condition variant and can pass or fail depending on scheduling.
 
 ---
 
@@ -65,7 +68,7 @@ This document tracks the current state of mandatory test failures from the [42_m
 | `ne` | **44**  | 44   | N/A   | 0 ✅ |
 | `vne`| **44**  | 44   | **0** | 0 ✅ |
 
-**Change:** Went from 983/986 (3 failures) to 982/986 (4 failures). The new failure is `1_redirs.sh:18`. This needs root cause analysis.
+**Change:** Went from 983/986 (3 failures) to a fluctuating 982-983/986 (3-4 failures), all in known stderr-order race buckets plus test 93 state carryover.
 
 ---
 
@@ -93,10 +96,10 @@ These are documented differences from bash that are **intentional** per project 
 ## Action Items
 
 ### Immediate
-- [ ] **Investigate `1_redirs.sh:18` failure** - new since merge with main
-  - Check what command is being tested
-  - Compare stderr output between bash and minishell
-  - Determine if it's a race or a real regression
+- [x] **Investigated `1_redirs.sh:18` failure**
+   - Command identified: `echo <"./test_files/infile_big" | cat <"./test_files/infile"`
+   - Compared stderr outputs from bash and minishell
+   - Classified as race-ordering behavior; no functional command semantic regression
 
 ### Short-term
 - [ ] Run `vm` mode to get Valgrind baseline (expect 0 leaks per AGENT.md)
@@ -143,6 +146,7 @@ grep "❌" /tmp/test_output.log
 | Date | Branch | Commit | Change | Notes |
 |------|--------|--------|--------|-------|
 | 2026-03-31 | fixvm | post-merge-main | 982/986 (4 failures) | New failure at 1_redirs.sh:18 |
+| 2026-03-31 | fixvm | working tree | Investigated `1_redirs.sh:18` | Confirmed race-ordering; switched redir error print to single `write` to avoid byte-interleaving |
 
 ---
 

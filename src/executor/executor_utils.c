@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 18:53:42 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/03/31 23:59:14 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,31 @@
 
 static void	print_redir_error(char *file, int err)
 {
-	ft_putstr_fd(file, 2);
-	ft_putstr_fd(": ", 2);
-	ft_putstr_fd(strerror(err), 2);
-	ft_putstr_fd("\n", 2);
+	char	*reason;
+	char	*msg;
+	size_t	file_len;
+	size_t	reason_len;
+	size_t	len;
+
+	reason = strerror(err);
+	file_len = ft_strlen(file);
+	reason_len = ft_strlen(reason);
+	len = file_len + 2 + reason_len + 1;
+	msg = malloc(len + 1);
+	if (!msg)
+	{
+		ft_putstr_fd(file, 2);
+		ft_putstr_fd(": ", 2);
+		ft_putstr_fd(reason, 2);
+		ft_putstr_fd("\n", 2);
+		return ;
+	}
+	ft_memcpy(msg, file, file_len);
+	ft_memcpy(msg + file_len, ": ", 2);
+	ft_memcpy(msg + file_len + 2, reason, reason_len);
+	msg[len - 1] = '\n';
+	write(2, msg, len);
+	free(msg);
 }
 
 static int	apply_input_redir(t_redir *r, int *had_input)
