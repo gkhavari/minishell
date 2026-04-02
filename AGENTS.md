@@ -80,16 +80,16 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 ### Sentinels and exit-style values
 
-- **`SUCCESS` / `FAILURE`** — general command/shell outcomes where applicable.
-- **`MSH_OOM` (`-2`)** — **heap allocation failure** in the lexer/parser pipeline. **Not** the same as shell exit code `1`; it is an **internal propagate-up** sentinel (see comment in `defines.h`).
-- **`PARSE_ERR` (`-1`)** — parse-related sentinel where used; do not confuse with `MSH_OOM`.
+- **`OK` / `ERR`** (0/1) — short names for general outcomes; **`SUCCESS`** / **`FAILURE`** are aliases. Use either style consistently per file.
+- **`OOM` (`-2`)** — **heap allocation failure** in the lexer/parser pipeline. **Not** the same as shell exit code `1`; it is an **internal propagate-up** sentinel (see comment in `defines.h`).
+- **`PARSE_ERR` (`-1`)** — parse-related sentinel where used; do not confuse with `OOM`.
 - **Shell exit codes** (`EXIT_SYNTAX_ERROR`, `EXIT_CMD_NOT_FOUND`, `EXIT_CMD_CANNOT_EXECUTE`, signal base **128+N**, **`EXIT_SIGINT`**, etc.) — use macros from **`defines.h`** or documented helpers; avoid bare `130`, `2`, `127` in scattered logic.
 
 ### OOM chaining (no silent leak)
 
-1. **Deep helpers** (`append_char`, token creation, expansion helpers, etc.): on allocation failure, return **`MSH_OOM`** (or `NULL` only where the contract explicitly says the caller must handle it and free partial state).
+1. **Deep helpers** (`append_char`, token creation, expansion helpers, etc.): on allocation failure, return **`OOM`** (or `NULL` only where the contract explicitly says the caller must handle it and free partial state).
 2. **Do not** call **`clean_exit()`** from deep lexer/parser paths for OOM — that bypasses unified unwind of the current line’s allocations.
-3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`MSH_OOM`**, call **`free_lex()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
+3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`OOM`**, call **`free_lex()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
 4. **Child processes** may still use **`clean_exit`** after fork where the process must terminate immediately.
 
 ### Allocators returning pointers: return `NULL`, do not `clean_exit` inside
@@ -130,7 +130,7 @@ Prefer **short functions** with **explicit** “caller frees” / “takes owner
 - [ ] If touching allocation paths: **Valgrind** mode (`vm` / `va`) or project stress script where applicable.
 - [ ] **norminette** clean on touched trees if Norm is a project requirement.
 - [ ] **Docs** (`ARCHITECTURE`, `DATA_MODEL`, `BEHAVIOR`) updated if public contracts or file layout changed.
-- [ ] **No silent OOM** — propagate **`MSH_OOM`** to the agreed unwind frame.
+- [ ] **No silent OOM** — propagate **`OOM`** to the agreed unwind frame.
 
 ---
 

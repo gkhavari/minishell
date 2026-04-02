@@ -132,7 +132,7 @@ typedef struct s_shell {
 | **barrier_write_fd** | Reserved for a pipeline launch barrier; **`execute_pipeline()`** currently sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`**. The all-not-found fast path (**`executor_pip_not_found.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **commands** | Output of parser; input to heredoc + executor; freed after execution or on error. |
-| **input** | Current line from `readline` (TTY) or `read_line_stdin` in `main.c` (non-TTY); freed in tokenizer or in `reset_shell()`. |
+| **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via `read_line_stdin` in `main.c` (non-TTY); freed in tokenizer or in `reset_shell()`. |
 | **word_quoted** | Internal flag set by `mark_word_quoted()` during tokenization; tells `flush_word()` whether the current token came from a quoted span. |
 | **heredoc_mode** | Internal flag set by `set_heredoc_mode()`; when active, the tokenizer does not expand `$` in the heredoc delimiter string. |
 
@@ -209,7 +209,8 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, `shell_loop()`, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
-| **main.c** (src/) | `read_line_stdin(shell)` | Non-TTY: read one byte at a time until `\n` or EOF; returns line without newline (static). |
+| **utils/read_stdin_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; `READ_LINE` / `READ_EOF` / `OOM`; optional `shell->oom` on append failure. |
+| **main.c** (src/) | `read_line_stdin(shell)` | Wrapper: `ft_read_stdin_line(..., 0)` into `*out` (static). |
 | **main.c** (src/) | `read_input(shell)` | TTY: `build_prompt` + `readline`; else `read_line_stdin`. EOF → 0 (prints `exit` on TTY). After non-NULL line: `check_signal_received` may return -1 (SIGINT). Else 1. (static) |
 | **main.c** (src/) | `shell_loop(shell)` | Loop: `check_signal_received`, `read_input`; on 0 break; on -1 continue; if `input[0]` then `process_input`; detect syntax_err (`!commands && last_exit==EXIT_SYNTAX_ERROR`); `reset_shell`; non-TTY + syntax_err → break. (static) |
 | **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `EXIT_SIGINT`, else `FAILURE`) → `execute_commands` → assigns `last_exit`. |
@@ -243,7 +244,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/tokenizer_utils.c** | `flush_word(shell, word, tokens)` | If *word non-empty, creates a WORD token and `ft_lstadd_back` on `*tokens`; frees *word. |
 | **tokenizer/tokenizer_utils.c** | `add_token(head, new_tok)` | `ft_lstnew` + `ft_lstadd_back`; on failure frees `new_tok`. |
 | **tokenizer/tokenizer_utils.c** | `new_token(shell, type, value)` | Allocates `t_token` with `ft_strdup(value)`. |
-| **tokenizer/tokenizer_utils.c** | `append_char(shell, dst, c)` | Appends one char to *dst (malloc/realloc). |
+| **tokenizer/tokenizer_utils.c** | `append_char(shell, dst, c)` | Appends one char to *dst via `ft_realloc`. |
 | **tokenizer/tokenizer_utils.c** | `process_normal_char(shell, c, i, word)` | Appends char `c` to word and advances `*i`. |
 | **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state, &word)` | At end of input: add history in normal state; on unclosed quote set syntax error and discard partial word. |
 | **tokenizer/tokenizer_handlers.c** | `process_quote(shell, c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
@@ -253,13 +254,13 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/tokenizer_quotes.c** | `handle_single_quote(shell, i, word, state)` | Reads single-quoted span (no expansion); appends to word. |
 | **tokenizer/tokenizer_quotes.c** | `handle_double_quote(shell, i, word, state)` | Reads double-quoted span; expands `$VAR` and `$?`. |
 | **tokenizer/tokenizer_ops.c** | `is_op_char(c)` | Returns 1 if c is `|`, `<`, or `>`. |
-| **tokenizer/tokenizer_ops.c** | `read_operator(shell, s, list)` | Parses one operator at s, `add_token` to `t_list **list`; returns chars consumed or `MSH_OOM`. |
+| **tokenizer/tokenizer_ops.c** | `read_operator(shell, s, list)` | Parses one operator at s, `add_token` to `t_list **list`; returns chars consumed or `OOM`. |
 | **tokenizer/expansion.c** | `expand_var(shell, i)` | Expands one variable at *i ($VAR or $?); advances *i; returns new string (caller frees). |
 | **tokenizer/expansion.c** | `handle_variable_expansion(shell, i, word)` | If input at *i is `$` and expandable, expands and appends to word. |
 | **tokenizer/expansion.c** | `handle_tilde_expansion(shell, i, word)` | Expands `~` to HOME and appends to word. |
 | **tokenizer/expansion_utils.c** | `append_expansion_quoted(word, exp)` | Appends string `exp` to *word (quoted context). |
 | **tokenizer/expansion_utils.c** | `append_expansion_unquoted(shell, word, exp, tokens)` | Appends expansion result; may split into multiple WORDs (IFS). |
-| **tokenizer/expansion_utils.c** | `handle_empty_unquoted_expansion(shell, start, end, word)` | Handles empty expansion in unquoted context (inserts `MSH_EMPTY_EXPAND_TOKEN` or adjusts for ambiguous redirect). |
+| **tokenizer/expansion_utils.c** | `handle_empty_unquoted_expansion(shell, start, end, word)` | Handles empty expansion in unquoted context (inserts `EMPTY_EXPAND` or adjusts for ambiguous redirect). |
 | *(continuation support removed — unclosed quotes now emit a syntax error immediately)* |
 
 ---
@@ -268,14 +269,14 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **parser/parser.c** | `parse_input(shell)` | `syntax_check`; `build_command_list` + `finalize_all_commands`; frees token list; **`MSH_OOM`** from finalize sets **`shell->oom`**, frees commands. |
-| **parser/parser_build.c** | `build_command_list(shell, tokens)` | Walks tokens into `t_list` of `t_command *`; **`PARSE_ERR`** → drop partial pipeline; **`MSH_OOM`** → **`shell->oom`**, drop pipeline. |
-| **parser/parser_redir.c** | `parse_redir_token_pair(cmd, tok_node)` | Redir + WORD → `cmd->redirs`; **`PARSE_ERR`** if missing word; **`MSH_OOM`** if malloc fails. |
-| **parser/add_token_to_cmd.c** | `add_token_to_command(...)` | WORD/HEREDOC/redir dispatch; **`PARSE_ERR`** structural; **`MSH_OOM`** on allocation failure. |
-| **parser/argv_build.c** | `finalize_all_commands(shell, cmd_list)` | Per command: `finalize_argv`; returns **`MSH_OOM`** on allocation failure (else **0**). |
+| **parser/parser.c** | `parse_input(shell)` | `syntax_check`; `build_command_list` + `finalize_all_commands`; frees token list; **`OOM`** from finalize sets **`shell->oom`**, frees commands. |
+| **parser/parser_build.c** | `build_command_list(shell, tokens)` | Walks tokens into `t_list` of `t_command *`; **`PARSE_ERR`** → drop partial pipeline; **`OOM`** → **`shell->oom`**, drop pipeline. |
+| **parser/parser_redir.c** | `parse_redir_token_pair(cmd, tok_node)` | Redir + WORD → `cmd->redirs`; **`PARSE_ERR`** if missing word; **`OOM`** if malloc fails. |
+| **parser/add_token_to_cmd.c** | `add_token_to_command(...)` | WORD/HEREDOC/redir dispatch; **`PARSE_ERR`** structural; **`OOM`** on allocation failure. |
+| **parser/argv_build.c** | `finalize_all_commands(shell, cmd_list)` | Per command: `finalize_argv`; returns **`OOM`** on allocation failure (else **0**). |
 | **parser/argv_build.c** | `finalize_argv(shell, cmd)` | Builds cmd->argv from cmd->args (NULL-terminated array). |
 | **parser/parser_syntax_check.c** | `syntax_check(lst)` | Walks token `t_list`; validates pipes and redir+WORD. |
-| **parser/parser_syntax_check.c** | `syntax_error(msg)` | Prints "minishell: syntax error near unexpected token 'msg'" to stderr; returns SYNTAX_ERR. |
+| **parser/parser_syntax_check.c** | `syntax_error(msg)` | Prints "minishell: syntax error near unexpected token 'msg'" to stderr; returns **ERR** (same value as **FAILURE**). |
 
 ---
 
@@ -284,7 +285,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **parser/parser.c** | `process_heredocs(shell)` | Walks commands; if `heredoc_delim`, `read_heredoc`; returns **FAILURE** on interrupt/error. |
-| **parser/heredoc_input.c** | `heredoc_read_line(shell)` | TTY `readline("> ")` else byte-read until newline (like `main` stdin path). |
+| **parser/heredoc_input.c** | `heredoc_read_line(shell)` | TTY `readline("> ")` else `ft_read_stdin_line(..., 1)` (sets `shell->oom` on OOM). |
 | **parser/heredoc.c** | `read_heredoc(cmd, shell, line_no)` | `pipe`, read loop + delimiter match / expand; sets `cmd->heredoc_fd`. |
 | **parser/heredoc_utils.c** | `is_quoted_delimiter(delim)` | Returns 1 if delimiter is quoted (e.g. `'EOF'` or `"EOF"`) so body is not expanded. |
 | **parser/heredoc_utils.c** | `expand_heredoc_line(line, shell)` | Expands `$VAR` and `$?` in line; returns new string (caller frees). |
@@ -392,4 +393,4 @@ flowchart TB
 |----------|---------|
 | [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |
-| [`includes/defines.h`](../includes/defines.h) | **`SUCCESS` / `FAILURE`**, **`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, lexer/parser sentinels. |
+| [`includes/defines.h`](../includes/defines.h) | **`OK` / `ERR`** (aliases **`SUCCESS` / `FAILURE`**), **`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, lexer/parser sentinels. |

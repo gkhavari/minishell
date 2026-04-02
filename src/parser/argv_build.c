@@ -24,7 +24,7 @@ static void	cleanup_partial_argv(char **argv, size_t count)
 }
 
 /**
- * Build cmd->argv from cmd->args (NULL-terminated). Returns 0 or MSH_OOM.
+ * Build cmd->argv from cmd->args (NULL-terminated). Returns 0 or OOM.
  */
 static int	build_argv_array(t_command *cmd, t_list *arg_node, size_t count)
 {
@@ -40,7 +40,7 @@ static int	build_argv_array(t_command *cmd, t_list *arg_node, size_t count)
 		{
 			cleanup_partial_argv(cmd->argv, i);
 			cmd->argv = NULL;
-			return (MSH_OOM);
+			return (OOM);
 		}
 		arg_node = arg_node->next;
 		i++;
@@ -57,13 +57,13 @@ static int	finalize_argv(t_shell *shell, t_command *cmd)
 	count = (size_t)ft_lstsize(cmd->args);
 	cmd->argv = ft_calloc(count + 1, sizeof(char *));
 	if (!cmd->argv)
-		return (MSH_OOM);
+		return (OOM);
 	return (build_argv_array(cmd, cmd->args, count));
 }
 
 /**
  * For each command: build argv, set is_builtin from get_builtin_type (env rule).
- * Returns 0 or MSH_OOM.
+ * Returns 0 or OOM.
  */
 int	finalize_all_commands(t_shell *shell, t_list *cmd_list)
 {
@@ -74,8 +74,8 @@ int	finalize_all_commands(t_shell *shell, t_list *cmd_list)
 	while (node)
 	{
 		cmd = node->content;
-		if (finalize_argv(shell, cmd) == MSH_OOM)
-			return (MSH_OOM);
+		if (finalize_argv(shell, cmd) == OOM)
+			return (OOM);
 		cmd->is_builtin = (get_builtin_type(cmd->argv[0]) != NOT_BUILTIN);
 		if (cmd->is_builtin && cmd->argv[1]
 			&& ft_strcmp(cmd->argv[0], "env") == 0)

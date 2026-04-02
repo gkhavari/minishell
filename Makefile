@@ -34,7 +34,8 @@ SRCS		+=	$(SRC_DIR)/core/init_utils.c
 SRCS		+=	$(SRC_DIR)/utils/ft_strcat.c \
 				$(SRC_DIR)/utils/ft_arrdup.c \
 				$(SRC_DIR)/utils/ft_realloc.c \
-				$(SRC_DIR)/utils/msh_string.c
+				$(SRC_DIR)/utils/msh_string.c \
+				$(SRC_DIR)/utils/read_stdin_line.c
 
 # free
 SRCS		+=	$(SRC_DIR)/free/free_utils.c \

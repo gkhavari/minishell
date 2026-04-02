@@ -12,38 +12,15 @@
 
 #include "minishell.h"
 
-/**
- * Non-TTY: one line from stdin byte-by-byte into *out.
- * On EOF with no bytes, *out is NULL. On OOM after partial read, *out is NULL.
- * Returns MSH_READ_LINE, MSH_READ_EOF, or MSH_OOM.
- */
+/** Non-TTY: one line via ft_read_stdin_line (no shell->oom on OOM). */
 static int	read_line_stdin(t_shell *shell, char **out)
 {
-	char	c;
-	int		ret;
-
-	*out = ft_strdup("");
-	if (!*out)
-		return (MSH_OOM);
-	while (1)
-	{
-		ret = read(STDIN_FILENO, &c, 1);
-		if (ret <= 0)
-		{
-			if (ft_strlen(*out) == 0)
-				return (free(*out), *out = NULL, MSH_READ_EOF);
-			return (MSH_READ_LINE);
-		}
-		if (c == '\n')
-			return (MSH_READ_LINE);
-		if (append_char(shell, out, c) == MSH_OOM)
-			return (MSH_OOM);
-	}
+	return (ft_read_stdin_line(shell, out, 0));
 }
 
 /**
  * TTY: readline; else read_line_stdin.
- * Returns MSH_READ_LINE, MSH_READ_EOF, MSH_READ_SIG, or MSH_OOM.
+ * Returns READ_LINE, READ_EOF, READ_SIG, or OOM.
  */
 static int	read_input(t_shell *shell)
 {
@@ -55,17 +32,17 @@ static int	read_input(t_shell *shell)
 		return (read_line_stdin(shell, &shell->input));
 	prompt = build_prompt(shell);
 	if (!prompt)
-		return (MSH_OOM);
+		return (OOM);
 	shell->input = readline(prompt);
 	free(prompt);
 	if (!shell->input)
 	{
 		ft_printf("exit\n");
-		return (MSH_READ_EOF);
+		return (READ_EOF);
 	}
 	if (check_signal_received(shell))
-		return (free(shell->input), shell->input = NULL, MSH_READ_SIG);
-	return (MSH_READ_LINE);
+		return (free(shell->input), shell->input = NULL, READ_SIG);
+	return (READ_LINE);
 }
 
 /** One REPL iteration after a successful read_input. Returns 1 to exit loop. */
@@ -93,11 +70,11 @@ static void	shell_loop(t_shell *shell)
 	{
 		check_signal_received(shell);
 		status = read_input(shell);
-		if (status == MSH_READ_EOF)
+		if (status == READ_EOF)
 			break ;
-		if (status == MSH_READ_SIG)
+		if (status == READ_SIG)
 			continue ;
-		if (status == MSH_OOM)
+		if (status == OOM)
 		{
 			shell->oom = 1;
 			shell->last_exit = FAILURE;

@@ -57,14 +57,14 @@ static int	append_heredoc_char_or_var(char *line, size_t *i, char **result,
 		val = expand_heredoc_var(line, i, shell);
 		if (!val)
 			return (-1);
-		if (append_expansion_quoted(result, val) == MSH_OOM)
+		if (append_expansion_quoted(result, val) == OOM)
 		{
 			free(val);
 			return (-1);
 		}
 		free(val);
 	}
-	else if (append_char(shell, result, line[(*i)++]) == MSH_OOM)
+	else if (append_char(shell, result, line[(*i)++]) == OOM)
 		return (-1);
 	return (0);
 }
@@ -99,12 +99,12 @@ int	is_quoted_delimiter(char *delim)
 	size_t	len;
 
 	if (!delim || !*delim)
-		return (0);
+		return (FALSE);
 	len = ft_strlen(delim);
 	if (len < 2)
-		return (0);
+		return (FALSE);
 	if ((delim[0] == '\'' && delim[len - 1] == '\'')
 		|| (delim[0] == '"' && delim[len - 1] == '"'))
-		return (1);
-	return (0);
+		return (TRUE);
+	return (FALSE);
 }

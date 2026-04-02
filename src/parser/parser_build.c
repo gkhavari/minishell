@@ -23,7 +23,7 @@ static int	append_pipe_command(t_shell *shell, t_command **cmd,
 	{
 		shell->last_exit = FAILURE;
 		free_commands(cmds_root);
-		return (MSH_OOM);
+		return (OOM);
 	}
 	nc->heredoc_fd = -1;
 	node = ft_lstnew(nc);
@@ -31,7 +31,7 @@ static int	append_pipe_command(t_shell *shell, t_command **cmd,
 	{
 		free(nc);
 		free_commands(cmds_root);
-		return (MSH_OOM);
+		return (OOM);
 	}
 	ft_lstadd_back(cmds_root, node);
 	*cmd = nc;
@@ -45,11 +45,11 @@ static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 	int	consumed;
 
 	consumed = add_token_to_command(shell, cmd, *tok_node);
-	if (consumed == MSH_OOM)
+	if (consumed == OOM)
 	{
 		free_commands(cmds_root);
 		shell->oom = 1;
-		return (MSH_OOM);
+		return (OOM);
 	}
 	if (consumed == PARSE_ERR)
 	{
@@ -77,10 +77,10 @@ static int	parse_token_step(t_shell *shell, t_command **cmd,
 	if (t->type == PIPE)
 	{
 		p = append_pipe_command(shell, cmd, tok_node, cmds_root);
-		if (p == MSH_OOM)
+		if (p == OOM)
 		{
 			shell->oom = 1;
-			return (MSH_OOM);
+			return (OOM);
 		}
 		return (SUCCESS);
 	}
@@ -128,7 +128,7 @@ t_list	*build_command_list(t_shell *shell, t_list *tokens)
 	while (tok)
 	{
 		st = parse_token_step(shell, &cmd, &tok, &cmds);
-		if (st == MSH_OOM || st == FAILURE)
+		if (st == OOM || st == FAILURE)
 			return (NULL);
 	}
 	return (cmds);

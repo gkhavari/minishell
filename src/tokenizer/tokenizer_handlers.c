@@ -37,22 +37,22 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
-		return (MSH_LEX_NO);
+		return (LEX_NO);
 	if (!shell->input[*i + 1])
 	{
 		(*i)++;
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
 	if (!*word)
 	{
 		*word = ft_strdup("");
 		if (!*word)
-			return (MSH_OOM);
+			return (OOM);
 	}
-	if (append_char(shell, word, shell->input[*i + 1]) == MSH_OOM)
-		return (MSH_OOM);
+	if (append_char(shell, word, shell->input[*i + 1]) == OOM)
+		return (OOM);
 	*i += 2;
-	return (MSH_LEX_YES);
+	return (LEX_YES);
 }
 
 /**
@@ -64,25 +64,25 @@ int	process_quote(t_shell *shell, char c, t_state *state)
 	{
 		*state = ST_SQUOTE;
 		shell->word_quoted = 1;
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
 	if (*state == ST_SQUOTE && c == '\'')
 	{
 		*state = ST_NORMAL;
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
 	if (*state == ST_NORMAL && c == '"')
 	{
 		*state = ST_DQUOTE;
 		shell->word_quoted = 1;
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
 	if (*state == ST_DQUOTE && c == '"')
 	{
 		*state = ST_NORMAL;
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
-	return (MSH_LEX_NO);
+	return (LEX_NO);
 }
 
 /**
@@ -93,16 +93,16 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	int	n;
 
 	if (!is_op_char(shell->input[*i]))
-		return (MSH_LEX_NO);
-	if (flush_word(shell, word, &shell->tokens) == MSH_OOM)
-		return (MSH_OOM);
+		return (LEX_NO);
+	if (flush_word(shell, word, &shell->tokens) == OOM)
+		return (OOM);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
 		shell->heredoc_mode = 1;
 	n = read_operator(shell, &shell->input[*i], &shell->tokens);
-	if (n == MSH_OOM)
-		return (MSH_OOM);
+	if (n == OOM)
+		return (OOM);
 	*i += (size_t)n;
-	return (MSH_LEX_YES);
+	return (LEX_YES);
 }
 
 /**
@@ -112,10 +112,10 @@ int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
 	if (msh_is_lexer_blank((unsigned char)shell->input[*i]))
 	{
-		if (flush_word(shell, word, &shell->tokens) == MSH_OOM)
-			return (MSH_OOM);
+		if (flush_word(shell, word, &shell->tokens) == OOM)
+			return (OOM);
 		(*i)++;
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
-	return (MSH_LEX_NO);
+	return (LEX_NO);
 }

@@ -15,7 +15,7 @@
 /** Tokenize, parse, heredocs, then execute_commands. */
 void	process_input(t_shell *shell)
 {
-	if (tokenize_input(shell) == MSH_OOM)
+	if (tokenize_input(shell) == OOM)
 		return ;
 	parse_input(shell);
 	if (shell->oom)

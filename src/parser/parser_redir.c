@@ -42,13 +42,13 @@ static int	append_redir(t_command *cmd, char *file, int fd, int append)
 static int	redir_pair(t_command *cmd, char *file, int fd, int append)
 {
 	if (append_redir(cmd, file, fd, append) == FAILURE)
-		return (MSH_OOM);
-	return (MSH_PARSE_ADVANCE_PAIR);
+		return (OOM);
+	return (PARSE_PAIR);
 }
 
 /**
  * Redirection token + following WORD.
- * Returns MSH_PARSE_ADVANCE_PAIR, MSH_PARSE_ADVANCE_ONE, PARSE_ERR, or MSH_OOM.
+ * Returns PARSE_PAIR, PARSE_ONE, PARSE_ERR, or OOM.
  */
 int	parse_redir_token_pair(t_command *cmd, t_list *tok_node)
 {
@@ -67,5 +67,5 @@ int	parse_redir_token_pair(t_command *cmd, t_list *tok_node)
 		return (redir_pair(cmd, next_tok->value, STDOUT_FILENO, 0));
 	if (cur->type == APPEND)
 		return (redir_pair(cmd, next_tok->value, STDOUT_FILENO, 1));
-	return (MSH_PARSE_ADVANCE_ONE);
+	return (PARSE_ONE);
 }

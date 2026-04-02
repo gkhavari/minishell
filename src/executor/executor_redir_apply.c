@@ -51,8 +51,8 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 {
 	size_t	prefix_len;
 
-	prefix_len = ft_strlen(MSH_AMBIG_REDIR_PREFIX);
-	if (r->file && ft_strncmp(r->file, MSH_AMBIG_REDIR_PREFIX,
+	prefix_len = ft_strlen(AMBIG_REDIR);
+	if (r->file && ft_strncmp(r->file, AMBIG_REDIR,
 			prefix_len) == 0)
 	{
 		ft_dprintf(STDERR_FILENO, "%s: ambiguous redirect\n",

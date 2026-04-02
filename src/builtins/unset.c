@@ -18,17 +18,17 @@ static int	is_valid_unset_name(char *name)
 	int	i;
 
 	if (!name || !*name)
-		return (0);
+		return (FALSE);
 	if (!ft_isalpha(name[0]) && name[0] != '_')
-		return (0);
+		return (FALSE);
 	i = 1;
 	while (name[i])
 	{
 		if (!ft_isalnum(name[i]) && name[i] != '_')
-			return (0);
+			return (FALSE);
 		i++;
 	}
-	return (1);
+	return (TRUE);
 }
 
 /** Index of KEY= in envp or -1. */

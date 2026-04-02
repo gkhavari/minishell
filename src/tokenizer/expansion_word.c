@@ -14,7 +14,7 @@
 
 /**
  * Append exp to *word; flush words on spaces/tabs into tokens.
- * Returns MSH_OOM on allocation failure.
+ * Returns OOM on allocation failure.
  */
 int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		t_list **tokens)
@@ -28,15 +28,15 @@ int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 	{
 		if (msh_is_ifs_blank((unsigned char)exp[i]))
 		{
-			if (*word && flush_word(shell, word, tokens) == MSH_OOM)
-				return (MSH_OOM);
+			if (*word && flush_word(shell, word, tokens) == OOM)
+				return (OOM);
 			while (exp[i] && msh_is_ifs_blank((unsigned char)exp[i]))
 				i++;
 		}
 		else
 		{
-			if (process_normal_char(shell, exp[i], &i, word) == MSH_OOM)
-				return (MSH_OOM);
+			if (process_normal_char(shell, exp[i], &i, word) == OOM)
+				return (OOM);
 		}
 	}
 	return (SUCCESS);
@@ -44,13 +44,13 @@ int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 
 static int	append_expanded_unquoted(t_shell *shell, char **word, char *exp)
 {
-	if (append_expansion_unquoted(shell, word, exp, &shell->tokens) == MSH_OOM)
+	if (append_expansion_unquoted(shell, word, exp, &shell->tokens) == OOM)
 	{
 		free(exp);
-		return (MSH_OOM);
+		return (OOM);
 	}
 	free(exp);
-	return (MSH_LEX_YES);
+	return (LEX_YES);
 }
 
 int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
@@ -60,23 +60,23 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	int		he;
 
 	if (shell->input[*i] != '$')
-		return (MSH_LEX_NO);
+		return (LEX_NO);
 	start = *i;
 	expanded = expand_var(shell, i);
 	if (!expanded)
-		return (MSH_OOM);
+		return (OOM);
 	if (expanded[0] != '\0')
 		return (append_expanded_unquoted(shell, word, expanded));
 	he = handle_empty_unquoted_expansion(shell, start, *i, word);
-	if (he == MSH_OOM)
+	if (he == OOM)
 	{
 		free(expanded);
-		return (MSH_OOM);
+		return (OOM);
 	}
-	if (he != MSH_LEX_NO)
+	if (he != LEX_NO)
 	{
 		free(expanded);
-		return (MSH_LEX_YES);
+		return (LEX_YES);
 	}
 	return (append_expanded_unquoted(shell, word, expanded));
 }
@@ -87,17 +87,17 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	char	*home;
 
 	if (shell->input[*i] != '~' || *word)
-		return (MSH_LEX_NO);
+		return (LEX_NO);
 	next = shell->input[*i + 1];
 	if (next && next != '/' && !msh_is_lexer_blank((unsigned char)next)
 		&& !is_op_char(next))
-		return (MSH_LEX_NO);
+		return (LEX_NO);
 	home = get_env_value(shell->envp, "HOME");
 	if (!home)
 		home = "";
 	if (append_expansion_unquoted(shell, word, home, &shell->tokens)
-		== MSH_OOM)
-		return (MSH_OOM);
+		== OOM)
+		return (OOM);
 	(*i)++;
-	return (MSH_LEX_YES);
+	return (LEX_YES);
 }

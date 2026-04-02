@@ -20,7 +20,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
-**Exit-status macros (code):** **`includes/defines.h`** names bash/POSIX meanings: **`SUCCESS`** / **`FAILURE`** (0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128+signal number, use with **`WTERMSIG`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`READ_INPUT_OOM`** is a **`read_input()`** status sentinel, not a shell exit code.
+**Exit-status macros (code):** **`includes/defines.h`** names bash/POSIX meanings: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128+signal number, use with **`WTERMSIG`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`OOM`** from **`read_input()`** / **`read_line_stdin`** is an internal status sentinel, not a shell exit code.
 
 ---
 

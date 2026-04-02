@@ -13,18 +13,29 @@
 #ifndef DEFINES_H
 # define DEFINES_H
 
-# define SUCCESS   0
-# define FAILURE   1
-/* Structural parse error in command build; not OOM (see MSH_OOM). */
+/*
+** General 0/1 outcomes. SUCCESS and FAILURE are aliases of OK and ERR.
+*/
+# define OK		0
+# define ERR		1
+# define SUCCESS	OK
+# define FAILURE	ERR
+/* Structural parse error in command build; not heap OOM (see OOM). */
 # define PARSE_ERR -1
-# define MSH_OOM   -2
+# define OOM		-2
 
 /*
- * Lexer / expansion step: not applicable vs consumed input.
- * Check MSH_OOM before treating as boolean. Not shell exit codes.
+ * Logical predicates (int 0/1). Not OK/ERR/OOM.
+ * Use in is_* / needs_* helpers instead of raw 0/1.
  */
-# define MSH_LEX_NO  0
-# define MSH_LEX_YES 1
+# define FALSE	0
+# define TRUE	1
+
+/*
+ * Lexer handler: no-op vs handled input. Check OOM before treating as bool.
+ */
+# define LEX_NO		0
+# define LEX_YES	1
 
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"
@@ -32,33 +43,25 @@
 # define PROMPT_DEFAULT_USER "user"
 # define PROMPT_DEFAULT_CWD "/minishell/"
 
-# define SINGLE_QUOTE 39
-# define DOUBLE_QUOTE 34
-# define MSH_ASCII_DEL 127
-
-/* read_input status — not $? / exit codes (see AGENTS.md §9) */
-# define MSH_READ_LINE 1
-# define MSH_READ_EOF 0
-# define MSH_READ_SIG -1
-
-/*SYNTAX CHECK*/
-# define SYNTAX_OK 0
-# define SYNTAX_ERR 1
+/* read_input status — not $? (see AGENTS.md). */
+# define READ_LINE	1
+# define READ_EOF	0
+# define READ_SIG	-1
 
 /*
  * Exit status — bash / POSIX wait(2) conventions:
  *
- *   0               Success.
- *   1               General error (OOM, parse failures, etc.).
- *   2               Shell syntax error or invalid builtin usage.
- *   126             Command invoked but cannot execute (is a directory, etc.).
- *   127             Command not found (or equivalent).
- *   128 + n         Terminated by signal n; e.g. SIGINT (2) -> 130, SIGQUIT (3)
- *                   -> 131, SIGTERM (15) -> 143. Use EXIT_STATUS_FROM_SIGNAL
- *                   with WTERMSIG(status) from waitpid.
+ *   0              Success.
+ *   1              General error (OOM, parse failures, etc.).
+ *   2              Shell syntax error or invalid builtin usage.
+ *   126            Command invoked but cannot execute (is a directory, etc.).
+ *   127            Command not found (or equivalent).
+ *   128 + n        Terminated by signal n; e.g. SIGINT (2) -> 130, SIGQUIT (3)
+ *                  -> 131, SIGTERM (15) -> 143. Use EXIT_STATUS_FROM_SIGNAL
+ *                  with WTERMSIG(status) from waitpid.
  *
  * (Do not redefine EXIT_SUCCESS / EXIT_FAILURE from <stdlib.h>; use SUCCESS /
- *  FAILURE below for the same numeric values where we avoid pulling stdlib
+ *  FAILURE for the same numeric values where we avoid pulling stdlib
  *  into headers that do not need it.)
  */
 # define EXIT_SYNTAX_ERROR		2
@@ -66,27 +69,26 @@
 # define EXIT_CMD_NOT_FOUND		127
 # define EXIT_STATUS_SIGNAL_BASE	128
 # define EXIT_STATUS_FROM_SIGNAL(sig)	((EXIT_STATUS_SIGNAL_BASE) + (sig))
-/* SIGINT from <signal.h>; include that before defines.h (minishell.h order). */
+/* SIGINT from <signal.h>; include that before defines.h. */
 # define EXIT_SIGINT			EXIT_STATUS_FROM_SIGNAL(SIGINT)
 
 /*
- * Parser: tokens consumed per add_token_to_command / parse_redir step
- * (see parser_build parse_token_step). Not $?.
+ * Parser: tokens consumed per add_token / redir step. Not $?.
  */
-# define MSH_PARSE_ADVANCE_ONE	1
-# define MSH_PARSE_ADVANCE_PAIR	2
+# define PARSE_ONE	1
+# define PARSE_PAIR	2
 
-/* Heredoc line reader state (heredoc_read_one / heredoc_consume_line). */
-# define MSH_HEREDOC_LINE_MORE	0
-# define MSH_HEREDOC_LINE_DELIM	1
-# define MSH_HEREDOC_LINE_EOF	2
+/* Heredoc line reader (read_one / consume_line). */
+# define HD_MORE	0
+# define HD_DELIM	1
+# define HD_EOF		2
 
-/* Shell name for stderr lines (see BEHAVIOR / subject). */
-# define MSH_NAME "minishell"
+/* Program name for stderr (BEHAVIOR / subject). */
+# define SH_NAME	"minishell"
 
-/*INTERNAL TOKENS*/
-# define MSH_EMPTY_EXPAND_TOKEN "\001msh_empty"
-# define MSH_AMBIG_REDIR_PREFIX "\001msh_ambig:"
+/* Internal WORD sentinels (lexer/parser). */
+# define EMPTY_EXPAND	"\001msh_empty"
+# define AMBIG_REDIR	"\001msh_ambig:"
 
 /*
 ** Path buffer length for resolve/exec helpers. <limits.h> (via includes.h)

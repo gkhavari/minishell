@@ -16,9 +16,9 @@ static void	init_fatal_errno(t_shell *shell, const char *detail)
 {
 	if (detail != NULL)
 		ft_dprintf(STDERR_FILENO,
-			MSH_NAME ": %s: %s\n", detail, strerror(errno));
+			SH_NAME ": %s: %s\n", detail, strerror(errno));
 	else
-		ft_dprintf(STDERR_FILENO, MSH_NAME ": %s\n", strerror(errno));
+		ft_dprintf(STDERR_FILENO, SH_NAME ": %s\n", strerror(errno));
 	clean_exit_before_readline(shell, FAILURE);
 }
 

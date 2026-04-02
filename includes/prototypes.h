@@ -41,6 +41,10 @@ int			msh_is_env_var_body(int c);
 size_t		msh_env_var_body_span(const char *s, size_t start);
 int			msh_is_dollar_var_leader(int c);
 
+/* read_stdin_line.c */
+int			ft_read_stdin_line(t_shell *shell, char **line,
+				int set_shell_oom_on_fail);
+
 /* free_exit.c */
 void		clean_exit_before_readline(t_shell *shell, int exit_status);
 void		clean_exit(t_shell *shell, int exit_status);
@@ -123,6 +127,10 @@ int			read_heredoc(t_command *cmd, t_shell *shell, int *line_no);
 /* heredoc_utils.c */
 int			is_quoted_delimiter(char *delim);
 char		*expand_heredoc_line(char *line, t_shell *shell);
+
+/* heredoc_warning.c */
+void		print_heredoc_eof_warning(int line_no, char *delim);
+void		write_heredoc_line(char *line, int fd, int expand, t_shell *shell);
 
 /* free_runtime.c */
 void		free_commands(t_list **cmds);

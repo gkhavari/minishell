@@ -13,7 +13,8 @@
 #include "minishell.h"
 
 /**
- * Grow *dst and append c. On failure frees *dst, sets NULL, returns MSH_OOM.
+ * Grow *dst with ft_realloc and append c.
+ * On failure frees *dst, sets NULL, returns OOM.
  */
 int	append_char(t_shell *shell, char **dst, char c)
 {
@@ -25,25 +26,22 @@ int	append_char(t_shell *shell, char **dst, char c)
 		len = 0;
 	else
 		len = ft_strlen(*dst);
-	new = malloc(len + 2);
+	new = ft_realloc(*dst, len + 2);
 	if (!new)
 	{
 		free(*dst);
 		*dst = NULL;
-		return (MSH_OOM);
+		return (OOM);
 	}
-	if (*dst)
-		ft_memcpy(new, *dst, len);
+	*dst = new;
 	new[len] = c;
 	new[len + 1] = '\0';
-	free(*dst);
-	*dst = new;
 	return (SUCCESS);
 }
 
 /**
  * If *word non-empty: emit WORD token, clear buffer and quote/heredoc flags.
- * Returns MSH_OOM if new_token or list append fails.
+ * Returns OOM if new_token or list append fails.
  */
 int	flush_word(t_shell *shell, char **word, t_list **tokens)
 {
@@ -56,14 +54,14 @@ int	flush_word(t_shell *shell, char **word, t_list **tokens)
 		{
 			free(*word);
 			*word = NULL;
-			return (MSH_OOM);
+			return (OOM);
 		}
 		tok->quoted = shell->word_quoted;
-		if (add_token(tokens, tok) == MSH_OOM)
+		if (add_token(tokens, tok) == OOM)
 		{
 			free(*word);
 			*word = NULL;
-			return (MSH_OOM);
+			return (OOM);
 		}
 		free(*word);
 		*word = NULL;
@@ -97,7 +95,7 @@ t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 
 /*
 ** Append t_token * in a new list node at end of *head.
-** Returns SUCCESS or MSH_OOM.
+** Returns SUCCESS or OOM.
 */
 int	add_token(t_list **head, t_token *new_tok)
 {
@@ -108,19 +106,19 @@ int	add_token(t_list **head, t_token *new_tok)
 	{
 		free(new_tok->value);
 		free(new_tok);
-		return (MSH_OOM);
+		return (OOM);
 	}
 	ft_lstadd_back(head, node);
 	return (SUCCESS);
 }
 
 /**
- * append_char(word, c) then (*i)++. Returns SUCCESS or MSH_OOM.
+ * append_char(word, c) then (*i)++. Returns SUCCESS or OOM.
  */
 int	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
 {
-	if (append_char(shell, word, c) == MSH_OOM)
-		return (MSH_OOM);
+	if (append_char(shell, word, c) == OOM)
+		return (OOM);
 	(*i)++;
 	return (SUCCESS);
 }

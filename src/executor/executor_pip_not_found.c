@@ -17,15 +17,15 @@ static int	is_simple_not_found_cmd(t_command *cmd, t_shell *shell)
 	char	*path;
 
 	if (!cmd->argv || !cmd->argv[0] || cmd->is_builtin)
-		return (0);
+		return (FALSE);
 	if (cmd->redirs || cmd->heredoc_delim || cmd->heredoc_fd != -1)
-		return (0);
+		return (FALSE);
 	if (ft_strchr(cmd->argv[0], '/'))
-		return (0);
+		return (FALSE);
 	path = find_command_path(cmd->argv[0], shell);
 	if (path)
-		return (0);
-	return (1);
+		return (FALSE);
+	return (TRUE);
 }
 
 /**
@@ -42,7 +42,7 @@ int	handle_all_not_found_pipeline(t_list *cmds, t_shell *shell)
 	{
 		cmd = node->content;
 		if (!is_simple_not_found_cmd(cmd, shell))
-			return (0);
+			return (FALSE);
 		node = node->next;
 	}
 	node = cmds;
@@ -52,5 +52,5 @@ int	handle_all_not_found_pipeline(t_list *cmds, t_shell *shell)
 		dprintf_cmd_not_found(cmd->argv[0]);
 		node = node->next;
 	}
-	return (1);
+	return (TRUE);
 }

@@ -17,7 +17,9 @@
 */
 int	msh_is_lexer_blank(int c)
 {
-	return (c == ' ' || c == '\t');
+	if (c == ' ' || c == '\t')
+		return (TRUE);
+	return (FALSE);
 }
 
 /*
@@ -26,13 +28,17 @@ int	msh_is_lexer_blank(int c)
 */
 int	msh_is_ifs_blank(int c)
 {
-	return (c == ' ' || c == '\t' || c == '\n');
+	if (c == ' ' || c == '\t' || c == '\n')
+		return (TRUE);
+	return (FALSE);
 }
 
 /** Alnum or '_' after first char of $NAME (expansion / heredoc). */
 int	msh_is_env_var_body(int c)
 {
-	return (ft_isalnum((unsigned char)c) || c == '_');
+	if (ft_isalnum((unsigned char)c) || c == '_')
+		return (TRUE);
+	return (FALSE);
 }
 
 /* Length of env var body run from s[start] (may be 0). */
@@ -49,5 +55,7 @@ size_t	msh_env_var_body_span(const char *s, size_t start)
 /* Char after '$' that starts $? or $NAME (heredoc). */
 int	msh_is_dollar_var_leader(int c)
 {
-	return (ft_isalpha((unsigned char)c) || c == '_' || c == '?');
+	if (ft_isalpha((unsigned char)c) || c == '_' || c == '?')
+		return (TRUE);
+	return (FALSE);
 }

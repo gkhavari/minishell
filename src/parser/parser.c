@@ -22,7 +22,7 @@ static void	run_parse_core(t_shell *shell)
 		shell->last_exit = FAILURE;
 		return ;
 	}
-	if (finalize_all_commands(shell, shell->commands) == MSH_OOM)
+	if (finalize_all_commands(shell, shell->commands) == OOM)
 	{
 		shell->last_exit = FAILURE;
 		shell->oom = 1;
@@ -41,7 +41,7 @@ void	parse_input(t_shell *shell)
 		shell->commands = NULL;
 		return ;
 	}
-	if (syntax_check(shell->tokens) == SYNTAX_ERR)
+	if (syntax_check(shell->tokens) == ERR)
 	{
 		shell->last_exit = EXIT_SYNTAX_ERROR;
 		free_tokens(&shell->tokens);

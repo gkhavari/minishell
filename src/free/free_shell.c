@@ -28,7 +28,7 @@ static void	free_envp(char **envp)
 	free(envp);
 }
 
-/** Free partial lexer state after MSH_OOM (word buffer + tokens + line). */
+/** Free partial lexer state after OOM (word buffer + tokens + line). */
 void	free_lex(t_shell *shell, char **word)
 {
 	if (word && *word)

@@ -17,7 +17,9 @@
  */
 int	is_op_char(char c)
 {
-	return (c == '|' || c == '<' || c == '>');
+	if (c == '|' || c == '<' || c == '>')
+		return (TRUE);
+	return (FALSE);
 }
 
 /**
@@ -55,7 +57,7 @@ static char	*get_op_value(t_tokentype type)
 
 /**
  * Lex one operator at s, push token to list.
- * Returns chars consumed, 0 if none, or MSH_OOM.
+ * Returns chars consumed, 0 if none, or OOM.
  */
 int	read_operator(t_shell *shell, const char *s, t_list **list)
 {
@@ -69,8 +71,8 @@ int	read_operator(t_shell *shell, const char *s, t_list **list)
 		return (0);
 	tok = new_token(shell, type, get_op_value(type));
 	if (!tok)
-		return (MSH_OOM);
-	if (add_token(list, tok) == MSH_OOM)
-		return (MSH_OOM);
+		return (OOM);
+	if (add_token(list, tok) == OOM)
+		return (OOM);
 	return ((int)len);
 }

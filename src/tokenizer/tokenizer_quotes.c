@@ -18,14 +18,14 @@ static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 
 	expanded = expand_var(shell, i);
 	if (!expanded)
-		return (MSH_OOM);
-	if (append_expansion_quoted(word, expanded) == MSH_OOM)
+		return (OOM);
+	if (append_expansion_quoted(word, expanded) == OOM)
 	{
 		free(expanded);
-		return (MSH_OOM);
+		return (OOM);
 	}
 	free(expanded);
-	return (MSH_LEX_YES);
+	return (LEX_YES);
 }
 
 /**
@@ -35,43 +35,43 @@ static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
 {
 	if (shell->input[*i] != '\\' || shell->input[*i + 1] != '$')
-		return (MSH_LEX_NO);
-	if (append_char(shell, word, '$') == MSH_OOM)
-		return (MSH_OOM);
+		return (LEX_NO);
+	if (append_char(shell, word, '$') == OOM)
+		return (OOM);
 	*i += 2;
-	return (MSH_LEX_YES);
+	return (LEX_YES);
 }
 
 /**
- * In ST_DQUOTE: $ / \\$ / literal; else return MSH_LEX_NO.
+ * In ST_DQUOTE: $ / \\$ / literal; else return LEX_NO.
  */
 int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	int	r;
 
 	if (*state != ST_DQUOTE)
-		return (MSH_LEX_NO);
+		return (LEX_NO);
 	if (shell->input[*i] == '$' && !shell->heredoc_mode
 		&& shell->input[*i + 1] != '"' && shell->input[*i + 1] != '\'')
 		return (handle_dollar_in_dquote(shell, i, word));
 	r = handle_escaped_dollar(shell, i, word);
-	if (r == MSH_OOM)
-		return (MSH_OOM);
-	if (r != MSH_LEX_NO)
-		return (MSH_LEX_YES);
-	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
-		return (MSH_OOM);
-	return (MSH_LEX_YES);
+	if (r == OOM)
+		return (OOM);
+	if (r != LEX_NO)
+		return (LEX_YES);
+	if (process_normal_char(shell, shell->input[*i], i, word) == OOM)
+		return (OOM);
+	return (LEX_YES);
 }
 
 /**
- * In ST_SQUOTE: append char literally (no expansion). Else return MSH_LEX_NO.
+ * In ST_SQUOTE: append char literally (no expansion). Else return LEX_NO.
  */
 int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
-		return (MSH_LEX_NO);
-	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
-		return (MSH_OOM);
-	return (MSH_LEX_YES);
+		return (LEX_NO);
+	if (process_normal_char(shell, shell->input[*i], i, word) == OOM)
+		return (OOM);
+	return (LEX_YES);
 }

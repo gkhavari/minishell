@@ -430,7 +430,7 @@ $ ls < >            # bash: syntax error near unexpected token `>'
 int	syntax_check(t_token *token)
 {
 	if (!token)
-		return (SYNTAX_OK);
+		return (OK);
 	if (token->type == PIPE)
 		return (syntax_error("|"));
 	while (token)
@@ -447,7 +447,7 @@ int	syntax_check(t_token *token)
 		}
 		token = token->next;
 	}
-	return (SYNTAX_OK);
+	return (OK);
 }
 ```
 
@@ -627,7 +627,7 @@ flowchart TD
     PI[parse_input] --> T0{tokens?}
     T0 -->|no| NULL[commands = NULL, return]
     T0 -->|yes| SY[syntax_check]
-    SY -->|SYNTAX_ERR| E2[last_exit = EXIT_SYNTAX_ERROR, free tokens, return]
+    SY -->|ERR| E2[last_exit = EXIT_SYNTAX_ERROR, free tokens, return]
     SY -->|OK| PT[parse_tokens → t_command list]
     PT -->|NULL| E1[last_exit = FAILURE]
     PT -->|ok| FIN[finalize_all_commands]
@@ -915,7 +915,7 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 
 ### 8.0 Named constants (`includes/defines.h`)
 
-Use these in C instead of bare numbers: **`SUCCESS`** / **`FAILURE`** (0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
+Use these in C instead of bare numbers: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
 
 ### 8.1 Summary Table
 
@@ -1261,5 +1261,5 @@ Phase 6: Polish & Refactor
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`SUCCESS`/`FAILURE`**, **`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, lexer/parser sentinels. |
+| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`OK`/`ERR`** (**`SUCCESS`/`FAILURE`**), **`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, lexer/parser sentinels. |
 | **README.md** | Project overview, build, usage, how to run tests. |

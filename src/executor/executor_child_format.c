@@ -20,10 +20,10 @@ static int	needs_dollar_quote(char *cmd_name)
 	while (cmd_name && cmd_name[i])
 	{
 		if (!ft_isprint((unsigned char)cmd_name[i]))
-			return (1);
+			return (TRUE);
 		i++;
 	}
-	return (0);
+	return (FALSE);
 }
 
 static int	append_escaped_char(char *out, int j, char c)
