@@ -12,7 +12,7 @@ All types live in **`includes/structs.h`**. The design follows: (1) one represen
 
 | Type | Definition | Why we use it |
 |------|------------|----------------|
-| **`t_tokentype`** | `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC` | Token type for lexer output. `REDIR_OUT` covers both `>` and `>\|` (clobber treated as plain redirect). `2>` stderr redirect is **not** a separate token — not implemented in mandatory scope. |
+| **`t_tokentype`** | `WORD`, `PIPE`, `REDIR_IN`, `REDIR_OUT`, `APPEND`, `HEREDOC` | Token type for tokenizer output. `REDIR_OUT` covers both `>` and `>\|` (clobber treated as plain redirect). `2>` stderr redirect is **not** a separate token — not implemented in mandatory scope. |
 | **`t_state`** | `ST_NORMAL`, `ST_SQUOTE`, `ST_DQUOTE` | Quote context during tokenization. Tells us whether `$` should be expanded (only in double quotes) and when to close a quoted span. |
 
 ### 1.2 Token: `t_token`
@@ -230,7 +230,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **utils/ft_strcat.c** | `ft_strcat(dest, src)` | Appends `src` to `dest` in place. |
 | **utils/ft_realloc.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
 | **utils/ft_arrdup.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
-| **utils/msh_string.c** | `msh_is_blank(c, ifs_mode)` | `ifs_mode` 0: space+tab (lexer); 1: space+tab+newline (default IFS; not full `ft_isspace`). |
+| **utils/msh_string.c** | `msh_is_blank(c, ifs_mode)` | `ifs_mode` 0: space+tab (tokenizer); 1: space+tab+newline (default IFS; not full `ft_isspace`). |
 | **utils/msh_string.c** | `msh_env_var_body_span`, `msh_is_dollar_var_leader`, … | Shared `$NAME` tail and heredoc `$` leader checks (uses `ft_isalnum` / `ft_isalpha`). |
 | **free/free_exit.c** | `clean_exit_before_readline(shell, status)` | `free_all`, close std fds, `exit` — init OOM before any `readline()` (no `rl_clear_history`). |
 | **free/free_exit.c** | `clean_exit(shell, status)` | `free_all`, `rl_clear_history`, close std fds, `exit` — child / post-readline fatal paths. |
@@ -241,7 +241,8 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **tokenizer/tokenizer.c** | `tokenize_input(shell)` | Main entry: tokenizer_loop over shell->input, then flush_word; frees input. |
+| **tokenizer/tokenizer.c** | `tokenize_input(shell)` | Calls **`tokenizer_loop`** on **`shell->input`**, then **`tokenizer_end`** (static): **`flush_word`** in **`ST_NORMAL`** or discard tokens on unclosed quote; frees **`shell->input`**. |
+| **tokenizer/tokenizer_loop.c** | `tokenizer_loop(shell, i, state, word)` | Main character loop: quotes, expansion, backslash, operators, whitespace, normal char; returns **`OOM`** on allocation failure. Internal helpers include **`tok_call_handler`**, **`tok_try_expand_unquoted`**, **`tok_run_secondary`**. |
 | **tokenizer/tokenizer_utils.c** | `flush_word(shell, word, tokens)` | If *word non-empty, creates a WORD token and `ft_lstadd_back` on `*tokens`; frees *word. |
 | **tokenizer/tokenizer_utils.c** | `add_token(head, new_tok)` | `ft_lstnew` + `ft_lstadd_back`; on failure frees `new_tok`. |
 | **tokenizer/tokenizer_utils.c** | `new_token(shell, type, value)` | Allocates `t_token` with `ft_strdup(value)`. |
@@ -356,7 +357,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **free/free_utils.c** | `free_tokens(&lst)` | `ft_lstclear` on token list; each `content` is `t_token *`. |
 | **free/free_utils.c** | `free_args(&lst)` | `ft_lstclear` on arg list; each `content` is `t_arg *`. |
 | **free/free_runtime.c** | `free_commands(&lst)` | `ft_lstclear` on command list; each payload is one `t_command` (args/redirs as lists). |
-| **free/free_shell.c** | `free_lex(shell, word)` | On lexer OOM: frees **`word`**, partial tokens, current **`input`**; sets **`last_exit`**, **`oom`**. |
+| **free/free_shell.c** | `free_tokenize(shell, word)` | On tokenizer OOM: frees **`word`**, partial tokens, current **`input`**; sets **`last_exit`**, **`oom`**. |
 | **free/free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; **does not** clear **`last_exit`**, env, cwd. |
 | **free/free_shell.c** | `free_all(shell)` | Full teardown including **`envp`**, user, cwd, input, tokens, commands. |
 
@@ -411,4 +412,4 @@ flowchart TB
 |----------|---------|
 | [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |
-| [`includes/defines.h`](../includes/defines.h) | **`OK` / `ERR`**, **`RL_LN` / `RL_EOF` / `RL_SIG`**, **`XSYN`**, **`XNF` / `XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, lexer/parser sentinels; long names kept as aliases where defined. |
+| [`includes/defines.h`](../includes/defines.h) | **`OK` / `ERR`**, **`TOK_N` / `TOK_Y`** (tokenizer handler: not handled / handled; **`TOK_NO` / `TOK_YES`**, **`LEX_NO` / `LEX_YES`** aliases), **`RL_LN` / `RL_EOF` / `RL_SIG`**, **`XSYN`**, **`XNF` / `XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, **`PR_ERR`**, other parser sentinels; long names kept as aliases where defined. |

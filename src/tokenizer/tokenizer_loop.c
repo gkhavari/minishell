@@ -13,10 +13,10 @@
 #include "minishell.h"
 
 /*
- * Run one lexer handler that shares (shell, i, word). Like ft_lstmap-style
- * fn pointer: propagate OOM; map "handled" to LX_Y; else LX_N.
+ * Call one tokenizer handler (shell, i, word). Propagate OOM; map handled
+ * (non-TOK_N) to TOK_Y; else TOK_N.
  */
-static int	lex_try_one(t_shell *shell, size_t *i, char **word,
+static int	tok_call_handler(t_shell *shell, size_t *i, char **word,
 		int (*fn)(t_shell *, size_t *, char **))
 {
 	int	r;
@@ -24,23 +24,23 @@ static int	lex_try_one(t_shell *shell, size_t *i, char **word,
 	r = fn(shell, i, word);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
-		return (LX_Y);
-	return (LX_N);
+	if (r != TOK_N)
+		return (TOK_Y);
+	return (TOK_N);
 }
 
-static int	lex_try_expand_unquoted(t_shell *shell, size_t *i, char **word)
+static int	tok_try_expand_unquoted(t_shell *shell, size_t *i, char **word)
 {
 	int	r;
 
 	if (shell->heredoc_mode)
-		return (LX_N);
-	r = lex_try_one(shell, i, word, &handle_variable_expansion);
+		return (TOK_N);
+	r = tok_call_handler(shell, i, word, &handle_variable_expansion);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
-		return (LX_Y);
-	return (lex_try_one(shell, i, word, &handle_tilde_expansion));
+	if (r != TOK_N)
+		return (TOK_Y);
+	return (tok_call_handler(shell, i, word, &handle_tilde_expansion));
 }
 
 static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
@@ -57,22 +57,22 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 				return (OOM);
 		}
 		(*i)++;
-		return (LX_Y);
+		return (TOK_Y);
 	}
 	r = handle_single_quote(shell, i, word, state);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
-		return (LX_Y);
+	if (r != TOK_N)
+		return (TOK_Y);
 	r = handle_double_quote(shell, i, word, state);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
-		return (LX_Y);
-	return (lex_try_expand_unquoted(shell, i, word));
+	if (r != TOK_N)
+		return (TOK_Y);
+	return (tok_try_expand_unquoted(shell, i, word));
 }
 
-static int	lex_run_secondary(t_shell *shell, size_t *i, t_state *state,
+static int	tok_run_secondary(t_shell *shell, size_t *i, t_state *state,
 		char **word)
 {
 	int	r;
@@ -80,17 +80,17 @@ static int	lex_run_secondary(t_shell *shell, size_t *i, t_state *state,
 	r = handle_backslash(shell, i, word, state);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
+	if (r != TOK_N)
 		return (SUCCESS);
-	r = lex_try_one(shell, i, word, &handle_operator);
+	r = tok_call_handler(shell, i, word, &handle_operator);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
+	if (r != TOK_N)
 		return (SUCCESS);
-	r = lex_try_one(shell, i, word, &handle_whitespace);
+	r = tok_call_handler(shell, i, word, &handle_whitespace);
 	if (r == OOM)
 		return (OOM);
-	if (r != LX_N)
+	if (r != TOK_N)
 		return (SUCCESS);
 	r = process_normal_char(shell, shell->input[*i], i, word);
 	if (r == OOM)
@@ -98,7 +98,7 @@ static int	lex_run_secondary(t_shell *shell, size_t *i, t_state *state,
 	return (SUCCESS);
 }
 
-int	tokenizer_run_loop(t_shell *shell, size_t *i, t_state *state, char **word)
+int	tokenizer_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 {
 	int	r;
 
@@ -112,9 +112,9 @@ int	tokenizer_run_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 		r = handle_quotes_and_expand(shell, i, word, state);
 		if (r == OOM)
 			return (OOM);
-		if (r != LX_N)
+		if (r != TOK_N)
 			continue ;
-		if (lex_run_secondary(shell, i, state, word) == OOM)
+		if (tok_run_secondary(shell, i, state, word) == OOM)
 			return (OOM);
 	}
 	return (SUCCESS);

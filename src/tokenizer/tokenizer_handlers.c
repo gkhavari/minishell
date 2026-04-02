@@ -37,11 +37,11 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
-		return (LX_N);
+		return (TOK_N);
 	if (!shell->input[*i + 1])
 	{
 		(*i)++;
-		return (LX_Y);
+		return (TOK_Y);
 	}
 	if (!*word)
 	{
@@ -52,7 +52,7 @@ int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 	if (append_char(shell, word, shell->input[*i + 1]) == OOM)
 		return (OOM);
 	*i += 2;
-	return (LX_Y);
+	return (TOK_Y);
 }
 
 /**
@@ -64,25 +64,25 @@ int	process_quote(t_shell *shell, char c, t_state *state)
 	{
 		*state = ST_SQUOTE;
 		shell->word_quoted = 1;
-		return (LX_Y);
+		return (TOK_Y);
 	}
 	if (*state == ST_SQUOTE && c == '\'')
 	{
 		*state = ST_NORMAL;
-		return (LX_Y);
+		return (TOK_Y);
 	}
 	if (*state == ST_NORMAL && c == '"')
 	{
 		*state = ST_DQUOTE;
 		shell->word_quoted = 1;
-		return (LX_Y);
+		return (TOK_Y);
 	}
 	if (*state == ST_DQUOTE && c == '"')
 	{
 		*state = ST_NORMAL;
-		return (LX_Y);
+		return (TOK_Y);
 	}
-	return (LX_N);
+	return (TOK_N);
 }
 
 /**
@@ -93,7 +93,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	int	n;
 
 	if (!is_op_char(shell->input[*i]))
-		return (LX_N);
+		return (TOK_N);
 	if (flush_word(shell, word, &shell->tokens) == OOM)
 		return (OOM);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
@@ -102,7 +102,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	if (n == OOM)
 		return (OOM);
 	*i += (size_t)n;
-	return (LX_Y);
+	return (TOK_Y);
 }
 
 /**
@@ -115,7 +115,7 @@ int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 		if (flush_word(shell, word, &shell->tokens) == OOM)
 			return (OOM);
 		(*i)++;
-		return (LX_Y);
+		return (TOK_Y);
 	}
-	return (LX_N);
+	return (TOK_N);
 }

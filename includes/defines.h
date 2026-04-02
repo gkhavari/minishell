@@ -32,10 +32,10 @@
 # define TRUE	1
 
 /*
- * Lexer handler: no-op vs handled input. Check OOM before treating as bool.
+ * Tokenizer handler: not handled vs handled. Check OOM before treating as bool.
  */
-# define LX_N		0
-# define LX_Y		1
+# define TOK_N		0
+# define TOK_Y		1
 
 /* Prompt pieces (readline). */
 # define PM_PFX		"@minishell:"
@@ -99,8 +99,10 @@
 
 /* --- Long names (docs / grep); alias to abbreviations above --- */
 # define PARSE_ERR		        PR_ERR
-# define LEX_NO			        LX_N
-# define LEX_YES		        LX_Y
+# define TOK_NO			        TOK_N
+# define TOK_YES		        TOK_Y
+# define LEX_NO			        TOK_N
+# define LEX_YES		        TOK_Y
 # define PROMPT_PREFIX		    PM_PFX
 # define PROMPT_SUFFIX		    PM_SFX
 # define PROMPT_DEFAULT_USER	PM_USR

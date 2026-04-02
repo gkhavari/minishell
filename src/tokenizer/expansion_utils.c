@@ -46,7 +46,7 @@ static int	push_ambg_redir_tok(t_shell *shell, size_t start, size_t end)
 	free(value);
 	if (!tok || add_token(&shell->tokens, tok) == OOM)
 		return (OOM);
-	return (LX_Y);
+	return (TOK_Y);
 }
 
 /**
@@ -60,13 +60,13 @@ int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 	if (*word || (shell->input[end] != '\0'
 			&& !msh_is_blank((unsigned char)shell->input[end], 1)
 			&& !is_op_char(shell->input[end])))
-		return (LX_N);
+		return (TOK_N);
 	if (is_redir_target(shell, *word))
 		return (push_ambg_redir_tok(shell, start, end));
 	tok = new_token(shell, WORD, S_EMPTY);
 	if (!tok || add_token(&shell->tokens, tok) == OOM)
 		return (OOM);
-	return (LX_Y);
+	return (TOK_Y);
 }
 
 /**

@@ -2,7 +2,7 @@
 
 This document explains how input becomes executable command structures:
 
-1) lexer/tokenizer: raw line -> `t_token` list
+1) tokenizer: raw line -> `t_token` list
 2) parser: `t_token` list -> `t_command` pipeline
 3) argv finalization: `args` list -> `argv[]`
 
@@ -47,7 +47,7 @@ Main loop lives in `src/tokenizer/tokenizer_loop.c`:
   - whitespace flush
   - normal char append
 
-The loop returns `OOM` only for allocation failures.
+The loop returns `OOM` only for allocation failures. Per-character handlers return **`TOK_N`** (not handled), **`TOK_Y`** (handled), or **`OOM`** (`defines.h`); **`tok_call_handler`** maps handler results for the loop.
 
 ### 2.2 Word accumulation and flush
 
@@ -75,7 +75,7 @@ If end-of-line is reached while still quoted:
 Implementation: `handle_end_of_string(...)` in
 `src/tokenizer/tokenizer_handlers.c`.
 
-### 2.4 Expansion behavior at lexer stage
+### 2.4 Expansion during tokenization
 
 Expansion is integrated into tokenization:
 
@@ -172,7 +172,7 @@ the process.
 
 Upper layers own unwind:
 
-- `tokenize_input` uses `free_lex(...)` on OOM
+- `tokenize_input` uses `free_tokenize(...)` on OOM
 - parser frees partial command list on OOM and marks shell OOM path
 
 This prevents partial object leaks and keeps one clear owner per phase.
@@ -221,8 +221,8 @@ Tokenizer/parser are intentionally shaped around mandatory minishell grammar.
 
 ## 7. Known constraints and trade-offs
 
-- Expansion is integrated during lexical pass, which simplifies parser but
-  means some policy is lexer-coupled (by design).
+- Expansion is integrated during the tokenizer pass, which simplifies parser but
+  means some policy is tokenizer-coupled (by design).
 - Heredoc behavior depends on per-command delimiter metadata and heredoc mode
   flag; this keeps implementation compact but requires careful sequencing.
 - Sentinel-based control flow (`OOM`, `PR_ERR`, `PR_1`, `PR_2`) improves Norm-
@@ -232,7 +232,7 @@ Tokenizer/parser are intentionally shaped around mandatory minishell grammar.
 
 ## 8. Quick defense mental model
 
-1. Lexer walks chars with quote state and emits typed tokens.
+1. Tokenizer walks chars with quote state and emits typed tokens.
 2. Parser validates token grammar before building commands.
 3. Command builder maps tokens into `args`, `redirs`, heredoc metadata.
 4. Finalizer converts `args` to `argv[]` and marks builtin type.

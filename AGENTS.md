@@ -91,7 +91,7 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 1. **Deep helpers** (`append_char`, token creation, expansion helpers, etc.): on allocation failure, return **`OOM`** (or `NULL` only where the contract explicitly says the caller must handle it and free partial state).
 2. **Do not** call **`clean_exit()`** from deep lexer/parser paths for OOM — that bypasses unified unwind of the current line’s allocations.
-3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`OOM`**, call **`free_lex()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
+3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`OOM`**, call **`free_tokenize()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
 4. **Child processes** may still use **`clean_exit`** after fork where the process must terminate immediately.
 
 ### Allocators returning pointers: return `NULL`, do not `clean_exit` inside
@@ -112,7 +112,7 @@ When Valgrind or a crash points at a line:
 
 1. **Who allocated?** (`malloc` / `ft_strdup` / `ft_calloc` / pipe, etc.)
 2. **Who owns after return?** (caller frees vs callee steals vs list node owns `value`)
-3. **Which path frees on error?** (early `return` branches must `free` partial work or delegate to `free_lex` / `free_*` helpers)
+3. **Which path frees on error?** (early `return` branches must `free` partial work or delegate to `free_tokenize` / `free_*` helpers)
 
 Prefer **short functions** with **explicit** “caller frees” / “takes ownership” comments at non-obvious boundaries. After refactors, update **`docs/DATA_MODEL_AND_FUNCTIONS.md`** so the index matches reality.
 

@@ -12,13 +12,13 @@
 
 #include "minishell.h"
 
-static int	tokenize_finish_end(t_shell *shell, t_state state, char **word)
+static int	tokenizer_end(t_shell *shell, t_state state, char **word)
 {
 	if (state == ST_NORMAL)
 	{
 		if (flush_word(shell, word, &shell->tokens) == OOM)
 		{
-			free_lex(shell, word);
+			free_tokenize(shell, word);
 			return (OOM);
 		}
 	}
@@ -37,7 +37,7 @@ static int	tokenize_finish_end(t_shell *shell, t_state state, char **word)
 }
 
 /**
- * Lex shell->input into shell->tokens; frees input;
+ * Tokenize shell->input into shell->tokens; frees input;
  * clears tokens on quote error. Returns OOM on malloc failure (unwound).
  */
 int	tokenize_input(t_shell *shell)
@@ -50,11 +50,11 @@ int	tokenize_input(t_shell *shell)
 	state = ST_NORMAL;
 	word = NULL;
 	i = 0;
-	err = tokenizer_run_loop(shell, &i, &state, &word);
+	err = tokenizer_loop(shell, &i, &state, &word);
 	if (err == OOM)
 	{
-		free_lex(shell, &word);
+		free_tokenize(shell, &word);
 		return (OOM);
 	}
-	return (tokenize_finish_end(shell, state, &word));
+	return (tokenizer_end(shell, state, &word));
 }

@@ -56,7 +56,7 @@ static char	*get_op_value(t_tokentype type)
 }
 
 /**
- * Lex one operator at s, push token to list.
+ * Tokenize one operator at s; push token to list.
  * Returns chars consumed, 0 if none, or OOM.
  */
 int	read_operator(t_shell *shell, const char *s, t_list **list)

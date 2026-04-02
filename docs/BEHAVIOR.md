@@ -20,7 +20,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
-**Exit-status macros (code):** **`includes/defines.h`** — bash/POSIX-style exits: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** / **`XSYN`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`**, **`EXIT_SIGINT`** (usually 130). **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or lexer/parser allocations), not a shell exit code.
+**Exit-status macros (code):** **`includes/defines.h`** — bash/POSIX-style exits: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** / **`XSYN`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`**, **`EXIT_SIGINT`** (usually 130). **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or tokenizer/parser allocations), not a shell exit code.
 
 ---
 

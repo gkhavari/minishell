@@ -48,7 +48,7 @@ void		clean_exit_before_readline(t_shell *shell, int exit_status);
 void		clean_exit(t_shell *shell, int exit_status);
 
 /* tokenizer_loop.c */
-int			tokenizer_run_loop(t_shell *shell, size_t *i, t_state *state,
+int			tokenizer_loop(t_shell *shell, size_t *i, t_state *state,
 				char **word);
 
 /* tokenizer.c */
@@ -137,7 +137,7 @@ void		free_tokens(t_list **lst);
 void		free_args(t_list **lst);
 
 /* free_shell.c */
-void		free_lex(t_shell *shell, char **word);
+void		free_tokenize(t_shell *shell, char **word);
 void		reset_shell(t_shell *shell);
 void		free_all(t_shell *shell);
 

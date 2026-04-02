@@ -63,10 +63,10 @@ Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYe
 |-----------|---------|
 | `src/` | `main.c` only — `main`: `init_shell`, `shell_loop`, teardown (`rl_clear_history`, `free_all`, close std fds, return `last_exit`). |
 | `src/core/` | `init.c` (`init_shell`, `process_input`), `init_utils.c` (`init_shell_identity`, `init_runtime_fields`, `get_env_value`), `shell_repl.c` (`shell_loop`; static `read_input`, `build_prompt`, `read_line_stdin`, `repl_after_read`) |
-| `src/utils/` | `ft_strcat`, `ft_arrdup`, `ft_realloc`, `msh_string` (lexer/expansion char helpers) |
+| `src/utils/` | `ft_strcat`, `ft_arrdup`, `ft_realloc`, `msh_string` (tokenizer/expansion char helpers) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
-| `src/tokenizer/` | Lexer: tokenizer.c, expansion, quote/operator handlers, utils |
+| `src/tokenizer/` | Tokenizer: tokenizer.c, tokenizer_loop.c, expansion, quote/operator handlers, utils |
 | `src/parser/` | Parser: `parser.c`, `parser_syntax_check.c`, `parser_build.c`, `parser_redir.c`, `add_token_to_cmd.c`, `argv_build.c`, `heredoc.c`, **`heredoc_input.c`** (`heredoc_read_line`, `print_heredoc_eof_warning`, `write_heredoc_line`), `heredoc_utils.c` |
 | `src/executor/` | **`exe_*` (parser-style names):** `exe.c`, `exe_redir.c`, `exe_external.c`, `exe_not_found.c`, `exe_child.c`, **`exe_pipeline_nf.c`** (`pipeline_all_nf`), `exe_pipeline.c`, `exe_pipe_step.c` — public API unprefixed (`run_commands`, `apply_redirs`, …). |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
@@ -270,7 +270,7 @@ sequenceDiagram
 
 ### 1.6 `t_shell` (no further globals)
 
-All other state is in **`t_shell`** (`includes/structs.h`). **Env, cwd, tokens, commands, input:** filled by init/parser/lexer. **Extra fields:**
+All other state is in **`t_shell`** (`includes/structs.h`). **Env, cwd, tokens, commands, input:** filled by init/parser/tokenizer. **Extra fields:**
 
 - **`had_path`:** PATH was present when the shell started (PATH resolution).
 - **`barrier_write_fd`:** optional pipeline sync write FD, or **`-1`**.
@@ -336,7 +336,7 @@ flowchart TD
 
 ---
 
-## 3. Lexer (Tokenization)
+## 3. Tokenizer (tokenization)
 
 ### 3.1 Token Types (Matching Your structs.h)
 
@@ -354,7 +354,7 @@ typedef enum e_tokentype
 
 > **Note:** `2>` (stderr redirect) is **not implemented** — not a mandatory requirement. The tokenizer treats `2` as a WORD and `>` as `REDIR_OUT`.
 
-### 3.2 Lexer State Machine
+### 3.2 Tokenizer state machine
 
 ```
 Input: echo "hello world" | cat < file.txt
@@ -381,9 +381,9 @@ State: DOUBLE_QUOTED (")
         └── Everything else literal until closing "
 ```
 
-### 3.2.1 `tokenizer_loop` dispatch (`tokenizer.c`)
+### 3.2.1 Tokenizer loop (`tokenizer_loop.c`)
 
-One pass over **`shell->input`**. **States** in code: **`ST_NORMAL`**, **`ST_SQUOTE`**, **`ST_DQUOTE`** (`structs.h`).
+**`tokenize_input()`** (`tokenizer.c`) drives one pass over **`shell->input`** via **`tokenizer_loop()`** (`tokenizer_loop.c`). **States** in code: **`ST_NORMAL`**, **`ST_SQUOTE`**, **`ST_DQUOTE`** (`structs.h`). Handlers return **`TOK_N`** / **`TOK_Y`** (not handled / handled) or **`OOM`**; see **`includes/defines.h`**.
 
 ```mermaid
 flowchart TD
@@ -401,7 +401,7 @@ flowchart TD
     NORM --> L
 ```
 
-After the loop: **`flush_word`** if **`ST_NORMAL`**; else free tokens on quote error.
+After the loop: **`tokenizer_end()`** (`tokenizer.c`, static) runs **`flush_word`** if **`ST_NORMAL`**; else frees tokens on quote error; always frees **`shell->input`**.
 
 ### 3.3 Syntax Error Detection (Defensive Checks)
 
@@ -465,7 +465,7 @@ int	syntax_check(t_list *lst)
 }
 ```
 
-### 3.5 Verified by tests (lexer + syntax)
+### 3.5 Verified by tests (tokenizer + syntax)
 
 The following behaviors are verified by **Hardening** (no crash + correct exit / message):
 
@@ -960,7 +960,7 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 
 ### 8.0 Named constants (`includes/defines.h`)
 
-Use these in C instead of bare numbers: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
+Use these in C instead of bare numbers: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`TOK_N`** / **`TOK_Y`** (tokenizer step: character not handled vs handled — check **`OOM`** before treating as boolean), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
 
 ### 8.1 Summary Table
 
@@ -1269,7 +1269,7 @@ Phase 1: Foundation
 ├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
-Phase 2: Lexer & Parser
+Phase 2: Tokenizer & parser
 ├── [x] Tokenizer (tokenizer/tokenizer.c, tokenizer_ops.c, tokenizer_handlers.c, tokenizer_quotes.c)
 ├── [x] Quote handling (unclosed quote -> syntax error, no continuation)
 ├── [x] Syntax validation (parser/parser_syntax_check.c)
@@ -1311,5 +1311,5 @@ Phase 6: Polish & Refactor
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`OK`/`ERR`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, lexer/parser sentinels. Long names (**`EXIT_SYNTAX_ERROR`**, etc.) remain as aliases where defined. |
+| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`OK`/`ERR`**, **`TOK_N`/`TOK_Y`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, **`PR_ERR`**, other parser sentinels. Long names (**`EXIT_SYNTAX_ERROR`**, **`TOK_NO`/`TOK_YES`**, **`LEX_NO`/`LEX_YES`**, etc.) remain as aliases where defined. |
 | **README.md** | Project overview, build, usage, how to run tests. |
