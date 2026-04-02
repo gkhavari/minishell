@@ -282,8 +282,9 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **parser/heredoc.c** | `process_heredocs(shell)` | Walks commands; if `heredoc_delim`, `read_heredoc`; returns **FAILURE** on interrupt/error. |
-| **parser/heredoc.c** | `read_heredoc(cmd, shell, line_no)` | `pipe`, `heredoc_read_loop`: TTY `readline("> ")` else byte-read like `main`; sets `cmd->heredoc_fd`. |
+| **parser/parser.c** | `process_heredocs(shell)` | Walks commands; if `heredoc_delim`, `read_heredoc`; returns **FAILURE** on interrupt/error. |
+| **parser/heredoc_input.c** | `heredoc_read_line(shell)` | TTY `readline("> ")` else byte-read until newline (like `main` stdin path). |
+| **parser/heredoc.c** | `read_heredoc(cmd, shell, line_no)` | `pipe`, read loop + delimiter match / expand; sets `cmd->heredoc_fd`. |
 | **parser/heredoc_utils.c** | `is_quoted_delimiter(delim)` | Returns 1 if delimiter is quoted (e.g. `'EOF'` or `"EOF"`) so body is not expanded. |
 | **parser/heredoc_utils.c** | `expand_heredoc_line(line, shell)` | Expands `$VAR` and `$?` in line; returns new string (caller frees). |
 | **parser/heredoc_warning.c** | `print_heredoc_eof_warning(line_no, delim)` | Bash-style EOF-before-delim warning. |

@@ -108,7 +108,7 @@ graph TB
         syntax[parser_syntax_check.c]
         add_token[add_token_to_cmd.c]
         argv_build[argv_build.c]
-        heredoc[heredoc.c]
+        heredoc[heredoc.c + heredoc_input.c]
         heredoc_utils[heredoc_utils.c]
         heredoc_warn[heredoc_warning.c]
     end
