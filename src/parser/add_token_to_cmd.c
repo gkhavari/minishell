@@ -30,6 +30,7 @@ static int	handle_heredoc_token(t_command *cmd, t_list *tok_node)
 		free(cmd->heredoc_delim);
 	cmd->heredoc_delim = new_delim;
 	cmd->heredoc_quoted = next_tok->quoted;
+	cmd->stdin_last = STDIN_LAST_HEREDOC;
 	return (SUCCESS);
 }
 

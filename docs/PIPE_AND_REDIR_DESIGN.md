@@ -78,15 +78,19 @@ Execution dispatch is centralized in `src/executor/exe.c` (`run_commands`):
 - **Ambiguous redirect**:
   - if `r->file` has the internal ambiguous prefix `S_AMBIG`, print `ambiguous redirect` and fail
 
-### 3.2 Heredoc “input source” rule
+### 3.2 Heredoc vs `< file` (bash left-to-right)
 
-After applying explicit redirs:
+Parse records **`cmd->stdin_last`** (`STDIN_LAST_HEREDOC` or `STDIN_LAST_FILE`) from
+token order: each `<<` sets heredoc-last; each `< file` sets file-last.
 
-- if `cmd->heredoc_fd != -1` **and** the command did not have any `< ...` redirection applied,
-  - then heredoc fd becomes stdin via `dup2(cmd->heredoc_fd, STDIN_FILENO)`
-  - and `cmd->heredoc_fd` is closed and reset to `-1`
+After applying all **`cmd->redirs`** left-to-right:
 
-This matches the usual expectation: **explicit `< file` overrides heredoc as stdin**.
+- if `cmd->heredoc_fd != -1` and **`stdin_last == STDIN_LAST_HEREDOC`**, `dup2` the
+  heredoc read end to stdin (then close it and set `-1`)
+- if `cmd->heredoc_fd != -1` and **`stdin_last == STDIN_LAST_FILE`**, only **close**
+  the heredoc read fd (stdin already comes from the last `<`)
+
+So whichever of `<` and `<<` appears **last in the source** wins stdin, like bash.
 
 ---
 
@@ -180,7 +184,8 @@ Current redirection parsing maps tokens to only:
 
 - `< file` → stdin
 - `> file` / `>> file` → stdout
-- `<< delim` → heredoc pipe to stdin (unless `<` present)
+- `<< delim` → heredoc pipe; whether it becomes stdin depends on **`stdin_last`**
+  vs any `< file` on the same command (last in source wins)
 
 We do **not** currently parse/execute forms like:
 

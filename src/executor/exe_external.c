@@ -44,7 +44,7 @@ int	run_external(t_command *cmd, t_shell *shell)
 	{
 		set_signals_default();
 		if (apply_redirs(cmd) != SUCCESS)
-			clean_exit(shell, FAILURE);
+			clean_exit_before_readline(shell, FAILURE);
 		run_in_child(cmd, shell);
 	}
 	set_signals_ignore();

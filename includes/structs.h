@@ -72,6 +72,7 @@ typedef struct s_command
 	int					heredoc_fd;
 	char				*heredoc_delim;
 	int					heredoc_quoted;
+	int					stdin_last;
 	int					is_builtin;
 }	t_command;
 

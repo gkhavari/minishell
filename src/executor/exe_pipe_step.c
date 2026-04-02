@@ -55,7 +55,7 @@ static pid_t	fork_pipeline_child(t_list *cmd_node, t_shell *shell,
 		setup_pipeline_child_fds(prev_fd, pipe_fd, has_next,
 			shell->barrier_write_fd);
 		if (apply_redirs(cmd) != SUCCESS)
-			clean_exit(shell, FAILURE);
+			clean_exit_before_readline(shell, FAILURE);
 		run_in_child(cmd, shell);
 	}
 	return (pid);

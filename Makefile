@@ -19,6 +19,8 @@ CFLAGS      = -Wall -Wextra -Werror -I$(INCLUDES) -Ilibft -I$(RL_DIR)/include
 SRC_DIR     = src
 OBJ_DIR     = obj
 INCLUDES 	= includes
+# Rebuild all objects when shared headers change (avoids stale t_command layout).
+HDRS		:= $(wildcard $(INCLUDES)/*.h)
 LIBFT_DIR	= libft
 
 # --------------------- MANUALLY LIST YOUR SOURCE FILES ---------------------- #
@@ -126,7 +128,7 @@ $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)/builtins
 
 # Compile .c -> .o
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HDRS)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Compiling $<"
 

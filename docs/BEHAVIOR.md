@@ -196,6 +196,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `cat << EOF` then `hello $VAR` then `EOF` (VAR set) | `hello <value>` | none | 0 |
 | `cat << 'EOF'` then `hello $HOME` then `EOF` | literal `hello $HOME` | none | 0 |
 | Delimiter quoted or with trailing text: `<< 'lim'`, `<< lim''` | As in bash (delimiter recognition) | none | 0 |
+| `cat < file <<EOF` … `EOF` vs `cat <<EOF` … `EOF` `< file` (same line layout as bash) | **bash:** stdin is whichever of `< file` and `<<` appears **last** in the command’s source order (left-to-right). | none | 0 |
 
 **Test-design note:** Quoted delimiter → no expansion in body. Unquoted → expand variables. See `1_redirs.sh`, `10_parsing_hell.sh`.
 

@@ -15,25 +15,25 @@
 static void	run_builtin_in_child(t_command *cmd, t_shell *shell)
 {
 	signal(SIGPIPE, SIG_IGN);
-	clean_exit(shell, run_builtin(cmd->argv, shell));
+	clean_exit_before_readline(shell, run_builtin(cmd->argv, shell));
 }
 
 static void	child_abort_with_message(t_shell *shell, char *argv0, int code,
 		const char *suffix)
 {
 	ft_dprintf(STDERR_FILENO, "%s%s", argv0, suffix);
-	clean_exit(shell, code);
+	clean_exit_before_readline(shell, code);
 }
 
 static void	child_exit_not_found(t_shell *shell, char *argv0)
 {
 	put_cmd_not_found(argv0);
-	clean_exit(shell, XNF);
+	clean_exit_before_readline(shell, XNF);
 }
 
 /**
  * Child after fork: run a builtin in the child, execve an external, or print
- * an error and clean_exit. Does not return to the caller.
+ * an error and clean_exit_before_readline. Does not return to the caller.
  */
 void	run_in_child(t_command *cmd, t_shell *shell)
 {
@@ -43,7 +43,7 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 	if (cmd->is_builtin)
 		run_builtin_in_child(cmd, shell);
 	if (!cmd->argv || !cmd->argv[0])
-		clean_exit(shell, SUCCESS);
+		clean_exit_before_readline(shell, SUCCESS);
 	path = resolve_cmd_path(cmd->argv[0], shell);
 	if (!path)
 		child_exit_not_found(shell, cmd->argv[0]);

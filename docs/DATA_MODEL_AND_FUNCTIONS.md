@@ -81,6 +81,7 @@ typedef struct s_command {
     int       heredoc_fd;    // read end of pipe for << (-1 if none)
     char     *heredoc_delim;
     int       heredoc_quoted;
+    int       stdin_last;    // STDIN_LAST_* — last < vs << in source (bash order)
     int       is_builtin;
 } t_command;
 ```
@@ -93,6 +94,7 @@ typedef struct s_command {
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
+| **stdin_last** | **`STDIN_LAST_NONE`**, **`STDIN_LAST_HEREDOC`**, or **`STDIN_LAST_FILE`** (`defines.h`): updated while parsing so **`apply_redirs`** matches bash (last `<` vs `<<` in source wins stdin). |
 | **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != B_NONE)`. In **`exe.c`**, **`run_single_builtin`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`run_external`** (fork) like an external command. |
 
 **Pipeline:** **`t_shell.commands`** is **`t_list *`** (`content` → **`t_command *`**).
@@ -304,7 +306,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/exe.c** | *(static)* `run_empty_command` | Redirs/heredoc only: `backup_stdio_fds`, `apply_redirs`, `restore_stdio_fds`. |
 | **executor/exe.c** | *(static)* `run_single_builtin` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
 | **executor/exe.c** | *(static)* `backup_stdio_fds` / `restore_stdio_fds` | Dup stdin/stdout for builtin redir in parent. |
-| **executor/exe_redir.c** | `apply_redirs(cmd)` | Walk `redirs` via `apply_one_redir` (`apply_input_redir` / `apply_output_redir`); then dup `heredoc_fd` to stdin if ≥ 0. |
+| **executor/exe_redir.c** | `apply_redirs(cmd)` | Walk `redirs` left-to-right (`apply_one_redir`); then if `heredoc_fd` ≥ 0, dup to stdin only when **`stdin_last == STDIN_LAST_HEREDOC`**, and always close the heredoc read fd. |
 | **executor/exe_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `status_from_child_wait`. |
 | **executor/exe_external.c** | *(static)* `status_from_child_wait` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `EXIT_STATUS_FROM_SIGNAL(WTERMSIG)`; SIGQUIT prints “Quit (core dumped)”. |
 | **executor/exe_external.c** | *(static)* `scan_path_for_command` / `build_path_candidate` | Colon-scan PATH with `stat` (regular file). |

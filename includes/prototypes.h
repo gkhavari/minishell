@@ -43,7 +43,7 @@ int			msh_is_dollar_var_leader(int c);
 int			ft_read_stdin_line(t_shell *shell, char **line,
 				int set_shell_oom_on_fail);
 
-/* free_exit.c */
+/* free_exit.c — before_readline: fork children / init fatal; clean_exit: exit */
 void		clean_exit_before_readline(t_shell *shell, int exit_status);
 void		clean_exit(t_shell *shell, int exit_status);
 

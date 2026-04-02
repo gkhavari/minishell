@@ -22,12 +22,11 @@ static int	append_redir(t_command *cmd, char *file, int fd, int append)
 		return (FAILURE);
 	r->file = ft_strdup(file);
 	if (!r->file)
-	{
-		free(r);
-		return (FAILURE);
-	}
+		return (free(r), FAILURE);
 	r->fd = fd;
 	r->append = append;
+	if (fd == STDIN_FILENO)
+		cmd->stdin_last = STDIN_LAST_FILE;
 	node = ft_lstnew(r);
 	if (!node)
 	{

@@ -32,6 +32,14 @@
 # define TRUE	1
 
 /*
+** Last stdin redirect in source order (bash): << vs < — last token wins.
+** Stored on t_command during parse; apply_redirs uses it with heredoc_fd.
+*/
+# define STDIN_LAST_NONE	0
+# define STDIN_LAST_HEREDOC	1
+# define STDIN_LAST_FILE	2
+
+/*
  * Tokenizer handler: not handled vs handled. Check OOM before treating as bool.
  */
 # define TOK_N		0

@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	apply_input_redir(t_redir *r, int *had_input)
+static int	apply_input_redir(t_redir *r)
 {
 	int	fd;
 
@@ -24,7 +24,6 @@ static int	apply_input_redir(t_redir *r, int *had_input)
 	}
 	dup2(fd, STDIN_FILENO);
 	close(fd);
-	*had_input = 1;
 	return (SUCCESS);
 }
 
@@ -46,7 +45,7 @@ static int	apply_output_redir(t_redir *r)
 	return (SUCCESS);
 }
 
-static int	apply_one_redir(t_redir *r, int *had_input)
+static int	apply_one_redir(t_redir *r)
 {
 	size_t	prefix_len;
 
@@ -58,32 +57,31 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 		return (FAILURE);
 	}
 	if (r->fd == STDIN_FILENO)
-		return (apply_input_redir(r, had_input));
+		return (apply_input_redir(r));
 	return (apply_output_redir(r));
 }
 
 /**
- * Apply cmd->redirs (open + dup2). If heredoc_fd is set: dup to stdin only when
- * no '<' won stdin; always close heredoc_fd so the pipe read end is not leaked.
+ * Apply cmd->redirs left-to-right (bash). Then heredoc: dup to stdin only if
+ * the last stdin redirect in the source was << (stdin_last); always close the
+ * heredoc pipe read fd.
  */
 int	apply_redirs(t_command *cmd)
 {
 	t_list	*node;
 	t_redir	*r;
-	int		had_input;
 
-	had_input = 0;
 	node = cmd->redirs;
 	while (node)
 	{
 		r = node->content;
-		if (apply_one_redir(r, &had_input))
+		if (apply_one_redir(r))
 			return (FAILURE);
 		node = node->next;
 	}
 	if (cmd->heredoc_fd != -1)
 	{
-		if (!had_input)
+		if (cmd->stdin_last == STDIN_LAST_HEREDOC)
 			dup2(cmd->heredoc_fd, STDIN_FILENO);
 		close(cmd->heredoc_fd);
 		cmd->heredoc_fd = -1;
