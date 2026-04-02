@@ -33,6 +33,7 @@ int	run_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
 	int		status;
+	pid_t	w;
 
 	if (!cmd->argv || !cmd->argv[0])
 		return (SUCCESS);
@@ -47,8 +48,12 @@ int	run_external(t_command *cmd, t_shell *shell)
 		run_in_child(cmd, shell);
 	}
 	set_signals_ignore();
-	waitpid(pid, &status, 0);
+	w = waitpid(pid, &status, 0);
+	while (w < 0 && errno == EINTR)
+		w = waitpid(pid, &status, 0);
 	set_signals_interactive();
+	if (w < 0)
+		return (perror("minishell: waitpid"), FAILURE);
 	return (ch_stat(status));
 }
 
