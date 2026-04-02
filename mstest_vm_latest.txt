@@ -916,4 +916,148 @@ minishell
 [1m[35m  99:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_correction.sh:239[0m  
 [1m[35m  100:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_correction.sh:243[0m  
 [1m[35m  101:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_correction.sh:247[0m  
-[1m[35m  102:	[0m
+[1m[35m  102:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_correction.sh:251[0m  
+[1m[35m  103:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_correction.sh:255[0m  
+[1m[33m  # **************************************************************************** #[0m
+[1m[33m  #                                  PATH CHECK                                  #[0m
+[1m[33m  # **************************************************************************** #[0m
+[1m[35m  1:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:5[0m  
+[1m[35m  2:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:12[0m  
+[1m[35m  3:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:21[0m  
+[1m[35m  4:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:24[0m  
+[1m[35m  5:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:26[0m  
+[1m[35m  6:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:28[0m  
+[1m[35m  7:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:30[0m  
+[1m[35m  8:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:32[0m  
+[1m[35m  9:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:35[0m  
+[1m[35m  10:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:39[0m  
+[1m[35m  11:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:43[0m  
+[1m[35m  12:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:47[0m  
+[1m[35m  13:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:66[0m  
+[1m[35m  14:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/2_path_check.sh:68[0m  
+[1m[33m  # **************************************************************************** #[0m
+[1m[33m  #                                SYNTAX ERRORS                                 #[0m
+[1m[33m  # **************************************************************************** #[0m
+[1m[35m  1:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:5[0m  
+[1m[35m  2:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:7[0m  
+[1m[35m  3:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:9[0m  
+[1m[35m  4:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:11[0m  
+[1m[35m  5:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:13[0m  
+[1m[35m  6:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:15[0m  
+[1m[35m  7:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:17[0m  
+[1m[35m  8:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:19[0m  
+[1m[35m  9:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:21[0m  
+[1m[35m  10:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:23[0m  
+[1m[35m  11:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:25[0m  
+[1m[35m  12:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:27[0m  
+[1m[35m  13:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:29[0m  
+[1m[35m  14:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:31[0m  
+[1m[35m  15:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:33[0m  
+[1m[35m  16:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:35[0m  
+[1m[35m  17:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:37[0m  
+[1m[35m  18:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:39[0m  
+[1m[35m  19:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:41[0m  
+[1m[35m  20:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:43[0m  
+[1m[35m  21:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:45[0m  
+[1m[35m  22:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:47[0m  
+[1m[35m  23:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:49[0m  
+[1m[35m  24:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:51[0m  
+[1m[35m  25:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:53[0m  
+[1m[35m  26:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:55[0m  
+[1m[35m  27:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:57[0m  
+[1m[35m  28:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:59[0m  
+[1m[35m  29:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:61[0m  
+[1m[35m  30:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:63[0m  
+[1m[35m  31:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:65[0m  
+[1m[35m  32:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:67[0m  
+[1m[35m  33:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:69[0m  
+[1m[35m  34:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:71[0m  
+[1m[35m  35:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:73[0m  
+[1m[35m  36:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:76[0m  
+[1m[35m  37:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:79[0m  
+[1m[35m  38:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:81[0m  
+[1m[35m  39:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:83[0m  
+[1m[35m  40:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:85[0m  
+[1m[35m  41:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:93[0m  
+[1m[35m  42:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:95[0m  
+[1m[35m  43:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:97[0m  
+[1m[35m  44:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:99[0m  
+[1m[35m  45:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:101[0m  
+[1m[35m  46:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:103[0m  
+[1m[35m  47:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:105[0m  
+[1m[35m  48:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:107[0m  
+[1m[35m  49:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:109[0m  
+[1m[35m  50:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:111[0m  
+[1m[35m  51:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:113[0m  
+[1m[35m  52:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:115[0m  
+[1m[35m  53:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:117[0m  
+[1m[35m  54:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:119[0m  
+[1m[35m  55:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:121[0m  
+[1m[35m  56:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:123[0m  
+[1m[35m  57:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:125[0m  
+[1m[35m  58:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:127[0m  
+[1m[35m  59:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:129[0m  
+[1m[35m  60:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:131[0m  
+[1m[35m  61:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:133[0m  
+[1m[35m  62:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:135[0m  
+[1m[35m  63:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:137[0m  
+[1m[35m  64:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:139[0m  
+[1m[35m  65:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:141[0m  
+[1m[35m  66:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:143[0m  
+[1m[35m  67:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:145[0m  
+[1m[35m  68:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:147[0m  
+[1m[35m  69:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:149[0m  
+[1m[35m  70:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:151[0m  
+[1m[35m  71:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:153[0m  
+[1m[35m  72:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:155[0m  
+[1m[35m  73:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:157[0m  
+[1m[35m  74:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:159[0m  
+[1m[35m  75:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:161[0m  
+[1m[35m  76:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:163[0m  
+[1m[35m  77:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:165[0m  
+[1m[35m  78:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:167[0m  
+[1m[35m  79:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:169[0m  
+[1m[35m  80:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:171[0m  
+[1m[35m  81:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:173[0m  
+[1m[35m  82:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:175[0m  
+[1m[35m  83:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:177[0m  
+[1m[35m  84:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:179[0m  
+[1m[35m  85:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:181[0m  
+[1m[35m  86:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:183[0m  
+[1m[35m  87:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:185[0m  
+[1m[35m  88:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:187[0m  
+[1m[35m  89:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:189[0m  
+[1m[35m  90:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:191[0m  
+[1m[35m  91:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:193[0m  
+[1m[35m  92:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:195[0m  
+[1m[35m  93:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:197[0m  
+[1m[35m  94:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:199[0m  
+[1m[35m  95:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/8_syntax_errors.sh:213[0m  
+[1m[33m  # **************************************************************************** #[0m
+[1m[33m  #                                   GO WILD                                    #[0m
+[1m[33m  # **************************************************************************** #[0m
+[1m[35m  1:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:5[0m  
+[1m[35m  2:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:7[0m  
+[1m[35m  3:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:9[0m  
+[1m[35m  4:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:11[0m  
+[1m[35m  5:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:16[0m  
+[1m[35m  6:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:18[0m  
+[1m[35m  7:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:22[0m  
+[1m[35m  8:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:26[0m  
+[1m[35m  9:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:28[0m  
+[1m[35m  10:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:30[0m  
+[1m[35m  11:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:37[0m  
+[1m[35m  12:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:40[0m  
+[1m[35m  13:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:46[0m  
+[1m[35m  14:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:49[0m  
+[1m[35m  15:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:52[0m  
+[1m[35m  16:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:55[0m  
+[1m[35m  17:	[0m[1m[34mSTD_OUT:[0m ✅  [1m[33mSTD_ERR:[0m ✅  [1m[36mEXIT_CODE:[0m ✅  [1m[36mCRASH:[0m ✅  [1m[36mLEAKS:[0m ✅ [90m/root/42_minishell_tester/cmds/mand/9_go_wild.sh:57[0m  
+🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁
+🏁                                    [1m[31mRESULT[0m                                    🏁
+🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁🏁
+               [1m[35mTOTAL TEST COUNT: 986[0m  [1m[32mTESTS PASSED: 985[0m  [1m[32mLEAKING: 0[0m
+               [1m[34mSTD_OUT:[0m [1m[32m✓[0m  [1m[33mSTD_ERR:[0m [1m[31m1[0m  [1m[36mEXIT_CODE:[0m [1m[32m✓[0m  [1m[32mCRASHING: 0[0m
+                          [1m[33mTOTAL FAILED AND PASSED CASES:[0m
+[1m[31m                                      ❌ 1 [0m
+[1m[32m                                      ✅ 2957 [0m

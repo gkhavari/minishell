@@ -12,6 +12,11 @@
 
 #include "minishell.h"
 
+/*
+ * Turn token list into shell->commands; always consumes shell->tokens.
+ * On build failure: last_exit FAILURE, commands NULL.
+ * On finalize OOM: oom flag, free_commands, last_exit FAILURE.
+ */
 static void	run_parse_core(t_shell *shell)
 {
 	shell->commands = build_command_list(shell, shell->tokens);
@@ -31,8 +36,11 @@ static void	run_parse_core(t_shell *shell)
 	}
 }
 
-/**
- * syntax_check → build_command_list → finalize_all_commands; frees tokens.
+/*
+ * Parse shell->tokens (from tokenize_input) into shell->commands.
+ * Empty token list: leaves commands NULL and returns.
+ * syntax_check ERR: XSYN, frees tokens, no commands.
+ * Success path: tokens freed inside run_parse_core; commands set or cleared.
  */
 void	parse_input(t_shell *shell)
 {
@@ -51,7 +59,11 @@ void	parse_input(t_shell *shell)
 	run_parse_core(shell);
 }
 
-/** For each command with a delimiter, read_heredoc; FAILURE on error/SIGINT. */
+/*
+ * After parse_input: for each command with heredoc_delim, read body into
+ * cmd->heredoc_fd. line_no tracks here-doc depth for EOF warnings.
+ * Returns FAILURE if read_heredoc fails (SIGINT, OOM, write error, etc.).
+ */
 int	process_heredocs(t_shell *shell)
 {
 	t_list		*node;

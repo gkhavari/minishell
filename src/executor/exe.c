@@ -60,9 +60,8 @@ static int	run_single_builtin(t_command *cmd, t_shell *shell, int *in,
 
 	type = get_builtin_type(cmd->argv[0]);
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-	if ((type != BUILTIN_CD && type != BUILTIN_EXPORT
-			&& type != BUILTIN_UNSET && type != BUILTIN_EXIT)
-		&& need_restore)
+	if ((type != B_CD && type != B_EXPORT
+			&& type != B_UNSET && type != B_EXIT) && need_restore)
 		return (run_external(cmd, shell));
 	if (need_restore && backup_stdio_fds(in, out))
 		return (FAILURE);

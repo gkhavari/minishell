@@ -28,7 +28,10 @@ static void	free_envp(char **envp)
 	free(envp);
 }
 
-/** Free partial tokenizer state after OOM (word buffer + tokens + line). */
+/*
+ * Unwind tokenizer after allocation failure. Caller returns OOM; do not set
+ * shell->oom (process_input gates on tokenize_input == OOM).
+ */
 void	free_tokenize(t_shell *shell, char **word)
 {
 	if (word && *word)
@@ -42,7 +45,6 @@ void	free_tokenize(t_shell *shell, char **word)
 		free(shell->input);
 	shell->input = NULL;
 	shell->last_exit = FAILURE;
-	shell->oom = 1;
 }
 
 /** Free tokens, commands, and input for the next prompt (keep env/user/cwd). */

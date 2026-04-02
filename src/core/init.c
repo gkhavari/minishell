@@ -12,7 +12,11 @@
 
 #include "minishell.h"
 
-/** Tokenize, parse, heredocs, then run_commands. */
+/*
+ * Tokenize, parse, heredocs, run_commands.
+ * After tokenize_input, OOM is only via shell->oom (parse build/finalize,
+ * heredoc expand/read) where the API returns NULL/void, not OOM int.
+ */
 void	process_input(t_shell *shell)
 {
 	if (tokenize_input(shell) == OOM)

@@ -91,7 +91,7 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 1. **Deep helpers** (`append_char`, token creation, expansion helpers, etc.): on allocation failure, return **`OOM`** (or `NULL` only where the contract explicitly says the caller must handle it and free partial state).
 2. **Do not** call **`clean_exit()`** from deep lexer/parser paths for OOM — that bypasses unified unwind of the current line’s allocations.
-3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`OOM`**, call **`free_tokenize()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
+3. **Unwind frame** (e.g. **`tokenize_input`**): on tokenizer **`OOM`**, call **`free_tokenize()`** to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, then **`return (OOM)`** — **`shell->oom`** is for parse/heredoc paths where the callee returns **`NULL`** / **`void`** (see **`process_input`**).
 4. **Child processes** may still use **`clean_exit`** after fork where the process must terminate immediately.
 
 ### Allocators returning pointers: return `NULL`, do not `clean_exit` inside

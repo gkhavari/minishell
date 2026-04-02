@@ -93,7 +93,7 @@ typedef struct s_command {
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
-| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. In **`exe.c`**, **`run_single_builtin`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`run_external`** (fork) like an external command. |
+| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != B_NONE)`. In **`exe.c`**, **`run_single_builtin`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`run_external`** (fork) like an external command. |
 
 **Pipeline:** **`t_shell.commands`** is **`t_list *`** (`content` → **`t_command *`**).
 
@@ -166,8 +166,8 @@ typedef struct s_heredoc_ctx {
 
 ```c
 typedef enum e_builtin {
-    NOT_BUILTIN = 0, BUILTIN_ECHO, BUILTIN_CD, BUILTIN_PWD,
-    BUILTIN_EXPORT, BUILTIN_UNSET, BUILTIN_ENV, BUILTIN_EXIT, BUILTIN_COUNT
+    B_NONE = 0, B_ECHO, B_CD, B_PWD,
+    B_EXPORT, B_UNSET, B_ENV, B_EXIT, B_COUNT
 } t_builtin;
 
 typedef struct s_builtin_reg {
@@ -176,7 +176,7 @@ typedef struct s_builtin_reg {
 } t_builtin_reg;
 ```
 
-Used by `get_builtin_type()` / `run_builtin()`. `BUILTIN_COUNT` is the exclusive end (table length = `BUILTIN_COUNT - BUILTIN_ECHO`). `t_builtin_reg` lives in `structs.h` (Norm: no struct/typedef in `.c`). The registry is a function-local `static const t_builtin_reg tab[]` inside `builtin_registry()` in `builtin_dispatcher.c` (no file-scope globals). Adding a builtin = new enum value before `BUILTIN_COUNT`, one registry row, and implement `builtin_*`.
+Used by `get_builtin_type()` / `run_builtin()`. `B_COUNT` is the exclusive end (table length = `B_COUNT - B_ECHO`). `t_builtin_reg` lives in `structs.h` (Norm: no struct/typedef in `.c`). The registry is a function-local `static const t_builtin_reg tab[]` inside `builtin_registry()` in `builtin_dispatcher.c` (no file-scope globals). Adding a builtin = new enum value before `B_COUNT`, one registry row, and implement `builtin_*`.
 
 ---
 
@@ -209,7 +209,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, **`shell_loop()`**, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
-| **core/shell_repl.c** | `shell_loop(shell)` | REPL: `check_signal_received`, `read_input`; **`RL_EOF`** break; **`RL_SIG`** continue; **`OOM`** sets `shell->oom`, `reset_shell`, continue; else **`repl_after_read`** (`process_input` if `input[0]`, syntax_err / `reset_shell`, non-TTY break on **`XSYN`**). |
+| **core/shell_repl.c** | `shell_loop(shell)` | REPL: `check_signal_received`, `read_input`; **`RL_EOF`** break; **`RL_SIG`** continue; read-path **`OOM`**: **`last_exit` FAILURE, `reset_shell`, break** (exit toward **`main`**); else **`repl_after_read`** (`process_input` if `input[0]`, syntax_err / `reset_shell`, non-TTY break on **`XSYN`**). |
 | **core/shell_repl.c** | *(static)* `read_input(shell)` | TTY: `build_prompt` + `readline`; else **`read_line_stdin`** → **`ft_read_stdin_line(..., 0)`**. Returns **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**, or **`OOM`**. |
 | **core/shell_repl.c** | *(static)* `build_prompt(shell)` | Prompt string for TTY `readline`; caller frees. |
 | **core/shell_repl.c** | *(static)* `read_line_stdin(shell, out)` | Wrapper: `ft_read_stdin_line(shell, out, 0)`. |
@@ -327,7 +327,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **builtins/builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (BUILTIN_ECHO, etc.) or `NOT_BUILTIN`; `argv_build.c` uses `!= NOT_BUILTIN` to set `cmd->is_builtin`. |
+| **builtins/builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (`B_ECHO`, etc.) or `B_NONE`; `argv_build.c` uses `!= B_NONE` to set `cmd->is_builtin`. |
 | **builtins/builtin_dispatcher.c** | `run_builtin(argv, shell)` | Looks up `argv[0]` and calls the matching `builtin_*` via the static registry inside `builtin_registry()`. |
 | **builtins/echo.c** | `builtin_echo(args, shell)` | Prints args to stdout with spaces; handles -n (no newline). Returns 0. |
 | **builtins/cd.c** | `builtin_cd(args, shell)` | Changes directory (arg or HOME); updates PWD/OLDPWD in envp; returns 0/1. |
@@ -357,7 +357,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **free/free_utils.c** | `free_tokens(&lst)` | `ft_lstclear` on token list; each `content` is `t_token *`. |
 | **free/free_utils.c** | `free_args(&lst)` | `ft_lstclear` on arg list; each `content` is `t_arg *`. |
 | **free/free_runtime.c** | `free_commands(&lst)` | `ft_lstclear` on command list; each payload is one `t_command` (args/redirs as lists). |
-| **free/free_shell.c** | `free_tokenize(shell, word)` | On tokenizer OOM: frees **`word`**, partial tokens, current **`input`**; sets **`last_exit`**, **`oom`**. |
+| **free/free_shell.c** | `free_tokenize(shell, word)` | On tokenizer OOM: frees **`word`**, partial tokens, current **`input`**; sets **`last_exit`**. Caller returns **`OOM`**; does not set **`shell->oom`**. |
 | **free/free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; **does not** clear **`last_exit`**, env, cwd. |
 | **free/free_shell.c** | `free_all(shell)` | Full teardown including **`envp`**, user, cwd, input, tokens, commands. |
 

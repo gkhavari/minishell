@@ -52,8 +52,6 @@ static pid_t	fork_pipeline_child(t_list *cmd_node, t_shell *shell,
 	if (pid == 0)
 	{
 		set_signals_default();
-		if (shell->barrier_write_fd != -1)
-			close(shell->barrier_write_fd);
 		setup_pipeline_child_fds(prev_fd, pipe_fd, has_next,
 			shell->barrier_write_fd);
 		if (apply_redirs(cmd) != SUCCESS)

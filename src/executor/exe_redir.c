@@ -63,8 +63,8 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 }
 
 /**
- * Apply cmd->redirs (open + dup2); dup heredoc fd to stdin if no input redir.
- * SUCCESS or FAILURE.
+ * Apply cmd->redirs (open + dup2). If heredoc_fd is set: dup to stdin only when
+ * no '<' won stdin; always close heredoc_fd so the pipe read end is not leaked.
  */
 int	apply_redirs(t_command *cmd)
 {
@@ -81,9 +81,10 @@ int	apply_redirs(t_command *cmd)
 			return (FAILURE);
 		node = node->next;
 	}
-	if (cmd->heredoc_fd != -1 && !had_input)
+	if (cmd->heredoc_fd != -1)
 	{
-		dup2(cmd->heredoc_fd, STDIN_FILENO);
+		if (!had_input)
+			dup2(cmd->heredoc_fd, STDIN_FILENO);
 		close(cmd->heredoc_fd);
 		cmd->heredoc_fd = -1;
 	}

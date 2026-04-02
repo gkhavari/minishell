@@ -13,7 +13,7 @@
 #include "minishell.h"
 
 /*
-** One row per builtin; order matches e_builtin from BUILTIN_ECHO … BUILTIN_EXIT.
+** One row per builtin; order matches e_builtin from B_ECHO … B_EXIT.
 ** Registry lives in function-local static storage (no file-scope globals).
 */
 static const t_builtin_reg	*builtin_registry(void)
@@ -31,7 +31,7 @@ static const t_builtin_reg	*builtin_registry(void)
 	return (tab);
 }
 
-/** Map command name to builtin id or NOT_BUILTIN. */
+/** Map command name to builtin id or B_NONE. */
 t_builtin	get_builtin_type(char *cmd)
 {
 	const t_builtin_reg	*tab;
@@ -39,17 +39,17 @@ t_builtin	get_builtin_type(char *cmd)
 	size_t				n;
 
 	if (!cmd)
-		return (NOT_BUILTIN);
+		return (B_NONE);
 	tab = builtin_registry();
-	n = (size_t)(BUILTIN_COUNT - BUILTIN_ECHO);
+	n = (size_t)(B_COUNT - B_ECHO);
 	i = 0;
 	while (i < n)
 	{
 		if (ft_strcmp(cmd, tab[i].name) == 0)
-			return ((t_builtin)(BUILTIN_ECHO + i));
+			return ((t_builtin)(B_ECHO + i));
 		i++;
 	}
-	return (NOT_BUILTIN);
+	return (B_NONE);
 }
 
 /** Dispatch argv[0] via registry (uniform int (*)(char **, t_shell *)). */
@@ -61,8 +61,8 @@ int	run_builtin(char **argv, t_shell *shell)
 	if (!argv || !argv[0])
 		return (FAILURE);
 	type = get_builtin_type(argv[0]);
-	if (type == NOT_BUILTIN)
+	if (type == B_NONE)
 		return (FAILURE);
 	tab = builtin_registry();
-	return (tab[type - BUILTIN_ECHO].run(argv, shell));
+	return (tab[type - B_ECHO].run(argv, shell));
 }

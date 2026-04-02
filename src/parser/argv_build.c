@@ -76,7 +76,7 @@ int	finalize_all_commands(t_shell *shell, t_list *cmd_list)
 		cmd = node->content;
 		if (finalize_argv(shell, cmd) == OOM)
 			return (OOM);
-		cmd->is_builtin = (get_builtin_type(cmd->argv[0]) != NOT_BUILTIN);
+		cmd->is_builtin = (get_builtin_type(cmd->argv[0]) != B_NONE);
 		if (cmd->is_builtin && cmd->argv[1]
 			&& ft_strcmp(cmd->argv[0], "env") == 0)
 			cmd->is_builtin = 0;

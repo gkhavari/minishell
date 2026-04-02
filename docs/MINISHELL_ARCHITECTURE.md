@@ -292,7 +292,7 @@ Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 |--------|-------|---------|---------------------|
 | **0** | **`RL_EOF`** | **EOF** (`NULL` from readline / stdin path) | **TTY:** prints **`exit\n`** then **`break`**. **Non-TTY:** **`break`** without printing. |
 | **-1** | **`RL_SIG`** | **`check_signal_received()`** inside `read_input` fired; **`shell->input`** freed and cleared | **`continue`** (no `process_input`, no `reset_shell` for that iteration). |
-| **`OOM`** | **`OOM`** | e.g. **`build_prompt`** allocation failure | Set **`shell->oom`**, **`last_exit = FAILURE`**, **`reset_shell`**, **`continue`**. |
+| **`OOM`** | **`OOM`** | e.g. **`build_prompt`** / stdin line allocation failure | **`last_exit = FAILURE`**, **`reset_shell`**, **`break`** (leave REPL toward **`free_all`**). |
 | **1** | **`RL_LN`** | A non-**NULL** line was read | **`repl_after_read`**: if **`shell->input[0] != '\0'`** → **`process_input`**, else skip it; then **`reset_shell`**; non-TTY + syntax error may **`break`**. |
 
 **Inside `read_input()`** (after a line pointer is obtained): **`check_signal_received(shell)`** runs for **every** non-**NULL** line (**empty** `""` included) before returning **`RL_LN`**—same mechanism as Ctrl+C at the prompt (§1.4). **`build_prompt()`** failure returns **`OOM`** (not EOF).
@@ -310,10 +310,10 @@ flowchart TD
     START([shell_loop iteration]) --> CHECK1["check_signal_received(shell)"]
     CHECK1 --> READ["read_input(shell)"]
     READ --> RVAL{read_input return}
-    RVAL -->|RL_EOF| EXIT["break — EOF"]
+    RVAL -->|RL_EOF| EXIT["break — leave REPL"]
     RVAL -->|RL_SIG| START
-    RVAL -->|OOM| OOMH["oom + reset_shell + continue"]
-    OOMH --> START
+    RVAL -->|OOM| OOMH["FAILURE + reset_shell + break"]
+    OOMH --> EXIT
     RVAL -->|RL_LN| INEMPTY{shell->input[0] != 0?}
     INEMPTY -->|no| RESET["reset_shell — empty line"]
     INEMPTY -->|yes| PROC["process_input — tokenize → parse → heredocs → execute"]
@@ -328,6 +328,7 @@ flowchart TD
 | 1 | Top of loop: **`check_signal_received(shell)`** — if **`g_signum == SIGINT`**, set **`last_exit = EXIT_SIGINT`**, clear **`g_signum`** (§1). |
 | 2 | **`read_input()`**: TTY → **`build_prompt`**, **`readline`**; non-TTY → **`read_line_stdin()`** → **`ft_read_stdin_line`**. |
 | 3 | **`read_input`:** **`!shell->input`** → **`RL_EOF`** (see table above). |
+| 3b | **`read_input`:** **`OOM`** → **`last_exit = FAILURE`**, **`reset_shell`**, **break** (same exit path as EOF toward **`main`**). |
 | 4 | **`read_input`:** **`check_signal_received`** on non-**NULL** line → may return **`RL_SIG`**. |
 | 5 | **`repl_after_read`:** only if **`shell->input[0]`** → **`process_input()`** (tokenize → parse → heredocs → execute). |
 | 6 | **Readline history:** **`add_history(shell->input)`** in **`handle_end_of_string()`** (`tokenizer_handlers.c`) only if **`isatty(STDIN_FILENO)`** and **`shell->input[0]`** (non-empty line reached EOL without unclosed quote). Empty lines never enter tokenization, so no history entry. |
@@ -649,7 +650,7 @@ flowchart TD
 ```
 
 - **parser/parser.c**: **`parse_input()`** — **`syntax_check`** first; on success **`parse_tokens()`** walks tokens; each **`parse_token_step()`**: on **`PIPE`** append new **`t_command`**, else **`add_token_to_command()`** (WORD → **`add_word_to_cmd`**, redirs → **`append_redir`** / **`handle_heredoc_token`**).
-- **parser/argv_build.c**: **`finalize_all_commands()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`get_builtin_type(cmd->argv[0]) != NOT_BUILTIN`** → **`cmd->is_builtin`**.
+- **parser/argv_build.c**: **`finalize_all_commands()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`get_builtin_type(cmd->argv[0]) != B_NONE`** → **`cmd->is_builtin`**.
 
 ```mermaid
 flowchart LR
@@ -678,15 +679,15 @@ $ cat < file1 < file2           # Opens both, reads from file2
 ```c
 typedef enum e_builtin
 {
-    NOT_BUILTIN = 0,
-    BUILTIN_ECHO,
-    BUILTIN_CD,
-    BUILTIN_PWD,
-    BUILTIN_EXPORT,
-    BUILTIN_UNSET,
-    BUILTIN_ENV,
-    BUILTIN_EXIT,
-    BUILTIN_COUNT
+    B_NONE = 0,
+    B_ECHO,
+    B_CD,
+    B_PWD,
+    B_EXPORT,
+    B_UNSET,
+    B_ENV,
+    B_EXIT,
+    B_COUNT
 }   t_builtin;
 
 /* t_builtin_reg { name, run } in structs.h; static tab inside builtin_registry() */

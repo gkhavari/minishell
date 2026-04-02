@@ -34,15 +34,15 @@ typedef enum e_state
 
 typedef enum e_builtin
 {
-	NOT_BUILTIN = 0,
-	BUILTIN_ECHO,
-	BUILTIN_CD,
-	BUILTIN_PWD,
-	BUILTIN_EXPORT,
-	BUILTIN_UNSET,
-	BUILTIN_ENV,
-	BUILTIN_EXIT,
-	BUILTIN_COUNT
+	B_NONE = 0,
+	B_ECHO,
+	B_CD,
+	B_PWD,
+	B_EXPORT,
+	B_UNSET,
+	B_ENV,
+	B_EXIT,
+	B_COUNT
 }	t_builtin;
 
 typedef struct s_token

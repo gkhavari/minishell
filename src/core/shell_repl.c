@@ -89,7 +89,12 @@ static int	repl_after_read(t_shell *shell)
 	return (0);
 }
 
-/** REPL: read line, process_input, reset on syntax error. */
+/*
+ * REPL: read line, process_input, reset between lines.
+ * Read-path OOM (prompt / stdin line): teardown line state, exit loop — same
+ * as RL_EOF toward main (free_all). Tokenize/parse OOM uses return OOM /
+ * shell->oom inside process_input; reset_shell clears oom each iteration.
+ */
 void	shell_loop(t_shell *shell)
 {
 	int	status;
@@ -104,10 +109,9 @@ void	shell_loop(t_shell *shell)
 			continue ;
 		if (status == OOM)
 		{
-			shell->oom = 1;
 			shell->last_exit = FAILURE;
 			reset_shell(shell);
-			continue ;
+			break ;
 		}
 		if (repl_after_read(shell))
 			break ;
