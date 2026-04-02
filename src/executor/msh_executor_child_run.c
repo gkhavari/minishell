@@ -51,7 +51,7 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 	if (!path)
 		child_exit_not_found(shell, cmd->argv[0]);
 	if (!shell->had_path && !get_env_value(shell->envp, "PATH")
-		&& !ft_strchr(cmd->argv[0], '/') && cmd->argv[1]
+		&& !ft_strchr(cmd->argv[0], '/')
 		&& access(path, X_OK) != 0)
 		child_exit_not_found(shell, cmd->argv[0]);
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
