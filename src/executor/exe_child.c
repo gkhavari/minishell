@@ -12,20 +12,20 @@
 
 #include "minishell.h"
 
-static void	bi_child(t_command *cmd, t_shell *shell)
+static void	run_builtin_in_child(t_command *cmd, t_shell *shell)
 {
 	signal(SIGPIPE, SIG_IGN);
 	clean_exit(shell, run_builtin(cmd->argv, shell));
 }
 
-static void	ch_abort(t_shell *shell, char *argv0, int code,
+static void	child_abort_with_message(t_shell *shell, char *argv0, int code,
 		const char *suffix)
 {
 	ft_dprintf(STDERR_FILENO, "%s%s", argv0, suffix);
 	clean_exit(shell, code);
 }
 
-static void	ch_nf(t_shell *shell, char *argv0)
+static void	child_exit_not_found(t_shell *shell, char *argv0)
 {
 	put_cmd_not_found(argv0);
 	clean_exit(shell, XNF);
@@ -41,20 +41,23 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 	struct stat		sb;
 
 	if (cmd->is_builtin)
-		bi_child(cmd, shell);
+		run_builtin_in_child(cmd, shell);
 	if (!cmd->argv || !cmd->argv[0])
 		clean_exit(shell, SUCCESS);
 	path = resolve_cmd_path(cmd->argv[0], shell);
 	if (!path)
-		ch_nf(shell, cmd->argv[0]);
+		child_exit_not_found(shell, cmd->argv[0]);
 	if (!shell->had_path && !get_env_value(shell->envp, "PATH")
 		&& !ft_strchr(cmd->argv[0], '/') && cmd->argv[1]
 		&& access(path, X_OK) != 0)
-		ch_nf(shell, cmd->argv[0]);
+		child_exit_not_found(shell, cmd->argv[0]);
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
-		ch_abort(shell, cmd->argv[0], XNX, ": Is a directory\n");
+		child_abort_with_message(shell, cmd->argv[0], XNX,
+			": Is a directory\n");
 	execve(path, cmd->argv, shell->envp);
 	if (errno == ENOENT)
-		ch_abort(shell, cmd->argv[0], XNF, ": No such file or directory\n");
-	ch_abort(shell, cmd->argv[0], XNX, ": Permission denied\n");
+		child_abort_with_message(shell, cmd->argv[0], XNF,
+			": No such file or directory\n");
+	child_abort_with_message(shell, cmd->argv[0], XNX,
+		": Permission denied\n");
 }

@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	rdr_in(t_redir *r, int *had_input)
+static int	apply_input_redir(t_redir *r, int *had_input)
 {
 	int	fd;
 
@@ -28,7 +28,7 @@ static int	rdr_in(t_redir *r, int *had_input)
 	return (SUCCESS);
 }
 
-static int	rdr_out(t_redir *r)
+static int	apply_output_redir(t_redir *r)
 {
 	int	fd;
 
@@ -46,7 +46,7 @@ static int	rdr_out(t_redir *r)
 	return (SUCCESS);
 }
 
-static int	rdr_one(t_redir *r, int *had_input)
+static int	apply_one_redir(t_redir *r, int *had_input)
 {
 	size_t	prefix_len;
 
@@ -58,8 +58,8 @@ static int	rdr_one(t_redir *r, int *had_input)
 		return (FAILURE);
 	}
 	if (r->fd == STDIN_FILENO)
-		return (rdr_in(r, had_input));
-	return (rdr_out(r));
+		return (apply_input_redir(r, had_input));
+	return (apply_output_redir(r));
 }
 
 /**
@@ -77,7 +77,7 @@ int	apply_redirs(t_command *cmd)
 	while (node)
 	{
 		r = node->content;
-		if (rdr_one(r, &had_input))
+		if (apply_one_redir(r, &had_input))
 			return (FAILURE);
 		node = node->next;
 	}

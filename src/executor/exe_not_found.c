@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	need_dq(char *cmd_name)
+static int	needs_dollar_quotes(char *cmd_name)
 {
 	int	i;
 
@@ -26,7 +26,7 @@ static int	need_dq(char *cmd_name)
 	return (FALSE);
 }
 
-static int	esc_c(char *out, int j, char c)
+static int	append_escaped_char(char *out, int j, char c)
 {
 	out[j++] = '\\';
 	if (c == '\t')
@@ -48,7 +48,7 @@ static int	esc_c(char *out, int j, char c)
 	return (j);
 }
 
-static int	fill_dq(char *out, int j, char *cmd_name)
+static int	fill_dollar_quoted_name(char *out, int j, char *cmd_name)
 {
 	int	i;
 
@@ -57,7 +57,7 @@ static int	fill_dq(char *out, int j, char *cmd_name)
 	{
 		if (!ft_isprint((unsigned char)cmd_name[i])
 			|| cmd_name[i] == '\\' || cmd_name[i] == '\'')
-			j = esc_c(out, j, cmd_name[i]);
+			j = append_escaped_char(out, j, cmd_name[i]);
 		else
 			out[j++] = cmd_name[i];
 		i++;
@@ -65,19 +65,19 @@ static int	fill_dq(char *out, int j, char *cmd_name)
 	return (j);
 }
 
-static char	*fmt_nf(char *cmd_name)
+static char	*format_not_found_name(char *cmd_name)
 {
 	char	*out;
 	int		j;
 
-	if (!cmd_name || !need_dq(cmd_name))
+	if (!cmd_name || !needs_dollar_quotes(cmd_name))
 		return (NULL);
 	out = malloc((ft_strlen(cmd_name) * 2) + 4);
 	if (!out)
 		return (NULL);
 	out[0] = '$';
 	out[1] = '\'';
-	j = fill_dq(out, 2, cmd_name);
+	j = fill_dollar_quoted_name(out, 2, cmd_name);
 	out[j++] = '\'';
 	out[j] = '\0';
 	return (out);
@@ -91,7 +91,7 @@ void	put_cmd_not_found(char *cmd_name)
 {
 	char	*display;
 
-	display = fmt_nf(cmd_name);
+	display = format_not_found_name(cmd_name);
 	if (!display)
 		display = cmd_name;
 	ft_dprintf(STDERR_FILENO, "%s: command not found\n", display);

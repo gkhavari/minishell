@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	bk_fd(int *in, int *out)
+static int	backup_stdio_fds(int *in, int *out)
 {
 	*in = dup(STDIN_FILENO);
 	*out = dup(STDOUT_FILENO);
@@ -27,7 +27,7 @@ static int	bk_fd(int *in, int *out)
 	return (SUCCESS);
 }
 
-static void	rs_fd(int stdin_backup, int stdout_backup)
+static void	restore_stdio_fds(int stdin_backup, int stdout_backup)
 {
 	dup2(stdin_backup, STDIN_FILENO);
 	dup2(stdout_backup, STDOUT_FILENO);
@@ -35,24 +35,25 @@ static void	rs_fd(int stdin_backup, int stdout_backup)
 	close(stdout_backup);
 }
 
-static int	run_empty(t_command *cmd, int *in, int *out)
+static int	run_empty_command(t_command *cmd, int *in, int *out)
 {
 	int	need_restore;
 
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-	if (need_restore && bk_fd(in, out))
+	if (need_restore && backup_stdio_fds(in, out))
 		return (FAILURE);
 	if (need_restore && apply_redirs(cmd))
 	{
-		rs_fd(*in, *out);
+		restore_stdio_fds(*in, *out);
 		return (FAILURE);
 	}
 	if (need_restore)
-		rs_fd(*in, *out);
+		restore_stdio_fds(*in, *out);
 	return (SUCCESS);
 }
 
-static int	run_bi(t_command *cmd, t_shell *shell, int *in, int *out)
+static int	run_single_builtin(t_command *cmd, t_shell *shell, int *in,
+		int *out)
 {
 	int	type;
 	int	need_restore;
@@ -63,15 +64,15 @@ static int	run_bi(t_command *cmd, t_shell *shell, int *in, int *out)
 			&& type != BUILTIN_UNSET && type != BUILTIN_EXIT)
 		&& need_restore)
 		return (run_external(cmd, shell));
-	if (need_restore && bk_fd(in, out))
+	if (need_restore && backup_stdio_fds(in, out))
 		return (FAILURE);
 	if (need_restore && apply_redirs(cmd))
 	{
-		rs_fd(*in, *out);
+		restore_stdio_fds(*in, *out);
 		return (FAILURE);
 	}
 	if (need_restore)
-		rs_fd(*in, *out);
+		restore_stdio_fds(*in, *out);
 	return (run_builtin(cmd->argv, shell));
 }
 
@@ -92,9 +93,10 @@ int	run_commands(t_shell *shell)
 	{
 		cmd = shell->commands->content;
 		if (!cmd->argv || !cmd->argv[0])
-			return (run_empty(cmd, &stdin_backup, &stdout_backup));
+			return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
 		if (cmd->is_builtin)
-			return (run_bi(cmd, shell, &stdin_backup, &stdout_backup));
+			return (run_single_builtin(cmd, shell,
+					&stdin_backup, &stdout_backup));
 		status = run_external(cmd, shell);
 		return (status);
 	}

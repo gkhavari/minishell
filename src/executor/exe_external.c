@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	ch_stat(int status)
+static int	status_from_child_wait(int status)
 {
 	if (WIFSIGNALED(status))
 	{
@@ -33,7 +33,7 @@ int	run_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
 	int		status;
-	pid_t	w;
+	pid_t	waited_pid;
 
 	if (!cmd->argv || !cmd->argv[0])
 		return (SUCCESS);
@@ -48,16 +48,16 @@ int	run_external(t_command *cmd, t_shell *shell)
 		run_in_child(cmd, shell);
 	}
 	set_signals_ignore();
-	w = waitpid(pid, &status, 0);
-	while (w < 0 && errno == EINTR)
-		w = waitpid(pid, &status, 0);
+	waited_pid = waitpid(pid, &status, 0);
+	while (waited_pid < 0 && errno == EINTR)
+		waited_pid = waitpid(pid, &status, 0);
 	set_signals_interactive();
-	if (w < 0)
+	if (waited_pid < 0)
 		return (perror("minishell: waitpid"), FAILURE);
-	return (ch_stat(status));
+	return (status_from_child_wait(status));
 }
 
-static int	mk_path(char out[PATH_MAX], const char *dir,
+static int	build_path_candidate(char out[PATH_MAX], const char *dir,
 		size_t dir_len, char *cmd)
 {
 	size_t	cmd_len;
@@ -78,7 +78,7 @@ static int	mk_path(char out[PATH_MAX], const char *dir,
 	return (1);
 }
 
-static char	*path_scan(const char *path_env, char *cmd,
+static char	*scan_path_for_command(const char *path_env, char *cmd,
 		char resolved[PATH_MAX])
 {
 	struct stat	sb;
@@ -94,7 +94,7 @@ static char	*path_scan(const char *path_env, char *cmd,
 		while (*end && *end != ':')
 			end++;
 		len = (size_t)(end - start);
-		if (mk_path(full_path, start, len, cmd)
+		if (build_path_candidate(full_path, start, len, cmd)
 			&& stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
 		{
 			ft_strlcpy(resolved, full_path, PATH_MAX);
@@ -128,5 +128,5 @@ char	*resolve_cmd_path(char *cmd, t_shell *shell)
 		ft_strlcpy(resolved, cmd, PATH_MAX);
 		return (resolved);
 	}
-	return (path_scan(path_env, cmd, resolved));
+	return (scan_path_for_command(path_env, cmd, resolved));
 }

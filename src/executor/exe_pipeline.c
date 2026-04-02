@@ -12,8 +12,8 @@
 
 #include "minishell.h"
 
-static int	wait_one(pid_t pid, int status, pid_t last_pid,
-		int *last_status)
+static int	update_last_status_from_wait(pid_t pid, int status,
+		pid_t last_pid, int *last_status)
 {
 	if (pid < 0)
 	{
@@ -33,7 +33,7 @@ static int	wait_one(pid_t pid, int status, pid_t last_pid,
 	return (1);
 }
 
-static int	wait_nlast(pid_t last_pid, int n)
+static int	wait_for_pipeline_children(pid_t last_pid, int n)
 {
 	int		status;
 	int		last_status;
@@ -46,7 +46,8 @@ static int	wait_nlast(pid_t last_pid, int n)
 	while (i < n)
 	{
 		pid = waitpid(-1, &status, 0);
-		step = wait_one(pid, status, last_pid, &last_status);
+		step = update_last_status_from_wait(pid, status, last_pid,
+				&last_status);
 		if (step < 0)
 			break ;
 		i += step;
@@ -54,7 +55,7 @@ static int	wait_nlast(pid_t last_pid, int n)
 	return (last_status);
 }
 
-static int	pl_loop(t_list *cmd_node, t_shell *shell,
+static int	spawn_pipeline_children(t_list *cmd_node, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
 {
 	int		prev_fd;
@@ -95,10 +96,10 @@ int	run_pipeline(t_list *cmds, t_shell *shell)
 	if (pipeline_all_nf(cmds, shell))
 		return (XNF);
 	set_signals_ignore();
-	n = pl_loop(cmds, shell, &last_pid, sync_fd);
+	n = spawn_pipeline_children(cmds, shell, &last_pid, sync_fd);
 	result = FAILURE;
 	if (n > 0)
-		result = wait_nlast(last_pid, n);
+		result = wait_for_pipeline_children(last_pid, n);
 	set_signals_interactive();
 	return (result);
 }

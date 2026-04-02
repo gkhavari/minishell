@@ -12,8 +12,8 @@
 
 #include "minishell.h"
 
-static void	ch_fds(int prev_fd, int pipe_fd[3], int has_next,
-		int barrier_write_fd)
+static void	setup_pipeline_child_fds(int prev_fd, int pipe_fd[3],
+		int has_next, int barrier_write_fd)
 {
 	char	sync;
 
@@ -37,7 +37,7 @@ static void	ch_fds(int prev_fd, int pipe_fd[3], int has_next,
 	}
 }
 
-static pid_t	fork_pl(t_list *cmd_node, t_shell *shell,
+static pid_t	fork_pipeline_child(t_list *cmd_node, t_shell *shell,
 		int prev_fd, int pipe_fd[3])
 {
 	t_command	*cmd;
@@ -54,7 +54,8 @@ static pid_t	fork_pl(t_list *cmd_node, t_shell *shell,
 		set_signals_default();
 		if (shell->barrier_write_fd != -1)
 			close(shell->barrier_write_fd);
-		ch_fds(prev_fd, pipe_fd, has_next, shell->barrier_write_fd);
+		setup_pipeline_child_fds(prev_fd, pipe_fd, has_next,
+			shell->barrier_write_fd);
 		if (apply_redirs(cmd) != SUCCESS)
 			clean_exit(shell, FAILURE);
 		run_in_child(cmd, shell);
@@ -62,7 +63,7 @@ static pid_t	fork_pl(t_list *cmd_node, t_shell *shell,
 	return (pid);
 }
 
-static void	adv_prev(int *prev_fd, int has_next, int p0, int p1)
+static void	advance_prev_pipe_fd(int *prev_fd, int has_next, int p0, int p1)
 {
 	if (*prev_fd != -1)
 		close(*prev_fd);
@@ -92,13 +93,13 @@ pid_t	pipe_step(t_list *cmd_node, t_shell *shell,
 	pipe_fd[2] = sync_fd[0];
 	if (has_next && pipe(pipe_fd) == -1)
 		return (-1);
-	pid = fork_pl(cmd_node, shell, *prev_fd, pipe_fd);
+	pid = fork_pipeline_child(cmd_node, shell, *prev_fd, pipe_fd);
 	if (pid < 0)
 	{
 		if (has_next)
 			(close(pipe_fd[0]), close(pipe_fd[1]));
 		return (-1);
 	}
-	adv_prev(prev_fd, has_next, pipe_fd[0], pipe_fd[1]);
+	advance_prev_pipe_fd(prev_fd, has_next, pipe_fd[0], pipe_fd[1]);
 	return (pid);
 }

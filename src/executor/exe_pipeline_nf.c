@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	is_nf_cmd(t_command *cmd, t_shell *shell)
+static int	is_simple_not_found_command(t_command *cmd, t_shell *shell)
 {
 	char	*path;
 
@@ -41,7 +41,7 @@ int	pipeline_all_nf(t_list *cmds, t_shell *shell)
 	while (node)
 	{
 		cmd = node->content;
-		if (!is_nf_cmd(cmd, shell))
+		if (!is_simple_not_found_command(cmd, shell))
 			return (FALSE);
 		node = node->next;
 	}
