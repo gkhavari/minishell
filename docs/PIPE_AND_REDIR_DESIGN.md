@@ -50,7 +50,7 @@ Implementation:
 
 ## 2. What we execute (single command vs pipeline)
 
-Execution dispatch is centralized in `src/executor/exe.c` (`run_commands`):
+Execution dispatch is centralized in `src/executor/msh_executor_run_commands.c` (`run_commands`):
 
 - **Single command (no `|`)**
   - empty argv: apply redirs (if any) then restore stdio
@@ -65,7 +65,7 @@ Execution dispatch is centralized in `src/executor/exe.c` (`run_commands`):
 
 ### 3.1 `apply_redirs(t_command*)`
 
-`src/executor/exe_redir.c` applies redirections in list order:
+`src/executor/msh_executor_apply_redirects.c` applies redirections in list order:
 
 - **Input `< file`**:
   - `open(file, O_RDONLY)`
@@ -100,9 +100,9 @@ So whichever of `<` and `<<` appears **last in the source** wins stdin, like bas
 
 Pipeline execution is in:
 
-- `src/executor/exe_pip.c` (`run_pip`,
+- `src/executor/msh_executor_pipeline.c` (`run_pip`,
   `wait_pipes`)
-- `src/executor/exe_pipe_step.c` (`pipe_step`)
+- `src/executor/msh_executor_pipeline_segment.c` (`pipe_step`)
 
 For each segment:
 
@@ -130,9 +130,9 @@ This ensures the parent doesn’t accidentally keep pipe ends open (classic bug 
 
 We **reap** children via `waitpid`:
 
-- **Single external**: `src/executor/exe_external.c` (`run_external`) forks once and `waitpid(pid, ...)` for that pid.
+- **Single external**: `src/executor/msh_executor_external_run.c` (`run_external`) forks once and `waitpid(pid, ...)` for that pid.
   - We also handle `EINTR` by retrying `waitpid` (theoretical correctness).
-- **Pipeline**: `src/executor/exe_pip.c`
+- **Pipeline**: `src/executor/msh_executor_pipeline.c`
   (`wait_pipes`) loops until it has reaped **N** children.
   - It calls `waitpid(-1, ...)` and on `EINTR` it retries without counting progress.
 
@@ -159,7 +159,7 @@ Stateful builtins must run in the **parent process** to affect the shell:
 - `export`/`unset` mutate the environment
 - `exit` terminates the shell
 
-In `src/executor/exe.c` (`run_single_builtin`), we run these in parent and
+In `src/executor/msh_executor_run_commands.c` (`run_single_builtin`), we run these in parent and
 apply/restore redirections by backing up stdio (`dup`) and restoring (`dup2`).
 
 For other builtins, if the command has redirections, we may run them via the **external path** (`fork`) to avoid parent stdio side-effects.
@@ -226,31 +226,31 @@ If you need these, it requires extending tokenization/parsing to carry the numer
 Some executor-internal static helpers were renamed to be clearer for teammates.
 Behavior is unchanged.
 
-- `bk_fd` -> `backup_stdio_fds` (`src/executor/exe.c`)
-- `rs_fd` -> `restore_stdio_fds` (`src/executor/exe.c`)
-- `run_empty` -> `run_empty_command` (`src/executor/exe.c`)
-- `run_bi` -> `run_single_builtin` (`src/executor/exe.c`)
-- `ch_fds` -> `setup_pip_child_fds` (`src/executor/exe_pipe_step.c`)
-- `fork_pl` -> `fork_pip_child` (`src/executor/exe_pipe_step.c`)
-- `adv_prev` -> `advance_prev_pipe_fd` (`src/executor/exe_pipe_step.c`)
+- `bk_fd` -> `backup_stdio_fds` (`src/executor/msh_executor_run_commands.c`)
+- `rs_fd` -> `restore_stdio_fds` (`src/executor/msh_executor_run_commands.c`)
+- `run_empty` -> `run_empty_command` (`src/executor/msh_executor_run_commands.c`)
+- `run_bi` -> `run_single_builtin` (`src/executor/msh_executor_run_commands.c`)
+- `ch_fds` -> `setup_pip_child_fds` (`src/executor/msh_executor_pipeline_segment.c`)
+- `fork_pl` -> `fork_pip_child` (`src/executor/msh_executor_pipeline_segment.c`)
+- `adv_prev` -> `advance_prev_pipe_fd` (`src/executor/msh_executor_pipeline_segment.c`)
 - `wait_one` -> `upd_wait_st`
-  (`src/executor/exe_pip.c`)
+  (`src/executor/msh_executor_pipeline.c`)
 - `wait_nlast` -> `wait_pipes`
-  (`src/executor/exe_pip.c`)
-- `pl_loop` -> `spawn_pipes` (`src/executor/exe_pip.c`)
-- `need_dq` -> `needs_dollar_quotes` (`src/executor/exe_not_found.c`)
-- `esc_c` -> `append_escaped_char` (`src/executor/exe_not_found.c`)
-- `fill_dq` -> `fill_dollar_quoted_name` (`src/executor/exe_not_found.c`)
-- `fmt_nf` -> `format_not_found_name` (`src/executor/exe_not_found.c`)
-- `rdr_in` -> `apply_input_redir` (`src/executor/exe_redir.c`)
-- `rdr_out` -> `apply_output_redir` (`src/executor/exe_redir.c`)
-- `rdr_one` -> `apply_one_redir` (`src/executor/exe_redir.c`)
+  (`src/executor/msh_executor_pipeline.c`)
+- `pl_loop` -> `spawn_pipes` (`src/executor/msh_executor_pipeline.c`)
+- `need_dq` -> `needs_dollar_quotes` (`src/executor/msh_executor_not_found_stderr.c`)
+- `esc_c` -> `append_escaped_char` (`src/executor/msh_executor_not_found_stderr.c`)
+- `fill_dq` -> `fill_dollar_quoted_name` (`src/executor/msh_executor_not_found_stderr.c`)
+- `fmt_nf` -> `format_not_found_name` (`src/executor/msh_executor_not_found_stderr.c`)
+- `rdr_in` -> `apply_input_redir` (`src/executor/msh_executor_apply_redirects.c`)
+- `rdr_out` -> `apply_output_redir` (`src/executor/msh_executor_apply_redirects.c`)
+- `rdr_one` -> `apply_one_redir` (`src/executor/msh_executor_apply_redirects.c`)
 - `is_nf_cmd` -> `is_simple_not_found_command`
-  (`src/executor/exe_pip_nf.c`)
-- `bi_child` -> `run_builtin_in_child` (`src/executor/exe_child.c`)
-- `ch_abort` -> `child_abort_msg` (`src/executor/exe_child.c`)
-- `ch_nf` -> `child_exit_not_found` (`src/executor/exe_child.c`)
-- `ch_stat` -> `child_wait_st` (`src/executor/exe_external.c`)
-- `mk_path` -> `path_cand` (`src/executor/exe_external.c`)
-- `path_scan` -> `scan_path` (`src/executor/exe_external.c`)
+  (`src/executor/msh_executor_pipeline_all_not_found.c`)
+- `bi_child` -> `run_builtin_in_child` (`src/executor/msh_executor_child_run.c`)
+- `ch_abort` -> `child_abort_msg` (`src/executor/msh_executor_child_run.c`)
+- `ch_nf` -> `child_exit_not_found` (`src/executor/msh_executor_child_run.c`)
+- `ch_stat` -> `child_wait_st` (`src/executor/msh_executor_external_run.c`)
+- `mk_path` -> `path_cand` (`src/executor/msh_executor_external_run.c`)
+- `path_scan` -> `scan_path` (`src/executor/msh_executor_external_run.c`)
 

@@ -36,7 +36,7 @@
 ** (`hd_fd`).
 */
 # define STDIN_LAST_NONE	0
-# define STDIN_LAST_HD	    1
+# define STDIN_LAST_HD		1
 # define STDIN_LAST_FILE	2
 
 /*

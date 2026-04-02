@@ -20,7 +20,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
-**Exit-status macros (code):** **`includes/defines.h`** — bash/POSIX-style exits: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** / **`XSYN`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`**, **`EXIT_SIGINT`** (usually 130). **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or tokenizer/parser allocations), not a shell exit code.
+**Exit-status macros (code):** **`includes/defines.h`** — bash/POSIX-style exits: **`SUCCESS`** / **`FAILURE`** (0/1 for general function outcomes), **`EXIT_SYNTAX_ERROR`** / **`XSYN`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`**, **`EXIT_SIGINT`** (usually 130). **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or tokenizer/parser allocations), not a shell exit code.
 
 ---
 
@@ -33,7 +33,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 | **`g_signum`**, **`check_signal_received`**, **`rl_event_hook`**, SIGPIPE install | §1 |
 | Tokenizer loop, operators, heredoc delimiter mode | §3 (e.g. §3.2.1) |
 | Expansion vs heredoc body, **`~`** | §4 |
-| **`parse_input`**: **`syntax_check`** then **`parse_tokens`** → **`finalize`** | §5 |
+| **`parse_input`**: **`syntax_check`** then **`build_command_list`** → **`finalize_cmds`** | §5 |
 | Heredoc pipes, SIGINT during heredoc → **`last_exit = EXIT_SIGINT`** (130), no **`run_commands`** | §6 |
 | **`run_commands`**, single vs pipeline, parent-only builtins (cd/export/unset/exit), not-found fast path | §7 |
 | Exit codes, who sets **`last_exit`**, **`reset_shell` does not clear `last_exit`** | §8, §11 |
@@ -225,7 +225,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 **Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
 barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
 `sync_fd[1] = -1` in `run_pip`). The all-not-found fast path
-(`pip_all_nf` in `exe_pip_nf.c`) handles the ordering problem for that case
+(`pip_all_nf` in `msh_executor_pipeline_all_not_found.c`) handles the ordering problem for that case
 by printing errors in the parent before forking — no barrier needed.
 Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 

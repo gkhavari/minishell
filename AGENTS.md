@@ -82,7 +82,7 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 ### Sentinels and exit-style values
 
-- **`OK` / `ERR`** (0/1) — short names for general outcomes; **`SUCCESS`** / **`FAILURE`** are aliases. Use either style consistently per file.
+- **`SUCCESS` / `FAILURE`** (0/1) — general function outcomes (finished vs problem). Use **`OOM`** (`-2`) for critical allocation failure with special unwind.
 - **`OOM` (`-2`)** — **heap allocation failure** in the lexer/parser pipeline. **Not** the same as shell exit code `1`; it is an **internal propagate-up** sentinel (see comment in `defines.h`).
 - **`PR_ERR` / `PARSE_ERR` (`-1`)** — parse-related sentinel where used; do not confuse with `OOM`. (`PARSE_ERR` is an alias of **`PR_ERR`**.)
 - **Shell exit codes** — in code prefer short names from **`defines.h`**: **`XSYN`** (2), **`XNX`** (126), **`XNF`** (127), **`XSIG(sig)`** (128+signal), **`XSINT`** (SIGINT). Long names (**`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_NOT_FOUND`**, **`EXIT_CMD_CANNOT_EXECUTE`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, …) remain as aliases for docs and grep; avoid bare `130`, `2`, `127` in scattered logic.

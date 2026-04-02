@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_external.c                                     :+:      :+:    :+:   */
+/*   msh_executor_external_run.c                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -90,7 +90,7 @@ static char	*scan_path(const char *path_env, char *cmd, char resolved[PATH_MAX])
 	size_t		len;
 
 	start = path_env;
-	while (1)
+	while (TRUE)
 	{
 		end = start;
 		while (*end && *end != ':')

@@ -115,7 +115,7 @@ int	tokenizer_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 {
 	int	r;
 
-	while (1)
+	while (TRUE)
 	{
 		if (!shell->input[*i])
 		{

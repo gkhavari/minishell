@@ -72,15 +72,15 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/heredoc_input.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
 
-# executor (exe_* — parser-style names; public API without exe_ prefix)
-SRCS        += $(SRC_DIR)/executor/exe.c \
-			   $(SRC_DIR)/executor/exe_redir.c \
-			   $(SRC_DIR)/executor/exe_external.c \
-			   $(SRC_DIR)/executor/exe_not_found.c \
-			   $(SRC_DIR)/executor/exe_child.c \
-			   $(SRC_DIR)/executor/exe_pip_nf.c \
-			   $(SRC_DIR)/executor/exe_pip.c \
-			   $(SRC_DIR)/executor/exe_pipe_step.c \
+# executor (verbose msh_executor_* names; public API unchanged)
+SRCS        += $(SRC_DIR)/executor/msh_executor_run_commands.c \
+			   $(SRC_DIR)/executor/msh_executor_apply_redirects.c \
+			   $(SRC_DIR)/executor/msh_executor_external_run.c \
+			   $(SRC_DIR)/executor/msh_executor_not_found_stderr.c \
+			   $(SRC_DIR)/executor/msh_executor_child_run.c \
+			   $(SRC_DIR)/executor/msh_executor_pipeline_all_not_found.c \
+			   $(SRC_DIR)/executor/msh_executor_pipeline.c \
+			   $(SRC_DIR)/executor/msh_executor_pipeline_segment.c \
 
 # builtins
 SRCS        += $(SRC_DIR)/builtins/cd.c \

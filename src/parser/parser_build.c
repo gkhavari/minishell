@@ -76,14 +76,14 @@ static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 static int	parse_token_step(t_shell *shell, t_command **cmd,
 		t_list **tok_node, t_list **cmds_root)
 {
-	t_token	*t;
-	int		p;
+	t_token	*tok;
+	int		res;
 
-	t = (*tok_node)->content;
-	if (t->type == PIPE)
+	tok = (*tok_node)->content;
+	if (tok->type == PIPE)
 	{
-		p = append_pipe_command(shell, cmd, tok_node, cmds_root);
-		if (p == OOM)
+		res = append_pipe_command(shell, cmd, tok_node, cmds_root);
+		if (res == OOM)
 		{
 			shell->oom = 1;
 			return (OOM);

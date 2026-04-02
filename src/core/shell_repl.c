@@ -97,7 +97,7 @@ void	shell_loop(t_shell *shell)
 {
 	int	status;
 
-	while (1)
+	while (TRUE)
 	{
 		check_signal_received(shell);
 		status = read_input(shell);

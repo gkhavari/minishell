@@ -198,37 +198,37 @@ void		reset_shell(t_shell *shell);
 /** At exit: free env, user, cwd, tokens, cmds, input. */
 void		free_all(t_shell *shell);
 
-/* --- exe.c --- */
+/* --- msh_executor_run_commands.c --- */
 /** Run parsed commands (single command or pipeline). */
 int			run_commands(t_shell *shell);
 
-/* --- exe_redir.c --- */
+/* --- msh_executor_apply_redirects.c --- */
 /** Apply redirects and heredoc stdin wiring for one command. */
 int			apply_redirs(t_command *cmd);
 
-/* --- exe_external.c --- */
+/* --- msh_executor_external_run.c --- */
 /** Fork and wait for one external command. */
 int			run_external(t_command *cmd, t_shell *shell);
 /** Resolve argv[0] via PATH or literal path; static buffer. */
 char		*resolve_cmd_path(char *cmd, t_shell *shell);
 
-/* --- exe_not_found.c --- */
+/* --- msh_executor_not_found_stderr.c --- */
 /** Print the command-not-found line to stderr. */
 void		put_cmd_not_found(char *cmd_name);
 
-/* --- exe_child.c --- */
+/* --- msh_executor_child_run.c --- */
 /** Child process: builtin, execve, or error exit. */
 void		run_in_child(t_command *cmd, t_shell *shell);
 
-/* --- exe_pip_nf.c --- */
+/* --- msh_executor_pipeline_all_not_found.c --- */
 /** Pipeline fast path when every stage is not found. */
 int			pip_all_nf(t_list *cmds, t_shell *shell);
 
-/* --- exe_pip.c --- */
+/* --- msh_executor_pipeline.c --- */
 /** Run a command list as a pipeline. */
 int			run_pip(t_list *cmds, t_shell *shell);
 
-/* --- exe_pipe_step.c --- */
+/* --- msh_executor_pipeline_segment.c --- */
 /** One pipeline segment: fork, pipes, and fd wiring (`pipe_step`). */
 pid_t		pipe_step(t_list *cmd_node, t_shell *shell,
 				int *prev_fd, int sync_fd[2]);

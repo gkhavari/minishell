@@ -17,7 +17,7 @@ For non-empty input lines, the core path is:
 - `tokenize_input(shell)` in `src/tokenizer/tokenizer.c`
 - `parse_input(shell)` in `src/parser/parser.c`
 - `process_heredocs(shell)` in `src/parser/parser.c`
-- `run_commands(shell)` in `src/executor/exe.c`
+- `run_commands(shell)` in `src/executor/msh_executor_run_commands.c`
 
 Tokenizer and parser are intentionally separated:
 

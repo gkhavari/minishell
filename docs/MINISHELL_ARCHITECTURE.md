@@ -68,7 +68,7 @@ Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYe
 | `src/signals/` | Signal handlers and readline hook |
 | `src/tokenizer/` | Tokenizer: tokenizer.c, tokenizer_loop.c, expansion, quote/operator handlers, utils |
 | `src/parser/` | Parser: `parser.c`, `parser_syntax_check.c`, `parser_build.c`, `parser_redir.c`, `add_token_to_cmd.c`, `argv_build.c`, `heredoc.c`, **`heredoc_input.c`** (`heredoc_read_line`, `print_heredoc_eof_warning`, `write_heredoc_line`), `heredoc_utils.c` |
-| `src/executor/` | **`exe_*` (parser-style names):** `exe.c`, `exe_redir.c`, `exe_external.c`, `exe_not_found.c`, `exe_child.c`, **`exe_pip_nf.c`** (`pip_all_nf`), `exe_pip.c`, `exe_pipe_step.c` — public API unprefixed (`run_commands`, `apply_redirs`, …). |
+| `src/executor/` | **`msh_executor_*`:** `msh_executor_run_commands.c`, `msh_executor_apply_redirects.c`, `msh_executor_external_run.c`, `msh_executor_not_found_stderr.c`, `msh_executor_child_run.c`, **`msh_executor_pipeline_all_not_found.c`** (`pip_all_nf`), `msh_executor_pipeline.c`, `msh_executor_pipeline_segment.c` — public API unchanged (`run_commands`, `apply_redirs`, …). |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
 
 ```mermaid
@@ -111,14 +111,14 @@ graph TB
         heredoc_utils[heredoc_utils.c]
     end
     subgraph Executor
-        exe_m[exe.c]
-        exe_redir[exe_redir.c]
-        exe_external[exe_external.c]
-        exe_nf[exe_not_found.c]
-        exe_child[exe_child.c]
-        exe_pnf[exe_pip_nf.c]
-        exe_pl[exe_pip.c]
-        exe_ps[exe_pipe_step.c]
+        exe_m[msh_executor_run_commands.c]
+        exe_redir[msh_executor_apply_redirects.c]
+        exe_external[msh_executor_external_run.c]
+        exe_nf[msh_executor_not_found_stderr.c]
+        exe_child[msh_executor_child_run.c]
+        exe_pnf[msh_executor_pipeline_all_not_found.c]
+        exe_pl[msh_executor_pipeline.c]
+        exe_ps[msh_executor_pipeline_segment.c]
     end
     subgraph Builtins
         dispatcher[builtin_dispatcher.c]
@@ -181,14 +181,14 @@ flowchart LR
 - **`shell_repl.c`** (src/core/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls `init_shell`, `shell_loop`, and teardown.
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_cmds()` in `argv_build.c` builds `argv` and sets `is_builtin`.
-- **Executor** (src/executor/): **`run_commands()`** in **`exe.c`** — empty
+- **Executor** (src/executor/): **`run_commands()`** in **`msh_executor_run_commands.c`** — empty
   argv, **`run_empty_command`**; else single command:
   **`run_single_builtin`** (parent with optional `dup`/`apply_redirs`/
   `restore_stdio_fds`, or **`run_external`** if builtin has redirs and type is
   not cd/export/unset/exit) or **`run_external`**; pipeline ->
   **`run_pip()`** -> **`pipe_step`** /
   **`wait_pipes`**; child path -> **`run_in_child()`** in
-  **`exe_child.c`**.
+  **`msh_executor_child_run.c`**.
 
 ---
 
@@ -259,7 +259,7 @@ sequenceDiagram
 
 | Phase | Function | Effect |
 | ----- | -------- | ------ |
-| Child after **`fork`** | **`set_signals_default`** | SIGINT, SIGQUIT, SIGPIPE, SIGTERM → **default** (`exe_external.c`, **`exe_pipe_step.c`**) |
+| Child after **`fork`** | **`set_signals_default`** | SIGINT, SIGQUIT, SIGPIPE, SIGTERM → **default** (`msh_executor_external_run.c`, **`msh_executor_pipeline_segment.c`**) |
 | Parent while waiting | **`set_signals_ignore`** | SIGINT, SIGQUIT → **ignore** so the waiting parent is not torn down by the same keystroke |
 | After wait returns | **`set_signals_interactive`** | Restore §1.3 |
 
@@ -446,7 +446,7 @@ int	syntax_check(t_list *lst)
 	t_token	*token;
 
 	if (!lst)
-		return (OK);
+		return (SUCCESS);
 	token = lst->content;
 	if (token->type == PIPE)
 		return (syntax_error("|"));
@@ -459,10 +459,10 @@ int	syntax_check(t_list *lst)
 				|| ((t_token *)node->next->content)->type == PIPE))
 			return (syntax_error("|"));
 		if (is_redirection(token->type) && check_redir_syntax(node))
-			return (ERR);
+			return (FAILURE);
 		node = node->next;
 	}
-	return (OK);
+	return (SUCCESS);
 }
 ```
 
@@ -606,34 +606,36 @@ Expansion runs during **tokenization** (see `tokenizer/expansion.c`, `tokenizer/
 ### 5.1 Command Structure (actual: `includes/structs.h`)
 
 ```c
+/* args and redirs use libft t_list * — no embedded *next on the structs */
+
 typedef struct s_arg
 {
-    char            *value;
-    struct s_arg    *next;
+    char    *value;
 }   t_arg;
 
 typedef struct s_redir
 {
-    char            *file;
-    int             fd;         /* Target stream: STDIN_FILENO, STDOUT_FILENO, or STDERR_FILENO */
-    int             append;     /* 1 for >>; 0 for <, >, 2> */
-    struct s_redir  *next;
+    char    *file;      /* filename for < > >> */
+    int      fd;        /* dup2 target: STDIN_FILENO or STDOUT_FILENO */
+    int      append;    /* 1 for >>; 0 for < or > */
 }   t_redir;
 
 typedef struct s_command
 {
-    t_arg               *args;          /* Linked list of args; finalize_argv → argv */
-    char                **argv;         /* ["ls", "-la", NULL] for execve */
-    t_redir             *redirs;        /* All redirections: < > >> << 2> (file, fd, append) */
-    int                 hd_fd;     /* FD for heredoc input (or -1) */
-    char                *hd_delim; /* Delimiter for heredoc */
-    int                 hd_quoted; /* Flag if delimiter was quoted */
-    int                 is_builtin;     /* Set in finalize_cmds via get_builtin_type(argv[0]) */
-    struct s_command    *next;          /* Next command in pipeline */
+    t_list  *args;       /* t_list of t_arg *; finalize_cmds builds argv */
+    char   **argv;       /* ["cmd", "arg", NULL] for execve — built by finalize_cmds */
+    t_list  *redirs;     /* t_list of t_redir * (< > >>; applied left-to-right) */
+    int      hd_fd;      /* read end of heredoc pipe (-1 if none) */
+    char    *hd_delim;   /* latest << delimiter (last wins per command) */
+    int      hd_quoted;  /* delimiter was quoted → no expansion in body */
+    int      stdin_last; /* STDIN_LAST_* — tracks < vs << source order for apply_redirs */
+    int      is_builtin; /* set by finalize_cmds via get_builtin_type */
 }   t_command;
 ```
 
-- **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_argv()` builds `argv`, then `finalize_cmds()` sets `is_builtin`.
+> **Note:** `2>` (stderr redirect) is **not implemented** — `t_redir.fd` only holds `STDIN_FILENO` or `STDOUT_FILENO` in practice. Pipeline ordering uses `t_list *` from libft; commands are not linked via embedded `*next`.
+
+- **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_cmds()` (via static `finalize_argv`) builds `argv` and sets `is_builtin`.
 
 ### 5.2 Parsing Flow (actual: `parser/parser.c`, `parser/add_token_to_cmd.c`)
 
@@ -642,19 +644,19 @@ flowchart TD
     PI[parse_input] --> T0{tokens?}
     T0 -->|no| NULL[commands = NULL, return]
     T0 -->|yes| SY[syntax_check]
-    SY -->|ERR| E2[last_exit = EXIT_SYNTAX_ERROR, free tokens, return]
-    SY -->|OK| PT[parse_tokens → t_command list]
+    SY -->|FAILURE| E2[last_exit = EXIT_SYNTAX_ERROR, free tokens, return]
+    SY -->|SUCCESS| PT[build_command_list → t_command list]
     PT -->|NULL| E1[last_exit = FAILURE]
     PT -->|ok| FIN[finalize_cmds]
     FIN --> ARGV[finalize_argv + is_builtin per cmd]
 ```
 
-- **parser/parser.c**: **`parse_input()`** — **`syntax_check`** first; on success **`parse_tokens()`** walks tokens; each **`parse_token_step()`**: on **`PIPE`** append new **`t_command`**, else **`add_token_to_command()`** (WORD → **`add_word_to_cmd`**, redirs → **`append_redir`** / **`handle_heredoc_token`**).
+- **parser/parser.c**: **`parse_input()`** — **`syntax_check`** first; on success **`build_command_list()`** (`parser_build.c`) walks tokens; each **`parse_token_step()`**: on **`PIPE`** append new **`t_command`**, else **`add_token_to_command()`** (WORD → args, redirs → **`parse_redir_token_pair`** / **`handle_heredoc_token`**).
 - **parser/argv_build.c**: **`finalize_cmds()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`get_builtin_type(cmd->argv[0]) != B_NONE`** → **`cmd->is_builtin`**.
 
 ```mermaid
 flowchart LR
-    subgraph walk["parse_tokens walk"]
+    subgraph walk["build_command_list walk"]
         TK[token stream] --> STEP[parse_token_step]
         STEP -->|PIPE| NC[new t_command]
         STEP -->|WORD/redir| ADD[add_token_to_command]
@@ -773,13 +775,13 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/exe.c` (`run_commands`, static
-`run_empty_command` / `run_single_builtin`), `executor/exe_redir.c`
-(`apply_redirs`), `executor/exe_external.c` (`run_external`,
-`resolve_cmd_path`), `executor/exe_pip_nf.c` (`pip_all_nf`),
-`executor/exe_pip.c` + `executor/exe_pipe_step.c` (`run_pip`,
-`pipe_step`; **`sync_fd` inactive**), `executor/exe_child.c`
-(`run_in_child`), `executor/exe_not_found.c` (`put_cmd_not_found`).
+**Implementation:** `executor/msh_executor_run_commands.c` (`run_commands`, static
+`run_empty_command` / `run_single_builtin`), `executor/msh_executor_apply_redirects.c`
+(`apply_redirs`), `executor/msh_executor_external_run.c` (`run_external`,
+`resolve_cmd_path`), `executor/msh_executor_pipeline_all_not_found.c` (`pip_all_nf`),
+`executor/msh_executor_pipeline.c` + `executor/msh_executor_pipeline_segment.c` (`run_pip`,
+`pipe_step`; **`sync_fd` inactive**), `executor/msh_executor_child_run.c`
+(`run_in_child`), `executor/msh_executor_not_found_stderr.c` (`put_cmd_not_found`).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -852,7 +854,7 @@ flowchart TD
     FK --> CH[child: apply_redirs, run_builtin_in_child or execve]
 ```
 
-### 7.3 Single command (actual: `executor/exe.c`)
+### 7.3 Single command (actual: `executor/msh_executor_run_commands.c`)
 
 Redirections use static `backup_stdio_fds` / `restore_stdio_fds` only when
 `cmd->redirs` or `hd_fd` is set. Empty argv -> `run_empty_command`.
@@ -898,7 +900,7 @@ Command: ls -la | grep ".c" | wc -l
 
 **Verified by tests (executor / pipelines):** Single commands: Phase 1 + Hardening (builtins in parent, externals forked). Pipeline stdout: Hardening simple/two/five pipes, pipe with grep/wc -l, pipe builtin echo, pipe with spaces. Pipeline exit: `true | false` → 1, `false | true` → 0. Pipeline + redir and stress (long pipeline, many pipelines, pipe redir combo, export then pipe): no crash. Path: absolute path, command not found (`EXIT_CMD_NOT_FOUND`), directory as cmd (`EXIT_CMD_CANNOT_EXECUTE`). See [BEHAVIOR.md](BEHAVIOR.md) §3, §7.
 
-### 7.5 Pipeline (actual: `exe_pip.c` + `exe_pipe_step.c`)
+### 7.5 Pipeline (actual: `msh_executor_pipeline.c` + `msh_executor_pipeline_segment.c`)
 
 ```mermaid
 flowchart LR
@@ -925,10 +927,10 @@ returns the **last** segment's status.
 - **EINTR-aware wait loop:** interrupted waits retry instead of miscounting
   children, improving robustness under signal load.
 
-### 7.6 Command Execution (In Child) — actual: `exe_child.c` `run_in_child()`
+### 7.6 Command Execution (In Child) — actual: `msh_executor_child_run.c` `run_in_child()`
 
 ```c
-/* exe_child.c — sketch */
+/* msh_executor_child_run.c — sketch */
 void	run_in_child(t_command *cmd, t_shell *shell)
 {
 	if (cmd->is_builtin)
@@ -945,11 +947,11 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 ```
 
 **Supporting files:**
-- **`exe_not_found.c`**: **`put_cmd_not_found`** — not-found line to stderr
+- **`msh_executor_not_found_stderr.c`**: **`put_cmd_not_found`** — not-found line to stderr
   (`$'…'` when name has control bytes).
-- **`exe_pip_nf.c`**: **`pip_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent; **`run_pip`** returns **`EXIT_CMD_NOT_FOUND`** without forking that pipeline.
+- **`msh_executor_pipeline_all_not_found.c`**: **`pip_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent; **`run_pip`** returns **`EXIT_CMD_NOT_FOUND`** without forking that pipeline.
 
-### 7.7 Path Resolution (actual: `exe_external.c`)
+### 7.7 Path Resolution (actual: `msh_executor_external_run.c`)
 
 `resolve_cmd_path` uses a **static** buffer (`PATH_MAX`): copy the return value before the next call if you need to keep it. If `cmd` contains `/`, the path is copied as-is (resolution happens at `execve`). Otherwise scan `PATH` colon-separated segments with `stat` (regular file), not `ft_split` + `access` as in older sketches. If `PATH` is missing but the shell **had** `PATH` at startup, a default list is used (`/usr/local/bin:/usr/bin:/bin:.`).
 
@@ -961,7 +963,7 @@ All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/b
 
 ### 8.0 Named constants (`includes/defines.h`)
 
-Use these in C instead of bare numbers: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`TOK_N`** / **`TOK_Y`** (tokenizer step: character not handled vs handled — check **`OOM`** before treating as boolean), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
+Use these in C instead of bare numbers: **`SUCCESS`** / **`FAILURE`** (0/1 for general outcomes), **`TOK_N`** / **`TOK_Y`** (tokenizer step: character not handled vs handled — check **`OOM`** before treating as boolean), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
 
 ### 8.1 Summary Table
 
@@ -1002,12 +1004,12 @@ flowchart LR
 - **`FAILURE` (1)** – Builtin failure (e.g. `exit` too many args **returns** `FAILURE`), redirection failure, or generic error.
 - **`EXIT_SYNTAX_ERROR` (2)** – Syntax error (`syntax_check`, tokenizer unclosed quote); also **`exit` with non-numeric arg** (bash uses **255**).
 - **`EXIT_CMD_CANNOT_EXECUTE` (126)** – Path is directory or permission denied
-  around `execve` (`exe_child.c` **`child_abort_msg`**).
+  around `execve` (`msh_executor_child_run.c` **`child_abort_msg`**).
 - **`EXIT_CMD_NOT_FOUND` (127)** – Command not found
   (**`child_exit_not_found`**; pipeline fast path **`pip_all_nf`** in
   parent).
 - **`EXIT_STATUS_FROM_SIGNAL(sig)`** – Child terminated by signal; e.g.
-  **`EXIT_SIGINT`** (`exe_external.c` **`child_wait_st`**, pipeline
+  **`EXIT_SIGINT`** (`msh_executor_external_run.c` **`child_wait_st`**, pipeline
   **`wait_pipes`**).
 
 ### 8.3 exit Builtin (Bash Reference)
@@ -1283,13 +1285,13 @@ Phase 3: Expander
 └── [x] Edge case handling (e.g. $ at end, invalid names)
 
 Phase 4: Executor (Simple)
-├── [x] Single external command execution (executor/exe_external.c)
-├── [x] Path resolution (resolve_cmd_path in exe_external.c)
+├── [x] Single external command execution (executor/msh_executor_external_run.c)
+├── [x] Path resolution (resolve_cmd_path in msh_executor_external_run.c)
 ├── [x] Single builtin with redirections (run_single_builtin / run_external)
-└── [x] File redirections (executor/exe_redir.c, rdr_one, hd_fd)
+└── [x] File redirections (executor/msh_executor_apply_redirects.c, apply_one_redir, hd_fd)
 
 Phase 5: Pipes & Heredoc
-├── [x] Pipeline execution (executor/exe_pip.c)
+├── [x] Pipeline execution (executor/msh_executor_pipeline.c)
 ├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
 └── [x] Signal handling in children (wait_pipes, XSIG)
@@ -1298,7 +1300,7 @@ Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)
 ├── [x] Memory cleanup (free/free_shell.c, free/free_runtime.c, reset_shell)
 ├── [x] Edge case handling (hardening tests pass)
-├── [x] Executor split: exe_child, exe_not_found, exe_pipe_step, exe_pip_nf (`pip_all_nf`)
+├── [x] Executor split: child_run, not_found_stderr, pipeline_segment, pipeline_all_not_found (`pip_all_nf`)
 ├── [x] Exit utils extracted: parse_exit_value in exit_utils.c
 ├── [x] `barrier_write_fd` reserved on `t_shell`; pipeline **`sync_fd`** inactive; stderr ordering for all-not-found via **`pip_all_nf`**
 └── [x] Norminette / 42 compliance (`norminette` on `includes`, `libft`, `src` in Linux)
@@ -1312,5 +1314,5 @@ Phase 6: Polish & Refactor
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`OK`/`ERR`**, **`TOK_N`/`TOK_Y`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, **`PR_ERR`**, other parser sentinels. Long names (**`EXIT_SYNTAX_ERROR`**, **`TOK_NO`/`TOK_YES`**, **`LEX_NO`/`LEX_YES`**, etc.) remain as aliases where defined. |
+| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`SUCCESS`/`FAILURE`**, **`TOK_N`/`TOK_Y`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, **`PR_ERR`**, other parser sentinels. Long names (**`EXIT_SYNTAX_ERROR`**, **`TOK_NO`/`TOK_YES`**, **`LEX_NO`/`LEX_YES`**, etc.) remain as aliases where defined. |
 | **README.md** | Project overview, build, usage, how to run tests. |

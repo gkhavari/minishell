@@ -25,7 +25,7 @@ int	ft_read_stdin_line(t_shell *shell, char **line, int set_shell_oom_on_fail)
 	*line = ft_strdup("");
 	if (!*line)
 		return (OOM);
-	while (1)
+	while (TRUE)
 	{
 		ret = read(STDIN_FILENO, &c, 1);
 		if (ret <= 0)

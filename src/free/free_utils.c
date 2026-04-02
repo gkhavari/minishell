@@ -15,23 +15,23 @@
 /** `ft_lstclear` del: free `t_token` value string and struct. */
 static void	del_token_content(void *content)
 {
-	t_token	*t;
+	t_token	*tok;
 
-	t = content;
-	if (t->value)
-		free(t->value);
-	free(t);
+	tok = content;
+	if (tok->value)
+		free(tok->value);
+	free(tok);
 }
 
 /** `ft_lstclear` del: free `t_arg` value string and struct. */
 static void	del_arg_content(void *content)
 {
-	t_arg	*a;
+	t_arg	*arg;
 
-	a = content;
-	if (a->value)
-		free(a->value);
-	free(a);
+	arg = content;
+	if (arg->value)
+		free(arg->value);
+	free(arg);
 }
 
 /** Clear token `t_list`; each node content is `t_token *`. */

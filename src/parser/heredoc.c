@@ -78,7 +78,7 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 	ctx.shell = shell;
 	ctx.expand = !cmd->hd_quoted;
 	start_line = *line_no + 1;
-	while (1)
+	while (TRUE)
 	{
 		r = heredoc_read_one(&ctx, line_no, start_line);
 		if (r < 0)
