@@ -77,7 +77,7 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 	{
 		ft_dprintf(STDERR_FILENO,
 			"minishell: unset: -%s: invalid option\n", arg + 1);
-		return (EXIT_SYNTAX_ERROR);
+		return (XSYN);
 	}
 	if (!is_valid_unset_name(arg))
 		return (SUCCESS);

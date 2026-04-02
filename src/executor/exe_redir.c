@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_redir.c                                          :+:      :+:    :+:   */
+/*   exe_redir.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -50,9 +50,8 @@ static int	rdr_one(t_redir *r, int *had_input)
 {
 	size_t	prefix_len;
 
-	prefix_len = ft_strlen(AMBIG_REDIR);
-	if (r->file && ft_strncmp(r->file, AMBIG_REDIR,
-			prefix_len) == 0)
+	prefix_len = ft_strlen(S_AMBIG);
+	if (r->file && ft_strncmp(r->file, S_AMBIG, prefix_len) == 0)
 	{
 		ft_dprintf(STDERR_FILENO, "%s: ambiguous redirect\n",
 			r->file + prefix_len);
@@ -64,8 +63,8 @@ static int	rdr_one(t_redir *r, int *had_input)
 }
 
 /**
- * Walk cmd->redirs (open + dup2); if no input redirect, dup heredoc read fd to stdin.
- * Returns SUCCESS or FAILURE.
+ * Apply cmd->redirs (open + dup2); dup heredoc fd to stdin if no input redir.
+ * SUCCESS or FAILURE.
  */
 int	apply_redirs(t_command *cmd)
 {

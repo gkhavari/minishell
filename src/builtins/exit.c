@@ -19,7 +19,7 @@ static int	check_exit_value(char **args, long long *value)
 	{
 		ft_dprintf(STDERR_FILENO,
 			"exit: %s: numeric argument required\n", args[1]);
-		return (EXIT_SYNTAX_ERROR);
+		return (XSYN);
 	}
 	if (args[2])
 	{
@@ -41,8 +41,8 @@ int	builtin_exit(char **args, t_shell *shell)
 	shell->last_exit = check_exit_value(args, &value);
 	if (shell->last_exit == FAILURE)
 		return (FAILURE);
-	if (shell->last_exit == EXIT_SYNTAX_ERROR)
-		clean_exit(shell, EXIT_SYNTAX_ERROR);
+	if (shell->last_exit == XSYN)
+		clean_exit(shell, XSYN);
 	clean_exit(shell, (unsigned char)value);
 	return (SUCCESS);
 }

@@ -51,7 +51,7 @@ static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 		shell->oom = 1;
 		return (OOM);
 	}
-	if (consumed == PARSE_ERR)
+	if (consumed == PR_ERR)
 	{
 		free_commands(cmds_root);
 		return (FAILURE);

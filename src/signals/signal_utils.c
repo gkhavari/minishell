@@ -25,13 +25,13 @@ int	readline_event_hook(void)
 }
 
 /*
-** After readline: SIGINT -> last_exit EXIT_SIGINT, clear flag.
+** After readline: SIGINT -> last_exit XSINT, clear flag.
 */
 int	check_signal_received(t_shell *shell)
 {
 	if (g_signum == SIGINT)
 	{
-		shell->last_exit = EXIT_SIGINT;
+		shell->last_exit = XSINT;
 		g_signum = 0;
 		return (1);
 	}

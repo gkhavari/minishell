@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_external.c                                       :+:      :+:    :+:   */
+/*   exe_external.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -18,7 +18,7 @@ static int	ch_stat(int status)
 	{
 		if (WTERMSIG(status) == SIGQUIT)
 			ft_dprintf(STDERR_FILENO, "Quit (core dumped)\n");
-		return (EXIT_STATUS_FROM_SIGNAL(WTERMSIG(status)));
+		return (XSIG(WTERMSIG(status)));
 	}
 	if (WIFEXITED(status))
 		return (WEXITSTATUS(status));
@@ -26,8 +26,8 @@ static int	ch_stat(int status)
 }
 
 /**
- * Fork once for a simple external: child applies redirs then run_in_child; parent
- * waitpid, maps status to exit code, restores interactive signal mask.
+ * Fork once for external: child redirs then run_in_child; parent waitpid,
+ * maps status to exit code, restores interactive signal mask.
  */
 int	run_external(t_command *cmd, t_shell *shell)
 {
@@ -42,7 +42,7 @@ int	run_external(t_command *cmd, t_shell *shell)
 	if (pid == 0)
 	{
 		set_signals_default();
-		if (apply_redirs(cmd) != 0)
+		if (apply_redirs(cmd) != SUCCESS)
 			clean_exit(shell, FAILURE);
 		run_in_child(cmd, shell);
 	}
@@ -103,9 +103,8 @@ static char	*path_scan(const char *path_env, char *cmd,
 }
 
 /**
- * Resolve argv[0] for execve (PATH search or literal path). Uses one static buffer
- * of PATH_MAX bytes; copy the result before calling again if you need to keep it.
- * Returns NULL if the command cannot be resolved.
+ * Resolve argv[0] for execve (PATH or literal). One static PATH_MAX buffer;
+ * copy before another call if needed. NULL if unresolved.
  */
 char	*resolve_cmd_path(char *cmd, t_shell *shell)
 {

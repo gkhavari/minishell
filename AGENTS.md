@@ -82,8 +82,8 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 - **`OK` / `ERR`** (0/1) — short names for general outcomes; **`SUCCESS`** / **`FAILURE`** are aliases. Use either style consistently per file.
 - **`OOM` (`-2`)** — **heap allocation failure** in the lexer/parser pipeline. **Not** the same as shell exit code `1`; it is an **internal propagate-up** sentinel (see comment in `defines.h`).
-- **`PARSE_ERR` (`-1`)** — parse-related sentinel where used; do not confuse with `OOM`.
-- **Shell exit codes** (`EXIT_SYNTAX_ERROR`, `EXIT_CMD_NOT_FOUND`, `EXIT_CMD_CANNOT_EXECUTE`, signal base **128+N**, **`EXIT_SIGINT`**, etc.) — use macros from **`defines.h`** or documented helpers; avoid bare `130`, `2`, `127` in scattered logic.
+- **`PR_ERR` / `PARSE_ERR` (`-1`)** — parse-related sentinel where used; do not confuse with `OOM`. (`PARSE_ERR` is an alias of **`PR_ERR`**.)
+- **Shell exit codes** — in code prefer short names from **`defines.h`**: **`XSYN`** (2), **`XNX`** (126), **`XNF`** (127), **`XSIG(sig)`** (128+signal), **`XSINT`** (SIGINT). Long names (**`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_NOT_FOUND`**, **`EXIT_CMD_CANNOT_EXECUTE`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, …) remain as aliases for docs and grep; avoid bare `130`, `2`, `127` in scattered logic.
 
 ### OOM chaining (no silent leak)
 

@@ -43,7 +43,7 @@ void	parse_input(t_shell *shell)
 	}
 	if (syntax_check(shell->tokens) == ERR)
 	{
-		shell->last_exit = EXIT_SYNTAX_ERROR;
+		shell->last_exit = XSYN;
 		free_tokens(&shell->tokens);
 		shell->tokens = NULL;
 		return ;

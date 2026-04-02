@@ -43,12 +43,12 @@ static int	redir_pair(t_command *cmd, char *file, int fd, int append)
 {
 	if (append_redir(cmd, file, fd, append) == FAILURE)
 		return (OOM);
-	return (PARSE_PAIR);
+	return (PR_2);
 }
 
 /**
  * Redirection token + following WORD.
- * Returns PARSE_PAIR, PARSE_ONE, PARSE_ERR, or OOM.
+ * Returns PR_2, PR_1, PR_ERR, or OOM.
  */
 int	parse_redir_token_pair(t_command *cmd, t_list *tok_node)
 {
@@ -57,15 +57,15 @@ int	parse_redir_token_pair(t_command *cmd, t_list *tok_node)
 
 	cur = tok_node->content;
 	if (!tok_node->next)
-		return (PARSE_ERR);
+		return (PR_ERR);
 	next_tok = tok_node->next->content;
 	if (!next_tok->value)
-		return (PARSE_ERR);
+		return (PR_ERR);
 	if (cur->type == REDIR_IN)
 		return (redir_pair(cmd, next_tok->value, STDIN_FILENO, 0));
 	if (cur->type == REDIR_OUT)
 		return (redir_pair(cmd, next_tok->value, STDOUT_FILENO, 0));
 	if (cur->type == APPEND)
 		return (redir_pair(cmd, next_tok->value, STDOUT_FILENO, 1));
-	return (PARSE_ONE);
+	return (PR_1);
 }

@@ -14,7 +14,7 @@
 
 /*
  * Run one lexer handler that shares (shell, i, word). Like ft_lstmap-style
- * fn pointer: propagate OOM; map "handled" to LEX_YES; else LEX_NO.
+ * fn pointer: propagate OOM; map "handled" to LX_Y; else LX_N.
  */
 static int	lex_try_one(t_shell *shell, size_t *i, char **word,
 		int (*fn)(t_shell *, size_t *, char **))
@@ -24,9 +24,9 @@ static int	lex_try_one(t_shell *shell, size_t *i, char **word,
 	r = fn(shell, i, word);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
-		return (LEX_YES);
-	return (LEX_NO);
+	if (r != LX_N)
+		return (LX_Y);
+	return (LX_N);
 }
 
 static int	lex_try_expand_unquoted(t_shell *shell, size_t *i, char **word)
@@ -34,12 +34,12 @@ static int	lex_try_expand_unquoted(t_shell *shell, size_t *i, char **word)
 	int	r;
 
 	if (shell->heredoc_mode)
-		return (LEX_NO);
+		return (LX_N);
 	r = lex_try_one(shell, i, word, &handle_variable_expansion);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
-		return (LEX_YES);
+	if (r != LX_N)
+		return (LX_Y);
 	return (lex_try_one(shell, i, word, &handle_tilde_expansion));
 }
 
@@ -57,18 +57,18 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 				return (OOM);
 		}
 		(*i)++;
-		return (LEX_YES);
+		return (LX_Y);
 	}
 	r = handle_single_quote(shell, i, word, state);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
-		return (LEX_YES);
+	if (r != LX_N)
+		return (LX_Y);
 	r = handle_double_quote(shell, i, word, state);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
-		return (LEX_YES);
+	if (r != LX_N)
+		return (LX_Y);
 	return (lex_try_expand_unquoted(shell, i, word));
 }
 
@@ -80,17 +80,17 @@ static int	lex_run_secondary(t_shell *shell, size_t *i, t_state *state,
 	r = handle_backslash(shell, i, word, state);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
+	if (r != LX_N)
 		return (SUCCESS);
 	r = lex_try_one(shell, i, word, &handle_operator);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
+	if (r != LX_N)
 		return (SUCCESS);
 	r = lex_try_one(shell, i, word, &handle_whitespace);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
+	if (r != LX_N)
 		return (SUCCESS);
 	r = process_normal_char(shell, shell->input[*i], i, word);
 	if (r == OOM)
@@ -112,7 +112,7 @@ int	tokenizer_run_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 		r = handle_quotes_and_expand(shell, i, word, state);
 		if (r == OOM)
 			return (OOM);
-		if (r != LEX_NO)
+		if (r != LX_N)
 			continue ;
 		if (lex_run_secondary(shell, i, state, word) == OOM)
 			return (OOM);

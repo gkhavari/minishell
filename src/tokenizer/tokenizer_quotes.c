@@ -25,7 +25,7 @@ static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 		return (OOM);
 	}
 	free(expanded);
-	return (LEX_YES);
+	return (LX_Y);
 }
 
 /**
@@ -35,43 +35,43 @@ static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
 {
 	if (shell->input[*i] != '\\' || shell->input[*i + 1] != '$')
-		return (LEX_NO);
+		return (LX_N);
 	if (append_char(shell, word, '$') == OOM)
 		return (OOM);
 	*i += 2;
-	return (LEX_YES);
+	return (LX_Y);
 }
 
 /**
- * In ST_DQUOTE: $ / \\$ / literal; else return LEX_NO.
+ * In ST_DQUOTE: $ / \\$ / literal; else return LX_N.
  */
 int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	int	r;
 
 	if (*state != ST_DQUOTE)
-		return (LEX_NO);
+		return (LX_N);
 	if (shell->input[*i] == '$' && !shell->heredoc_mode
 		&& shell->input[*i + 1] != '"' && shell->input[*i + 1] != '\'')
 		return (handle_dollar_in_dquote(shell, i, word));
 	r = handle_escaped_dollar(shell, i, word);
 	if (r == OOM)
 		return (OOM);
-	if (r != LEX_NO)
-		return (LEX_YES);
+	if (r != LX_N)
+		return (LX_Y);
 	if (process_normal_char(shell, shell->input[*i], i, word) == OOM)
 		return (OOM);
-	return (LEX_YES);
+	return (LX_Y);
 }
 
 /**
- * In ST_SQUOTE: append char literally (no expansion). Else return LEX_NO.
+ * In ST_SQUOTE: append char literally (no expansion). Else return LX_N.
  */
 int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (*state != ST_SQUOTE)
-		return (LEX_NO);
+		return (LX_N);
 	if (process_normal_char(shell, shell->input[*i], i, word) == OOM)
 		return (OOM);
-	return (LEX_YES);
+	return (LX_Y);
 }

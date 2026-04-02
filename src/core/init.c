@@ -25,7 +25,7 @@ void	process_input(t_shell *shell)
 	if (process_heredocs(shell))
 	{
 		if (g_signum == SIGINT)
-			shell->last_exit = EXIT_SIGINT;
+			shell->last_exit = XSINT;
 		else
 			shell->last_exit = FAILURE;
 		return ;

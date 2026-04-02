@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_pipeline.c                                       :+:      :+:    :+:   */
+/*   exe_pipeline.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -28,7 +28,7 @@ static int	wait_one(pid_t pid, int status, pid_t last_pid,
 		if (WIFEXITED(status))
 			*last_status = WEXITSTATUS(status);
 		else if (WIFSIGNALED(status))
-			*last_status = EXIT_STATUS_FROM_SIGNAL(WTERMSIG(status));
+			*last_status = XSIG(WTERMSIG(status));
 	}
 	return (1);
 }
@@ -57,8 +57,8 @@ static int	wait_nlast(pid_t last_pid, int n)
 static int	pl_loop(t_list *cmd_node, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
 {
-	int	prev_fd;
-	int	i;
+	int		prev_fd;
+	int		i;
 	pid_t	pid;
 
 	prev_fd = -1;
@@ -93,7 +93,7 @@ int	run_pipeline(t_list *cmds, t_shell *shell)
 	sync_fd[1] = -1;
 	shell->barrier_write_fd = -1;
 	if (pipeline_all_nf(cmds, shell))
-		return (EXIT_CMD_NOT_FOUND);
+		return (XNF);
 	set_signals_ignore();
 	n = pl_loop(cmds, shell, &last_pid, sync_fd);
 	result = FAILURE;

@@ -22,6 +22,9 @@ void		init_shell_identity(t_shell *shell, char **envp);
 void		init_runtime_fields(t_shell *shell);
 char		*get_env_value(char **envp, const char *key);
 
+/* shell_repl.c */
+void		shell_loop(t_shell *shell);
+
 /* ft_strcat.c */
 char		*ft_strcat(char *dest, const char *src);
 
@@ -115,6 +118,8 @@ int			syntax_error(const char *msg);
 
 /* heredoc_input.c */
 char		*heredoc_read_line(t_shell *shell);
+void		print_heredoc_eof_warning(int line_no, char *delim);
+void		write_heredoc_line(char *line, int fd, int expand, t_shell *shell);
 
 /* heredoc.c */
 int			read_heredoc(t_command *cmd, t_shell *shell, int *line_no);
@@ -122,10 +127,6 @@ int			read_heredoc(t_command *cmd, t_shell *shell, int *line_no);
 /* heredoc_utils.c */
 int			is_quoted_delimiter(char *delim);
 char		*expand_heredoc_line(char *line, t_shell *shell);
-
-/* heredoc_warning.c */
-void		print_heredoc_eof_warning(int line_no, char *delim);
-void		write_heredoc_line(char *line, int fd, int expand, t_shell *shell);
 
 /* free_runtime.c */
 void		free_commands(t_list **cmds);
@@ -161,7 +162,9 @@ void		put_cmd_not_found(char *cmd_name);
 /* exe_child.c */
 /** Post-fork child: builtin, execve, or errors; see exe_child.c */
 void		run_in_child(t_command *cmd, t_shell *shell);
-/** Pipeline all-stages not-found fast path; see exe_child.c */
+
+/* exe_pipeline_nf.c */
+/** Pipeline all-stages not-found fast path; see exe_pipeline_nf.c */
 int			pipeline_all_nf(t_list *cmds, t_shell *shell);
 
 /* exe_pipeline.c */

@@ -50,7 +50,7 @@ static int	append_expanded_unquoted(t_shell *shell, char **word, char *exp)
 		return (OOM);
 	}
 	free(exp);
-	return (LEX_YES);
+	return (LX_Y);
 }
 
 int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
@@ -60,7 +60,7 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	int		he;
 
 	if (shell->input[*i] != '$')
-		return (LEX_NO);
+		return (LX_N);
 	start = *i;
 	expanded = expand_var(shell, i);
 	if (!expanded)
@@ -73,10 +73,10 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 		free(expanded);
 		return (OOM);
 	}
-	if (he != LEX_NO)
+	if (he != LX_N)
 	{
 		free(expanded);
-		return (LEX_YES);
+		return (LX_Y);
 	}
 	return (append_expanded_unquoted(shell, word, expanded));
 }
@@ -87,11 +87,11 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	char	*home;
 
 	if (shell->input[*i] != '~' || *word)
-		return (LEX_NO);
+		return (LX_N);
 	next = shell->input[*i + 1];
 	if (next && next != '/' && !msh_is_blank((unsigned char)next, 0)
 		&& !is_op_char(next))
-		return (LEX_NO);
+		return (LX_N);
 	home = get_env_value(shell->envp, "HOME");
 	if (!home)
 		home = "";
@@ -99,5 +99,5 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 		== OOM)
 		return (OOM);
 	(*i)++;
-	return (LEX_YES);
+	return (LX_Y);
 }

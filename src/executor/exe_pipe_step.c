@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_pipe_step.c                                      :+:      :+:    :+:   */
+/*   exe_pipe_step.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -54,9 +54,8 @@ static pid_t	fork_pl(t_list *cmd_node, t_shell *shell,
 		set_signals_default();
 		if (shell->barrier_write_fd != -1)
 			close(shell->barrier_write_fd);
-		ch_fds(prev_fd, pipe_fd, has_next,
-			shell->barrier_write_fd);
-		if (apply_redirs(cmd) != 0)
+		ch_fds(prev_fd, pipe_fd, has_next, shell->barrier_write_fd);
+		if (apply_redirs(cmd) != SUCCESS)
 			clean_exit(shell, FAILURE);
 		run_in_child(cmd, shell);
 	}

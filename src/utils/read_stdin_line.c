@@ -14,7 +14,7 @@
 
 /**
  * Non-TTY: byte-read STDIN into *line until newline or EOF (no newline in buf).
- * Starts empty; grows via append_char (ft_realloc). READ_LINE / READ_EOF / OOM.
+ * Starts empty; grows via append_char (ft_realloc). RL_LN / RL_EOF / OOM.
  * If set_shell_oom_on_fail and append fails, sets shell->oom.
  */
 int	ft_read_stdin_line(t_shell *shell, char **line, int set_shell_oom_on_fail)
@@ -31,11 +31,11 @@ int	ft_read_stdin_line(t_shell *shell, char **line, int set_shell_oom_on_fail)
 		if (ret <= 0)
 		{
 			if (ft_strlen(*line) == 0)
-				return (free(*line), *line = NULL, READ_EOF);
-			return (READ_LINE);
+				return (free(*line), *line = NULL, RL_EOF);
+			return (RL_LN);
 		}
 		if (c == '\n')
-			return (READ_LINE);
+			return (RL_LN);
 		if (append_char(shell, line, c) == OOM)
 		{
 			if (set_shell_oom_on_fail)

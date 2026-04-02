@@ -119,19 +119,19 @@ int	builtin_export(char **args, t_shell *shell)
 	if (!args[1])
 		return (print_sorted_env(shell));
 	i = 1;
-	ret = 0;
+	ret = SUCCESS;
 	while (args[i])
 	{
 		if (args[i][0] == '-')
 		{
 			ft_dprintf(STDERR_FILENO,
 				"minishell: export: %s: invalid option\n", args[i]);
-			ret = 2;
+			ret = XSYN;
 		}
 		else if (set_env_var(shell, args[i]))
 		{
-			if (ret != 2)
-				ret = 1;
+			if (ret != XSYN)
+				ret = FAILURE;
 		}
 		i++;
 	}

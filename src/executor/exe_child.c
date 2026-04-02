@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_child.c                                          :+:      :+:    :+:   */
+/*   exe_child.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -28,7 +28,7 @@ static void	ch_abort(t_shell *shell, char *argv0, int code,
 static void	ch_nf(t_shell *shell, char *argv0)
 {
 	put_cmd_not_found(argv0);
-	clean_exit(shell, EXIT_CMD_NOT_FOUND);
+	clean_exit(shell, XNF);
 }
 
 /**
@@ -52,56 +52,9 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 		&& access(path, X_OK) != 0)
 		ch_nf(shell, cmd->argv[0]);
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
-		ch_abort(shell, cmd->argv[0], EXIT_CMD_CANNOT_EXECUTE,
-			": Is a directory\n");
+		ch_abort(shell, cmd->argv[0], XNX, ": Is a directory\n");
 	execve(path, cmd->argv, shell->envp);
 	if (errno == ENOENT)
-		ch_abort(shell, cmd->argv[0], EXIT_CMD_NOT_FOUND,
-			": No such file or directory\n");
-	ch_abort(shell, cmd->argv[0], EXIT_CMD_CANNOT_EXECUTE,
-		": Permission denied\n");
-}
-
-static int	is_nf_cmd(t_command *cmd, t_shell *shell)
-{
-	char	*path;
-
-	if (!cmd->argv || !cmd->argv[0] || cmd->is_builtin)
-		return (FALSE);
-	if (cmd->redirs || cmd->heredoc_delim || cmd->heredoc_fd != -1)
-		return (FALSE);
-	if (ft_strchr(cmd->argv[0], '/'))
-		return (FALSE);
-	path = resolve_cmd_path(cmd->argv[0], shell);
-	if (path)
-		return (FALSE);
-	return (TRUE);
-}
-
-/**
- * Pipeline fast path: if every stage is a "simple" PATH miss (no redirs/heredoc),
- * print all not-found lines in the parent and return TRUE so run_pipeline can
- * return EXIT_CMD_NOT_FOUND without forking.
- */
-int	pipeline_all_nf(t_list *cmds, t_shell *shell)
-{
-	t_list		*node;
-	t_command	*cmd;
-
-	node = cmds;
-	while (node)
-	{
-		cmd = node->content;
-		if (!is_nf_cmd(cmd, shell))
-			return (FALSE);
-		node = node->next;
-	}
-	node = cmds;
-	while (node)
-	{
-		cmd = node->content;
-		put_cmd_not_found(cmd->argv[0]);
-		node = node->next;
-	}
-	return (TRUE);
+		ch_abort(shell, cmd->argv[0], XNF, ": No such file or directory\n");
+	ch_abort(shell, cmd->argv[0], XNX, ": Permission denied\n");
 }

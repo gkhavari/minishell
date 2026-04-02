@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe.c                                                :+:      :+:    :+:   */
+/*   exe.c                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -76,8 +76,8 @@ static int	run_bi(t_command *cmd, t_shell *shell, int *in, int *out)
 }
 
 /**
- * Run parsed commands from shell->commands: empty argv, single builtin or external,
- * or a pipeline. Returns the last exit status (SUCCESS if there is nothing to run).
+ * Run parsed commands from shell->commands: empty argv, builtin or external,
+ * or pipeline. Last exit status; SUCCESS if nothing to run.
  */
 int	run_commands(t_shell *shell)
 {

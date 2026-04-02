@@ -15,8 +15,7 @@
 /** export(1) message for invalid identifiers (shared by export.c). */
 void	export_invalid_identifier_err(const char *arg)
 {
-	ft_dprintf(STDERR_FILENO,
-		"export: `%s': not a valid identifier\n", arg);
+	ft_dprintf(STDERR_FILENO, "export: `%s': not a valid identifier\n", arg);
 }
 
 /** Valid export variable name (letter/underscore + alnum/_). */
