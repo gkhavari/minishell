@@ -98,25 +98,25 @@
 # endif
 
 /* --- Long names (docs / grep); alias to abbreviations above --- */
-# define PARSE_ERR		PR_ERR
-# define LEX_NO			LX_N
-# define LEX_YES		LX_Y
-# define PROMPT_PREFIX		PM_PFX
-# define PROMPT_SUFFIX		PM_SFX
+# define PARSE_ERR		        PR_ERR
+# define LEX_NO			        LX_N
+# define LEX_YES		        LX_Y
+# define PROMPT_PREFIX		    PM_PFX
+# define PROMPT_SUFFIX		    PM_SFX
 # define PROMPT_DEFAULT_USER	PM_USR
-# define PROMPT_DEFAULT_CWD	PM_CWD
-# define READ_LINE		RL_LN
-# define READ_EOF		RL_EOF
-# define READ_SIG		RL_SIG
-# define EXIT_SYNTAX_ERROR	XSYN
+# define PROMPT_DEFAULT_CWD	    PM_CWD
+# define READ_LINE		        RL_LN
+# define READ_EOF		        RL_EOF
+# define READ_SIG		        RL_SIG
+# define EXIT_SYNTAX_ERROR	    XSYN
 # define EXIT_CMD_CANNOT_EXECUTE	XNX
-# define EXIT_CMD_NOT_FOUND	XNF
+# define EXIT_CMD_NOT_FOUND	        XNF
 # define EXIT_STATUS_SIGNAL_BASE	XSB
 # define EXIT_STATUS_FROM_SIGNAL	XSIG
-# define EXIT_SIGINT		XSINT
-# define PARSE_ONE		PR_1
-# define PARSE_PAIR		PR_2
-# define EMPTY_EXPAND		S_EMPTY
-# define AMBIG_REDIR		S_AMBIG
+# define EXIT_SIGINT		    XSINT
+# define PARSE_ONE		        PR_1
+# define PARSE_PAIR		        PR_2
+# define EMPTY_EXPAND		    S_EMPTY
+# define AMBIG_REDIR		    S_AMBIG
 
 #endif

@@ -47,21 +47,21 @@ typedef enum e_builtin
 
 typedef struct s_token
 {
-	t_tokentype		type;
-	char			*value;
-	int				quoted;
+	t_tokentype			type;
+	char				*value;
+	int					quoted;
 }	t_token;
 
 typedef struct s_arg
 {
-	char			*value;
+	char				*value;
 }	t_arg;
 
 typedef struct s_redir
 {
-	char			*file;
-	int				fd;
-	int				append;
+	char				*file;
+	int					fd;
+	int					append;
 }	t_redir;
 
 typedef struct s_command
@@ -77,18 +77,18 @@ typedef struct s_command
 
 typedef struct s_shell
 {
-	char		**envp;
-	char		*user;
-	char		*cwd;
-	int			last_exit;
-	int			had_path;
-	int			barrier_write_fd;
-	t_list		*tokens;
-	t_list		*commands;
-	char		*input;
-	int			word_quoted;
-	int			heredoc_mode;
-	int			oom; /* 1 after lexer OOM (free_lex) or heredoc line OOM */
+	char				**envp;
+	char				*user;
+	char				*cwd;
+	int					last_exit;
+	int					had_path;
+	int					barrier_write_fd;
+	t_list				*tokens;
+	t_list				*commands;
+	char				*input;
+	int					word_quoted;
+	int					heredoc_mode;
+	int					oom;
 }	t_shell;
 
 typedef struct s_builtin_reg
