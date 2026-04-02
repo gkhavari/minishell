@@ -57,7 +57,7 @@ static char	*get_op_value(t_tokentype type)
  * Lex one operator at s, push token to list.
  * Returns chars consumed, 0 if none, or MSH_OOM.
  */
-int	read_operator(t_shell *shell, const char *s, t_token **list)
+int	read_operator(t_shell *shell, const char *s, t_list **list)
 {
 	t_token		*tok;
 	t_tokentype	type;
@@ -70,6 +70,7 @@ int	read_operator(t_shell *shell, const char *s, t_token **list)
 	tok = new_token(shell, type, get_op_value(type));
 	if (!tok)
 		return (MSH_OOM);
-	add_token(list, tok);
+	if (add_token(list, tok) == MSH_OOM)
+		return (MSH_OOM);
 	return ((int)len);
 }

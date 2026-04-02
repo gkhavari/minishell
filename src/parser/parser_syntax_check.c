@@ -6,7 +6,7 @@
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:00:39 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,12 +29,15 @@ static const char	*get_token_str(t_tokentype type)
 }
 
 /** Redir must be followed by WORD; else syntax_error ("newline" or token). */
-static int	check_redir_syntax(t_token *token)
+static int	check_redir_syntax(t_list *node)
 {
-	if (!token->next)
+	t_token	*next_tok;
+
+	if (!node->next)
 		return (syntax_error("newline"));
-	if (token->next->type != WORD)
-		return (syntax_error(get_token_str(token->next->type)));
+	next_tok = node->next->content;
+	if (next_tok->type != WORD)
+		return (syntax_error(get_token_str(next_tok->type)));
 	return (SYNTAX_OK);
 }
 
@@ -47,23 +50,30 @@ static int	is_redirection(t_tokentype type)
 /**
  * Validate pipes and redir+WORD; SYNTAX_ERR via syntax_error() on failure.
  */
-int	syntax_check(t_token *token)
+int	syntax_check(t_list *lst)
 {
-	if (!token)
+	t_list	*node;
+	t_token	*token;
+
+	if (!lst)
 		return (SYNTAX_OK);
+	token = lst->content;
 	if (token->type == PIPE)
 		return (syntax_error("|"));
-	while (token)
+	node = lst;
+	while (node)
 	{
+		token = node->content;
 		if (token->type == PIPE
-			&& (!token->next || token->next->type == PIPE))
+			&& (!node->next
+				|| ((t_token *)node->next->content)->type == PIPE))
 			return (syntax_error("|"));
 		if (is_redirection(token->type))
 		{
-			if (check_redir_syntax(token))
+			if (check_redir_syntax(node))
 				return (SYNTAX_ERR);
 		}
-		token = token->next;
+		node = node->next;
 	}
 	return (SYNTAX_OK);
 }

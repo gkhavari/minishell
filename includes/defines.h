@@ -16,13 +16,14 @@
 # define SUCCESS   0
 # define FAILURE   1
 # define PARSE_ERR -1
+# define MSH_OOM   -2
 
 /*
- * MSH_OOM: propagate malloc failure up to a safe frame (e.g. tokenize_input,
- * process_input) — do not clean_exit() from deep helpers; unwind and free there.
- * Negative like PARSE_ERR (-1); avoids clashing with read_operator() return 1–2.
+ * Lexer / expansion step: not applicable vs consumed input.
+ * Check MSH_OOM before treating as boolean. Not shell exit codes.
  */
-# define MSH_OOM   -2
+# define MSH_LEX_NO  0
+# define MSH_LEX_YES 1
 
 /*PROMT SYNTAX*/
 # define PROMPT_PREFIX "@minishell:"
@@ -32,8 +33,16 @@
 
 # define SINGLE_QUOTE 39
 # define DOUBLE_QUOTE 34
-/* ASCII DEL (display filter); value equals EXIT_CMD_NOT_FOUND but not exit API */
+/*
+ * ASCII DEL (display filter); value equals EXIT_CMD_NOT_FOUND
+ * but not exit API.
+ */
 # define MSH_ASCII_DEL 127
+
+/* read_input status — not $? / exit codes (see AGENTS.md §9) */
+# define MSH_READ_LINE 1
+# define MSH_READ_EOF 0
+# define MSH_READ_SIG -1
 
 /*SYNTAX CHECK*/
 # define SYNTAX_OK 0
@@ -63,8 +72,19 @@
 /* SIGINT from <signal.h>; include that before defines.h (minishell.h order). */
 # define EXIT_SIGINT			EXIT_STATUS_FROM_SIGNAL(SIGINT)
 
+/* Shell name for stderr lines (see BEHAVIOR / subject). */
+# define MSH_NAME "minishell"
+
 /*INTERNAL TOKENS*/
 # define MSH_EMPTY_EXPAND_TOKEN "\001msh_empty"
 # define MSH_AMBIG_REDIR_PREFIX "\001msh_ambig:"
+
+/*
+** Path buffer length for resolve/exec helpers. <limits.h> (via includes.h)
+** normally defines PATH_MAX; keep a fallback for unusual toolchains.
+*/
+# ifndef PATH_MAX
+#  define PATH_MAX 4096
+# endif
 
 #endif

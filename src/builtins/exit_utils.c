@@ -12,14 +12,9 @@
 
 #include "minishell.h"
 
-static int	is_space_char(char c)
-{
-	return (c == ' ' || (c >= '\t' && c <= '\r'));
-}
-
 static void	parse_exit_init(char *str, int *i, int *sign, int *valid)
 {
-	while (str[*i] && is_space_char(str[*i]))
+	while (str[*i] && ft_isspace((unsigned char)str[*i]))
 		(*i)++;
 	*sign = 1;
 	if (str[*i] == '+' || str[*i] == '-')
@@ -42,7 +37,7 @@ static int	parse_exit_accumulate(char *str, int *i,
 
 static int	parse_exit_finalize(char *str, int i)
 {
-	while (str[i] && is_space_char(str[i]))
+	while (str[i] && ft_isspace((unsigned char)str[i]))
 		i++;
 	if (str[i] != '\0')
 		return (0);

@@ -83,3 +83,22 @@ int	append_export_env(t_shell *shell, char *entry)
 	shell->envp = new_envp;
 	return (SUCCESS);
 }
+
+/** Bubble sort env lines (used by export -p listing). */
+void	sort_env_strings(char **sorted, int count)
+{
+	int		i;
+	char	*tmp;
+
+	i = -1;
+	while (++i < count - 1)
+	{
+		if (ft_strcmp(sorted[i], sorted[i + 1]) > 0)
+		{
+			tmp = sorted[i];
+			sorted[i] = sorted[i + 1];
+			sorted[i + 1] = tmp;
+			i = -1;
+		}
+	}
+}

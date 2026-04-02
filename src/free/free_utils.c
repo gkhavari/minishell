@@ -6,51 +6,53 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 14:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 21:18:22 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-/** Free linked token list and each value. */
-void	free_tokens(t_token *token)
+static void	del_token_content(void *content)
 {
-	t_token	*tmp;
+	t_token	*t;
 
-	while (token)
-	{
-		tmp = token->next;
-		if (token->value)
-			free(token->value);
-		free(token);
-		token = tmp;
-	}
+	t = content;
+	if (t->value)
+		free(t->value);
+	free(t);
 }
 
-/** Free t_arg list. */
-void	free_args(t_arg *arg)
+static void	del_arg_content(void *content)
 {
-	t_arg	*tmp;
+	t_arg	*a;
 
-	while (arg)
-	{
-		tmp = arg->next;
-		if (arg->value)
-			free(arg->value);
-		free(arg);
-		arg = tmp;
-	}
+	a = content;
+	if (a->value)
+		free(a->value);
+	free(a);
 }
 
-/** Free NULL-terminated char ** (strings + array). */
-void	free_array(char **arr)
+/** Clear token list (t_list nodes); each content is t_token *. */
+void	free_tokens(t_list **lst)
 {
-	int	i;
-
-	if (!arr)
+	if (!lst || !*lst)
 		return ;
-	i = 0;
-	while (arr[i])
-		free(arr[i++]);
-	free(arr);
+	ft_lstclear(lst, del_token_content);
+}
+
+/** Clear arg list (t_list nodes); each content is t_arg *. */
+void	free_args(t_list **lst)
+{
+	if (!lst || !*lst)
+		return ;
+	ft_lstclear(lst, del_arg_content);
+}
+
+/** Free *p, set *p to NULL (lexer word buffer, etc.). */
+void	msh_strptr_free(char **p)
+{
+	if (p && *p)
+		free(*p);
+	if (p)
+		*p = NULL;
 }

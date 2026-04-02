@@ -81,8 +81,16 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 1. **Deep helpers** (`append_char`, token creation, expansion helpers, etc.): on allocation failure, return **`MSH_OOM`** (or `NULL` only where the contract explicitly says the caller must handle it and free partial state).
 2. **Do not** call **`clean_exit()`** from deep lexer/parser paths for OOM — that bypasses unified unwind of the current line’s allocations.
-3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`MSH_OOM`**, call **`msh_lex_abort()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
+3. **Unwind frame** (e.g. **`tokenize_input`**, **`process_input`**): on **`MSH_OOM`**, call **`free_lex()`** (or equivalent) to free **`word`**, partial **`tokens`**, **`input`**, set **`last_exit`**, clear flags — **one place** owns “abort this line.”
 4. **Child processes** may still use **`clean_exit`** after fork where the process must terminate immediately.
+
+### Allocators returning pointers: return `NULL`, do not `clean_exit` inside
+
+Functions whose **primary result** is a pointer (`char *`, `void *`, etc.) must **not** call **`clean_exit()`** on allocation failure. Return **`NULL`** (and free any strictly local partial buffers per contract) so the **caller** can propagate, unwind, or decide to exit.
+
+Examples in this repo: **`ft_strdup`** / **`ft_calloc`** at call sites, **`ft_arrdup`**, **`expand_heredoc_line`**. Callers (e.g. **`init_shell`**, **`parse_input`** / **`finalize_all_commands`**, heredoc write path via **`shell->oom`**) handle failure explicitly.
+
+**Where `clean_exit` from “parent” code is still OK:** **`init_shell`** after **`ft_arrdup`** failure; **`exit` builtin**; any code that runs only **after `fork()`** in the child ( **`execute_in_child`**, pipeline child) where the process must terminate and must not return to the main REPL.
 
 **Principle:** every allocation has a **clear owner**; on failure, ownership is either **transferred** to a success path or **freed** on the error path — **no orphan buffers**.
 
@@ -94,7 +102,7 @@ When Valgrind or a crash points at a line:
 
 1. **Who allocated?** (`malloc` / `ft_strdup` / `ft_calloc` / pipe, etc.)
 2. **Who owns after return?** (caller frees vs callee steals vs list node owns `value`)
-3. **Which path frees on error?** (early `return` branches must `free` partial work or delegate to `msh_lex_abort` / `free_*` helpers)
+3. **Which path frees on error?** (early `return` branches must `free` partial work or delegate to `free_lex` / `free_*` helpers)
 
 Prefer **short functions** with **explicit** “caller frees” / “takes ownership” comments at non-obvious boundaries. After refactors, update **`docs/DATA_MODEL_AND_FUNCTIONS.md`** so the index matches reality.
 
@@ -118,7 +126,18 @@ Prefer **short functions** with **explicit** “caller frees” / “takes owner
 
 ---
 
-## 8. Optional: local reference
+## 8. Two different “headers” (do not confuse)
+
+| Meaning | Rule |
+|--------|------|
+| **42 source file banner** — the comment block at the top of each **`*.c` / `*.h`** (`Created`, `Updated`, `By: …`) | **Do not change** author lines or dates when doing refactors unless the contributor **explicitly** asks to update attribution. Touch only the code below the banner. |
+| **C project headers** — e.g. **`includes/defines.h`**, **`structs.h`**, **`prototypes.h`** | **Edit as needed.** Shared **macros and constants** belong in **`includes/defines.h`** (see §1 and §6). |
+
+If you tell the agent *“don’t change the header”*, specify **which**: file banner vs `includes/*.h`.
+
+---
+
+## 9. Optional: local reference
 
 A **`.reference/`** directory (gitignored) may hold external repos for **reading only** (e.g. other shells). Do not copy large blocks without understanding; align behavior with **`BEHAVIOR.md`** and the subject.
 

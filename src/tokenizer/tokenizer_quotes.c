@@ -12,16 +12,20 @@
 
 #include "minishell.h"
 
-/**
- * In ST_SQUOTE: append char literally (no expansion). Else return 0.
- */
-int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
+static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 {
-	if (*state != ST_SQUOTE)
-		return (0);
-	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
+	char	*expanded;
+
+	expanded = expand_var(shell, i);
+	if (!expanded)
 		return (MSH_OOM);
-	return (1);
+	if (append_expansion_quoted(word, expanded) == MSH_OOM)
+	{
+		free(expanded);
+		return (MSH_OOM);
+	}
+	free(expanded);
+	return (MSH_LEX_YES);
 }
 
 /**
@@ -31,41 +35,43 @@ int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
 {
 	if (shell->input[*i] != '\\' || shell->input[*i + 1] != '$')
-		return (0);
-	if (append_char(shell, word, '$') == FAILURE)
-	{
-		*i += 2;
-		return (1);
-	}
+		return (MSH_LEX_NO);
+	if (append_char(shell, word, '$') == MSH_OOM)
+		return (MSH_OOM);
 	*i += 2;
-	return (1);
+	return (MSH_LEX_YES);
 }
 
 /**
- * In ST_DQUOTE: $ / \\$ / literal; else return 0.
+ * In ST_DQUOTE: $ / \\$ / literal; else return MSH_LEX_NO.
  */
 int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {
-	char	*expanded;
+	int	r;
 
 	if (*state != ST_DQUOTE)
-		return (0);
-	if (shell->input[*i] == '$' && !is_heredoc_mode(shell)
+		return (MSH_LEX_NO);
+	if (shell->input[*i] == '$' && !shell->heredoc_mode
 		&& shell->input[*i + 1] != '"' && shell->input[*i + 1] != '\'')
-	{
-		expanded = expand_var(shell, i);
-		if (!expanded)
-		{
-			shell->last_exit = FAILURE;
-			return (1);
-		}
-		append_expansion_quoted(word, expanded);
-		free(expanded);
-		return (1);
-	}
-	if (handle_escaped_dollar(shell, i, word))
-		return (1);
+		return (handle_dollar_in_dquote(shell, i, word));
+	r = handle_escaped_dollar(shell, i, word);
+	if (r == MSH_OOM)
+		return (MSH_OOM);
+	if (r != MSH_LEX_NO)
+		return (MSH_LEX_YES);
 	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
 		return (MSH_OOM);
-	return (1);
+	return (MSH_LEX_YES);
+}
+
+/**
+ * In ST_SQUOTE: append char literally (no expansion). Else return MSH_LEX_NO.
+ */
+int	handle_single_quote(t_shell *shell, size_t *i, char **word, t_state *state)
+{
+	if (*state != ST_SQUOTE)
+		return (MSH_LEX_NO);
+	if (process_normal_char(shell, shell->input[*i], i, word) == MSH_OOM)
+		return (MSH_OOM);
+	return (MSH_LEX_YES);
 }

@@ -12,10 +12,6 @@
 
 #include "minishell.h"
 
-#ifndef PATH_MAX
-# define PATH_MAX 4096
-#endif
-
 static int	get_child_status(int status)
 {
 	if (WIFSIGNALED(status))

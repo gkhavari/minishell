@@ -6,7 +6,7 @@
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/29 22:50:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,37 +27,36 @@ static void	free_argv(char **argv)
 	free(argv);
 }
 
-static void	free_out_redirs(t_redir *r)
+static void	del_redir_content(void *content)
 {
-	t_redir	*tmp;
+	t_redir	*r;
 
-	while (r)
-	{
-		tmp = r->next;
+	r = content;
+	if (r->file)
 		free(r->file);
-		free(r);
-		r = tmp;
-	}
+	free(r);
 }
 
-/** Free command list: argv, args, redirs, heredoc fd/delim. */
-void	free_commands(t_command *cmd)
+/** One t_command payload: args/redirs/argv/delim/fd (for ft_lstclear). */
+static void	del_command_content(void *content)
 {
-	t_command	*tmp;
+	t_command	*cmd;
 
-	while (cmd)
-	{
-		if (cmd->heredoc_fd != -1)
-			close(cmd->heredoc_fd);
-		tmp = cmd->next;
-		free_args(cmd->args);
-		free_argv(cmd->argv);
-		free_out_redirs(cmd->redirs);
-		if (cmd->heredoc_delim)
-			free(cmd->heredoc_delim);
-		free(cmd);
-		cmd = tmp;
-	}
+	cmd = content;
+	if (cmd->heredoc_fd != -1)
+		close(cmd->heredoc_fd);
+	free_args(&cmd->args);
+	free_argv(cmd->argv);
+	ft_lstclear(&cmd->redirs, del_redir_content);
+	if (cmd->heredoc_delim)
+		free(cmd->heredoc_delim);
+	free(cmd);
 }
 
-/* free_all lives in free_shell.c */
+/** Free command pipeline (t_list of t_command *). */
+void	free_commands(t_list **cmds)
+{
+	if (!cmds || !*cmds)
+		return ;
+	ft_lstclear(cmds, del_command_content);
+}

@@ -18,22 +18,19 @@ static char	*expand_heredoc_named(char *line, size_t start, size_t *i,
 	size_t	len;
 	char	*name;
 	char	*val;
+	char	*out;
 
-	len = 0;
-	while (ft_isalnum(line[start + len]) || line[start + len] == '_')
-		len++;
+	len = msh_env_var_body_span(line, start);
 	name = ft_strndup(line + start, len);
 	if (name == NULL)
-	{
-		free(line);
-		clean_exit(shell, EXIT_FAILURE);
-	}
+		return (NULL);
 	val = get_env_value(shell->envp, name);
 	free(name);
 	*i = start + len;
 	if (!val)
 		return (ft_strdup(""));
-	return (ft_strdup(val));
+	out = ft_strdup(val);
+	return (out);
 }
 
 static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
@@ -49,23 +46,33 @@ static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
 	return (expand_heredoc_named(line, start, i, shell));
 }
 
-static void	append_heredoc_char_or_var(char *line, size_t *i, char **result,
+static int	append_heredoc_char_or_var(char *line, size_t *i, char **result,
 		t_shell *shell)
 {
 	char	*val;
 
-	if (line[*i] == '$' && (ft_isalpha(line[*i + 1])
-			|| line[*i + 1] == '_' || line[*i + 1] == '?'))
+	if (line[*i] == '$'
+		&& msh_is_dollar_var_leader((unsigned char)line[*i + 1]))
 	{
 		val = expand_heredoc_var(line, i, shell);
-		append_expansion_quoted(result, val);
+		if (!val)
+			return (-1);
+		if (append_expansion_quoted(result, val) == MSH_OOM)
+		{
+			free(val);
+			return (-1);
+		}
 		free(val);
 	}
-	else
-		append_char(shell, result, line[(*i)++]);
+	else if (append_char(shell, result, line[(*i)++]) == MSH_OOM)
+		return (-1);
+	return (0);
 }
 
-/** Expand $var and $? inside one heredoc line (quoted-style joins). */
+/*
+ * Expand $var and $? inside one heredoc line; NULL on OOM.
+ * Caller still owns line.
+ */
 char	*expand_heredoc_line(char *line, t_shell *shell)
 {
 	char	*result;
@@ -73,13 +80,16 @@ char	*expand_heredoc_line(char *line, t_shell *shell)
 
 	result = ft_strdup("");
 	if (result == NULL)
-	{
-		free(line);
-		clean_exit(shell, EXIT_FAILURE);
-	}
+		return (NULL);
 	i = 0;
 	while (line[i])
-		append_heredoc_char_or_var(line, &i, &result, shell);
+	{
+		if (append_heredoc_char_or_var(line, &i, &result, shell) < 0)
+		{
+			free(result);
+			return (NULL);
+		}
+	}
 	return (result);
 }
 

@@ -34,6 +34,11 @@ void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 	if (expand)
 	{
 		expanded = expand_heredoc_line(line, shell);
+		if (!expanded)
+		{
+			shell->oom = 1;
+			return ;
+		}
 		ft_dprintf(fd, "%s\n", expanded);
 		free(expanded);
 	}

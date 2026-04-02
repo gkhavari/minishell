@@ -62,13 +62,13 @@ Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYe
 | Directory | Purpose |
 |-----------|---------|
 | `src/` | `main.c` only — REPL loop, read_input, process_input |
-| `src/core/` | `init.c` (`init_shell`, `process_input`), `init_runtime.c` (`init_runtime_fields`), `init_utils.c` (`get_env_value`, `build_prompt`, `move_last_env_to_front`) |
-| `src/utils/` | General utilities: `utils.c` (ft_arrdup, msh_calloc, ft_strcat, ft_realloc) |
+| `src/core/` | `init.c` (`init_shell`, `process_input`), `init_runtime.c` (`init_runtime_fields`), `init_utils.c` (`init_shell_identity`, `get_env_value`, `build_prompt`) |
+| `src/utils/` | `ft_strcat`, `ft_arrdup`, `ft_realloc`, `msh_string` (lexer/expansion char helpers) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
 | `src/tokenizer/` | Lexer: tokenizer.c, expansion, quote/operator handlers, utils |
 | `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc, heredoc_utils, heredoc_warning |
-| `src/executor/` | `executor.c`, `executor_utils.c`, `executor_external.c`, `executor_pipeline.c`, `executor_pipeline_steps.c`, `executor_pipeline_not_found.c`, `executor_child_exec.c`, `executor_child_format.c` |
+| `src/executor/` | `executor.c`, `executor_redir_apply.c`, `executor_external.c`, `executor_pip.c`, `executor_pip_steps.c`, `executor_pip_not_found.c`, `executor_child_exec.c`, `executor_child_format.c` |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
 
 ```mermaid
@@ -114,13 +114,13 @@ graph TB
     end
     subgraph Executor
         exec[executor.c]
-        exec_utils[executor_utils.c]
+        exec_redir[executor_redir_apply.c]
         exec_external[executor_external.c]
-        exec_pipeline[executor_pipeline.c]
-        exec_pipe_steps[executor_pipeline_steps.c]
+        exec_pip[executor_pip.c]
+        exec_pip_steps[executor_pip_steps.c]
         exec_child_exec[executor_child_exec.c]
         exec_child_fmt[executor_child_format.c]
-        exec_pipe_nf[executor_pipeline_not_found.c]
+        exec_pip_nf[executor_pip_not_found.c]
     end
     subgraph Builtins
         dispatcher[builtin_dispatcher.c]
@@ -145,13 +145,13 @@ graph TB
     tok --> parser
     parser --> exec
     exec --> dispatcher
-    exec --> exec_utils
+    exec --> exec_redir
     exec --> exec_external
-    exec --> exec_pipeline
-    exec_pipeline --> exec_pipe_steps
-    exec_pipeline --> exec_pipe_nf
+    exec --> exec_pip
+    exec_pip --> exec_pip_steps
+    exec_pip --> exec_pip_nf
     exec_external --> exec_child_exec
-    exec_pipe_steps --> exec_child_exec
+    exec_pip_steps --> exec_child_exec
     exec_child_exec --> exec_child_fmt
     dispatcher --> echo
     dispatcher --> cd
@@ -255,7 +255,7 @@ sequenceDiagram
 
 | Phase | Function | Effect |
 | ----- | -------- | ------ |
-| Child after **`fork`** | **`set_signals_default`** | SIGINT, SIGQUIT, SIGPIPE, SIGTERM → **default** (`executor_external.c`, **`executor_pipeline_steps.c`**) |
+| Child after **`fork`** | **`set_signals_default`** | SIGINT, SIGQUIT, SIGPIPE, SIGTERM → **default** (`executor_external.c`, **`executor_pip_steps.c`**) |
 | Parent while waiting | **`set_signals_ignore`** | SIGINT, SIGQUIT → **ignore** so the waiting parent is not torn down by the same keystroke |
 | After wait returns | **`set_signals_interactive`** | Restore §1.3 |
 
@@ -613,7 +613,7 @@ typedef struct s_command
     int                 heredoc_fd;     /* FD for heredoc input (or -1) */
     char                *heredoc_delim; /* Delimiter for heredoc */
     int                 heredoc_quoted; /* Flag if delimiter was quoted */
-    int                 is_builtin;     /* Set in finalize_all_commands via is_builtin(argv[0]) */
+    int                 is_builtin;     /* Set in finalize_all_commands via get_builtin_type(argv[0]) */
     struct s_command    *next;          /* Next command in pipeline */
 }   t_command;
 ```
@@ -635,7 +635,7 @@ flowchart TD
 ```
 
 - **parser/parser.c**: **`parse_input()`** — **`syntax_check`** first; on success **`parse_tokens()`** walks tokens; each **`parse_token_step()`**: on **`PIPE`** append new **`t_command`**, else **`add_token_to_command()`** (WORD → **`add_word_to_cmd`**, redirs → **`append_redir`** / **`handle_heredoc_token`**).
-- **parser/argv_build.c**: **`finalize_all_commands()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`is_builtin(cmd->argv[0])`** → **`cmd->is_builtin`**.
+- **parser/argv_build.c**: **`finalize_all_commands()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`get_builtin_type(cmd->argv[0]) != NOT_BUILTIN`** → **`cmd->is_builtin`**.
 
 ```mermaid
 flowchart LR
@@ -671,20 +671,13 @@ typedef enum e_builtin
     BUILTIN_EXPORT,
     BUILTIN_UNSET,
     BUILTIN_ENV,
-    BUILTIN_EXIT
+    BUILTIN_EXIT,
+    BUILTIN_COUNT
 }   t_builtin;
 
-t_builtin   get_builtin_type(char *cmd)
-{
-    if (!cmd)
-        return (NOT_BUILTIN);
-    if (ft_strcmp(cmd, "echo") == 0)
-        return (BUILTIN_ECHO);
-    if (ft_strcmp(cmd, "cd") == 0)
-        return (BUILTIN_CD);
-    /* ... etc ... */
-    return (NOT_BUILTIN);
-}
+/* t_builtin_reg { name, run } in structs.h; static tab inside builtin_registry() */
+t_builtin   get_builtin_type(char *cmd);
+int         run_builtin(char **argv, t_shell *shell);
 ```
 
 ---
@@ -765,7 +758,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/executor.c` (`execute_commands`, static `run_empty_command` / `run_builtin_command`), `executor/executor_utils.c` (`apply_redirections`), `executor/executor_external.c` (`execute_external`, `find_command_path`), `executor/executor_pipeline.c` + `executor_pipeline_steps.c` (`run_pipe_step`, barrier-ready child setup), `executor/executor_pipeline_not_found.c`, `executor/executor_child_exec.c` (`execute_in_child`), `executor/executor_child_format.c` (`dprintf_cmd_not_found`).
+**Implementation:** `executor/executor.c` (`execute_commands`, static `run_empty_command` / `run_builtin_command`), `executor/executor_redir_apply.c` (`apply_redirections`), `executor/executor_external.c` (`execute_external`, `find_command_path`), `executor/executor_pip.c` + `executor/executor_pip_steps.c` (`run_pipe_step`, barrier-ready child setup), `executor/executor_pip_not_found.c`, `executor/executor_child_exec.c` (`execute_in_child`), `executor/executor_child_format.c` (`dprintf_cmd_not_found`).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -871,7 +864,7 @@ Command: ls -la | grep ".c" | wc -l
 
 **Verified by tests (executor / pipelines):** Single commands: Phase 1 + Hardening (builtins in parent, externals forked). Pipeline stdout: Hardening simple/two/five pipes, pipe with grep/wc -l, pipe builtin echo, pipe with spaces. Pipeline exit: `true | false` → 1, `false | true` → 0. Pipeline + redir and stress (long pipeline, many pipelines, pipe redir combo, export then pipe): no crash. Path: absolute path, command not found (`EXIT_CMD_NOT_FOUND`), directory as cmd (`EXIT_CMD_CANNOT_EXECUTE`). See [BEHAVIOR.md](BEHAVIOR.md) §3, §7.
 
-### 7.5 Pipeline (actual: `executor_pipeline.c` + `executor_pipeline_steps.c`)
+### 7.5 Pipeline (actual: `executor_pip.c` + `executor_pip_steps.c`)
 
 ```mermaid
 flowchart LR
@@ -908,7 +901,7 @@ void	execute_in_child(t_command *cmd, t_shell *shell)
 
 **Supporting files:**
 - **`executor_child_format.c`**: `dprintf_cmd_not_found` — not-found line to stderr (`$'…'` when name has control bytes).
-- **`executor_pipeline_not_found.c`**: `handle_all_not_found_pipeline` — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent and caller returns **`EXIT_CMD_NOT_FOUND`** without forking children for that path.
+- **`executor_pip_not_found.c`**: `handle_all_not_found_pipeline` — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent and caller returns **`EXIT_CMD_NOT_FOUND`** without forking children for that path.
 
 ### 7.7 Path Resolution (actual: `executor_external.c`)
 
@@ -1242,10 +1235,10 @@ Phase 4: Executor (Simple)
 ├── [x] Single external command execution (executor/executor_external.c)
 ├── [x] Path resolution (find_command_path in executor_external.c)
 ├── [x] Single builtin with redirections (run_builtin_command / execute_external, apply_redirections)
-└── [x] File redirections (executor/executor_utils.c, apply_one_redir, heredoc_fd)
+└── [x] File redirections (executor/executor_redir_apply.c, apply_one_redir, heredoc_fd)
 
 Phase 5: Pipes & Heredoc
-├── [x] Pipeline execution (executor/executor_pipeline.c)
+├── [x] Pipeline execution (executor/executor_pip.c)
 ├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
 └── [x] Signal handling in children (wait_children_last, `EXIT_STATUS_FROM_SIGNAL`)

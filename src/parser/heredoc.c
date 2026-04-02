@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:56:43 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/29 17:37:57 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,36 +14,6 @@
 
 void	print_heredoc_eof_warning(int line_no, char *delim);
 void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell);
-
-static char	*read_heredoc_line(t_shell *shell)
-{
-	char	*line;
-	char	c;
-	int		ret;
-
-	if (isatty(STDIN_FILENO) == 1)
-		return (readline("> "));
-	line = ft_strdup("");
-	if (!line)
-		return (NULL);
-	while (1)
-	{
-		ret = read(STDIN_FILENO, &c, 1);
-		if (ret <= 0)
-		{
-			if (!line || ft_strlen(line) == 0)
-				return (free(line), NULL);
-			return (line);
-		}
-		if (c == '\n')
-			return (line);
-		if (append_char(shell, &line, c) == MSH_OOM)
-		{
-			shell->oom = 1;
-			return (NULL);
-		}
-	}
-}
 
 static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 {
@@ -53,38 +23,55 @@ static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 	return (FAILURE);
 }
 
-static int	heredoc_read_loop(t_heredoc_ctx *ctx, int *line_no,
-		int start_line)
+/*
+** Returns 0 continue, 1 stop (delimiter matched), -1 error (OOM after write).
+*/
+static int	heredoc_consume_line(t_heredoc_ctx *ctx, char *line, int *line_no)
+{
+	(*line_no)++;
+	if (ft_strcmp(line, ctx->cmd->heredoc_delim) == 0)
+	{
+		free(line);
+		return (1);
+	}
+	write_heredoc_line(line, ctx->pipe_fd[1], ctx->expand, ctx->shell);
+	if (ctx->shell->oom)
+	{
+		free(line);
+		return (-1);
+	}
+	free(line);
+	return (0);
+}
+
+/*
+** -1 interrupt/OOM path; 0 continue; 1 delimiter; 2 EOF (no line).
+*/
+static int	heredoc_read_one(t_heredoc_ctx *ctx, int *line_no, int start_line)
 {
 	char	*line;
+	int		st;
 
-	while (1)
+	line = heredoc_read_line(ctx->shell);
+	if (g_signum == SIGINT || ctx->shell->oom)
 	{
-		line = read_heredoc_line(ctx->shell);
-		if (g_signum == SIGINT)
-			return (heredoc_interrupted(ctx, line));
 		if (ctx->shell->oom)
-		{
 			ctx->shell->oom = 0;
-			return (heredoc_interrupted(ctx, line));
-		}
-		if (!line)
-		{
-			print_heredoc_eof_warning(start_line, ctx->cmd->heredoc_delim);
-			break ;
-		}
-		(*line_no)++;
-		if (ft_strcmp(line, ctx->cmd->heredoc_delim) == 0)
-		{
-			free(line);
-			break ;
-		}
-		write_heredoc_line(line, ctx->pipe_fd[1], ctx->expand, ctx->shell);
-		free(line);
+		heredoc_interrupted(ctx, line);
+		return (-1);
 	}
-	close(ctx->pipe_fd[1]);
-	ctx->cmd->heredoc_fd = ctx->pipe_fd[0];
-	return (SUCCESS);
+	if (!line)
+	{
+		print_heredoc_eof_warning(start_line, ctx->cmd->heredoc_delim);
+		return (2);
+	}
+	st = heredoc_consume_line(ctx, line, line_no);
+	if (st < 0)
+	{
+		heredoc_interrupted(ctx, NULL);
+		return (-1);
+	}
+	return (st);
 }
 
 /** Open pipe, read lines until delim; set cmd->heredoc_fd to read end. */
@@ -92,6 +79,7 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 {
 	t_heredoc_ctx	ctx;
 	int				start_line;
+	int				r;
 
 	if (pipe(ctx.pipe_fd) == -1)
 		return (FAILURE);
@@ -99,25 +87,15 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 	ctx.shell = shell;
 	ctx.expand = !cmd->heredoc_quoted;
 	start_line = *line_no + 1;
-	return (heredoc_read_loop(&ctx, line_no, start_line));
-}
-
-/** For each command with a delimiter, read_heredoc; FAILURE on error/SIGINT. */
-int	process_heredocs(t_shell *shell)
-{
-	t_command	*cmd;
-	int			line_no;
-
-	cmd = shell->commands;
-	line_no = 1;
-	while (cmd)
+	while (1)
 	{
-		if (cmd->heredoc_delim)
-		{
-			if (read_heredoc(cmd, shell, &line_no))
-				return (FAILURE);
-		}
-		cmd = cmd->next;
+		r = heredoc_read_one(&ctx, line_no, start_line);
+		if (r < 0)
+			return (FAILURE);
+		if (r > 0)
+			break ;
 	}
+	close(ctx.pipe_fd[1]);
+	cmd->heredoc_fd = ctx.pipe_fd[0];
 	return (SUCCESS);
 }

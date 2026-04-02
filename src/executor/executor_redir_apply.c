@@ -1,23 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_utils.c                                   :+:      :+:    :+:   */
+/*   executor_redir_apply.c                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:01:56 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-/** Report failed open(2) for a redirect path (errno must still be set). */
-static int	report_redir_open_fail(const char *path)
-{
-	ft_dprintf(STDERR_FILENO, "%s: %s\n", path, strerror(errno));
-	return (FAILURE);
-}
 
 static int	apply_input_redir(t_redir *r, int *had_input)
 {
@@ -25,7 +18,10 @@ static int	apply_input_redir(t_redir *r, int *had_input)
 
 	fd = open(r->file, O_RDONLY);
 	if (fd == -1)
-		return (report_redir_open_fail(r->file));
+	{
+		ft_dprintf(STDERR_FILENO, "%s: %s\n", r->file, strerror(errno));
+		return (FAILURE);
+	}
 	dup2(fd, STDIN_FILENO);
 	close(fd);
 	*had_input = 1;
@@ -41,7 +37,10 @@ static int	apply_output_redir(t_redir *r)
 	else
 		fd = open(r->file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (fd == -1)
-		return (report_redir_open_fail(r->file));
+	{
+		ft_dprintf(STDERR_FILENO, "%s: %s\n", r->file, strerror(errno));
+		return (FAILURE);
+	}
 	dup2(fd, r->fd);
 	close(fd);
 	return (SUCCESS);
@@ -68,16 +67,18 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 /** Walk cmd->redirs; wire heredoc fd to stdin if no input redir. */
 int	apply_redirections(t_command *cmd)
 {
+	t_list	*node;
 	t_redir	*r;
 	int		had_input;
 
 	had_input = 0;
-	r = cmd->redirs;
-	while (r)
+	node = cmd->redirs;
+	while (node)
 	{
+		r = node->content;
 		if (apply_one_redir(r, &had_input))
 			return (FAILURE);
-		r = r->next;
+		node = node->next;
 	}
 	if (cmd->heredoc_fd != -1 && !had_input)
 	{

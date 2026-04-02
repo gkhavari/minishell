@@ -6,16 +6,11 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/25 21:09:51 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/30 20:03:25 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 15:00:00 by thanh-ng       ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-/* read_input status — not $? / exit codes */
-# define MSH_READ_LINE 1
-# define MSH_READ_EOF 0
-# define MSH_READ_SIG -1
 
 /**
  * Non-TTY: one line from stdin byte-by-byte into *out.
@@ -73,11 +68,26 @@ static int	read_input(t_shell *shell)
 	return (MSH_READ_LINE);
 }
 
+/** One REPL iteration after a successful read_input. Returns 1 to exit loop. */
+static int	repl_after_read(t_shell *shell)
+{
+	int	syntax_err;
+
+	syntax_err = 0;
+	if (shell->input[0])
+		process_input(shell);
+	if (!shell->commands && shell->last_exit == EXIT_SYNTAX_ERROR)
+		syntax_err = 1;
+	reset_shell(shell);
+	if (isatty(STDIN_FILENO) != 1 && syntax_err)
+		return (1);
+	return (0);
+}
+
 /** REPL: read line, process_input, reset state on syntax error. */
 static void	shell_loop(t_shell *shell)
 {
 	int	status;
-	int	syntax_err;
 
 	while (1)
 	{
@@ -89,16 +99,12 @@ static void	shell_loop(t_shell *shell)
 			continue ;
 		if (status == MSH_OOM)
 		{
+			shell->oom = 1;
 			shell->last_exit = FAILURE;
+			reset_shell(shell);
 			continue ;
 		}
-		syntax_err = 0;
-		if (shell->input[0])
-			process_input(shell);
-		if (!shell->commands && shell->last_exit == EXIT_SYNTAX_ERROR)
-			syntax_err = 1;
-		reset_shell(shell);
-		if (isatty(STDIN_FILENO) != 1 && syntax_err)
+		if (repl_after_read(shell))
 			break ;
 	}
 }

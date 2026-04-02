@@ -86,7 +86,7 @@ int	execute_commands(t_shell *shell)
 		return (SUCCESS);
 	if (!shell->commands->next)
 	{
-		cmd = shell->commands;
+		cmd = shell->commands->content;
 		if (!cmd->argv || !cmd->argv[0])
 			return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
 		if (cmd->is_builtin)

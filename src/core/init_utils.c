@@ -10,7 +10,43 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/minishell.h"
+#include "minishell.h"
+
+static void	init_fatal_errno(t_shell *shell, const char *detail)
+{
+	if (detail != NULL)
+		ft_dprintf(STDERR_FILENO,
+			MSH_NAME ": %s: %s\n", detail, strerror(errno));
+	else
+		ft_dprintf(STDERR_FILENO, MSH_NAME ": %s\n", strerror(errno));
+	clean_exit(shell, FAILURE);
+}
+
+/** Dup envp, USER, cwd (fallback "/"); never returns on allocation failure. */
+void	init_shell_identity(t_shell *shell, char **envp)
+{
+	char	*user;
+
+	shell->envp = ft_arrdup(envp);
+	if (!shell->envp)
+		init_fatal_errno(shell, "failed to duplicate environment");
+	user = get_env_value(shell->envp, "USER");
+	if (!user)
+		shell->user = NULL;
+	else
+	{
+		shell->user = ft_strdup(user);
+		if (!shell->user)
+			init_fatal_errno(shell, NULL);
+	}
+	shell->cwd = getcwd(NULL, 0);
+	if (shell->cwd == NULL)
+	{
+		shell->cwd = ft_strdup("/");
+		if (shell->cwd == NULL)
+			init_fatal_errno(shell, NULL);
+	}
+}
 
 /** Value after KEY= in envp, or NULL. */
 char	*get_env_value(char **envp, const char *key)
@@ -60,22 +96,4 @@ char	*build_prompt(t_shell *shell)
 	ft_strcat(prompt, cwd);
 	ft_strcat(prompt, PROMPT_SUFFIX);
 	return (prompt);
-}
-
-/** Move envp[last] to envp[0] and shift the rest down by one. */
-void	move_last_env_to_front(t_shell *shell)
-{
-	int		count;
-	char	*tmp;
-
-	count = 0;
-	while (shell->envp[count])
-		count++;
-	tmp = shell->envp[count - 1];
-	while (count > 1)
-	{
-		shell->envp[count - 1] = shell->envp[count - 2];
-		count--;
-	}
-	shell->envp[0] = tmp;
 }

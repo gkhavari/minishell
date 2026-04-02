@@ -73,22 +73,7 @@ static void	update_shlvl(t_shell *shell)
 /** Dup env, user, cwd, runtime fields; bump SHLVL on interactive TTY. */
 void	init_shell(t_shell *shell, char **envp)
 {
-	char	*user;
-
-	shell->envp = ft_arrdup(envp);
-	if (!shell->envp)
-	{
-		perror("minishell: failed to duplicate environment");
-		clean_exit(shell, EXIT_FAILURE);
-	}
-	user = get_env_value(shell->envp, "USER");
-	if (user)
-		shell->user = msh_strdup(shell, user);
-	else
-		shell->user = NULL;
-	shell->cwd = getcwd(NULL, 0);
-	if (shell->cwd == NULL)
-		shell->cwd = msh_strdup(shell, "/");
+	init_shell_identity(shell, envp);
 	init_runtime_fields(shell);
 	if (isatty(STDIN_FILENO) == 1)
 		update_shlvl(shell);

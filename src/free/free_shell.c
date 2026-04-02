@@ -29,20 +29,20 @@ static void	free_envp(char **envp)
 }
 
 /** Free partial lexer state after MSH_OOM (word buffer + tokens + line). */
-void	msh_lex_abort(t_shell *shell, char **word)
+void	free_lex(t_shell *shell, char **word)
 {
 	if (word && *word)
 		free(*word);
 	if (word)
 		*word = NULL;
 	if (shell->tokens)
-		free_tokens(shell->tokens);
+		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
 	if (shell->input)
 		free(shell->input);
 	shell->input = NULL;
 	shell->last_exit = FAILURE;
-	shell->oom = 0;
+	shell->oom = 1;
 }
 
 /** Free tokens, commands, and input for the next prompt (keep env/user/cwd). */
@@ -52,10 +52,10 @@ void	reset_shell(t_shell *shell)
 		return ;
 	shell->oom = 0;
 	if (shell->tokens)
-		free_tokens(shell->tokens);
+		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
 	if (shell->commands)
-		free_commands(shell->commands);
+		free_commands(&shell->commands);
 	shell->commands = NULL;
 	if (shell->input)
 		free(shell->input);
@@ -68,10 +68,10 @@ void	free_all(t_shell *shell)
 	if (!shell)
 		return ;
 	if (shell->tokens)
-		free_tokens(shell->tokens);
+		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
 	if (shell->commands)
-		free_commands(shell->commands);
+		free_commands(&shell->commands);
 	shell->commands = NULL;
 	if (shell->envp)
 		free_envp(shell->envp);

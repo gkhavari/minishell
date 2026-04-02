@@ -6,37 +6,50 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/03 21:30:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2025/12/08 16:55:20 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
+/*
+** One row per builtin; order matches e_builtin from BUILTIN_ECHO … BUILTIN_EXIT.
+** Registry lives in function-local static storage (no file-scope globals).
+*/
+static const t_builtin_reg	*builtin_registry(void)
+{
+	static const t_builtin_reg	tab[] = {
+	{"echo", builtin_echo},
+	{"cd", builtin_cd},
+	{"pwd", builtin_pwd},
+	{"export", builtin_export},
+	{"unset", builtin_unset},
+	{"env", builtin_env},
+	{"exit", builtin_exit}
+	};
+
+	return (tab);
+}
+
 /** Map command name to builtin id or NOT_BUILTIN. */
 t_builtin	get_builtin_type(char *cmd)
 {
+	const t_builtin_reg	*tab;
+	size_t				i;
+	size_t				n;
+
 	if (!cmd)
 		return (NOT_BUILTIN);
-	if (ft_strcmp(cmd, "echo") == 0)
-		return (BUILTIN_ECHO);
-	if (ft_strcmp(cmd, "cd") == 0)
-		return (BUILTIN_CD);
-	if (ft_strcmp(cmd, "pwd") == 0)
-		return (BUILTIN_PWD);
-	if (ft_strcmp(cmd, "export") == 0)
-		return (BUILTIN_EXPORT);
-	if (ft_strcmp(cmd, "unset") == 0)
-		return (BUILTIN_UNSET);
-	if (ft_strcmp(cmd, "env") == 0)
-		return (BUILTIN_ENV);
-	if (ft_strcmp(cmd, "exit") == 0)
-		return (BUILTIN_EXIT);
+	tab = builtin_registry();
+	n = (size_t)(BUILTIN_COUNT - BUILTIN_ECHO);
+	i = 0;
+	while (i < n)
+	{
+		if (ft_strcmp(cmd, tab[i].name) == 0)
+			return ((t_builtin)(BUILTIN_ECHO + i));
+		i++;
+	}
 	return (NOT_BUILTIN);
-}
-
-int	is_builtin(char *cmd)
-{
-	return (get_builtin_type(cmd) != NOT_BUILTIN);
 }
 
 /** cd/export/unset/exit must not run in a forked child. */
@@ -46,27 +59,17 @@ int	must_run_in_parent(t_builtin type)
 		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT);
 }
 
-/** Dispatch argv[0] to the matching builtin implementation. */
+/** Dispatch argv[0] via registry (uniform int (*)(char **, t_shell *)). */
 int	run_builtin(char **argv, t_shell *shell)
 {
-	t_builtin	type;
+	t_builtin			type;
+	const t_builtin_reg	*tab;
 
 	if (!argv || !argv[0])
 		return (FAILURE);
 	type = get_builtin_type(argv[0]);
-	if (type == BUILTIN_ECHO)
-		return (builtin_echo(argv, shell));
-	if (type == BUILTIN_CD)
-		return (builtin_cd(argv, shell));
-	if (type == BUILTIN_PWD)
-		return (builtin_pwd(argv, shell));
-	if (type == BUILTIN_EXPORT)
-		return (builtin_export(argv, shell));
-	if (type == BUILTIN_UNSET)
-		return (builtin_unset(argv, shell));
-	if (type == BUILTIN_ENV)
-		return (builtin_env(argv, shell));
-	if (type == BUILTIN_EXIT)
-		return (builtin_exit(argv, shell));
-	return (FAILURE);
+	if (type == NOT_BUILTIN)
+		return (FAILURE);
+	tab = builtin_registry();
+	return (tab[type - BUILTIN_ECHO].run(argv, shell));
 }

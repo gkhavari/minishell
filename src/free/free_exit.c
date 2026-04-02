@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   utils2.c                                           :+:      :+:    :+:   */
+/*   free_exit.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/31 20:27:39 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 20:27:39 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/04/01 14:00:00 by thanh-ng        #+#    #+#             */
+/*   Updated: 2026/04/01 14:00:00 by thanh-ng       ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,16 +21,4 @@ void	clean_exit(t_shell *shell, int exit_status)
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
 	exit(exit_status);
-}
-
-/** ft_strdup or clean_exit if malloc fails. */
-char	*msh_strdup(t_shell *shell, char *s)
-{
-	char	*res;
-
-	res = NULL;
-	res = ft_strdup(s);
-	if (res == NULL)
-		clean_exit(shell, EXIT_FAILURE);
-	return (res);
 }

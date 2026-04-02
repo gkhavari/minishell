@@ -13,6 +13,8 @@
 #ifndef STRUCTS_H
 # define STRUCTS_H
 
+# include <../libft/libft.h>
+
 typedef enum e_tokentype
 {
 	WORD,
@@ -39,7 +41,8 @@ typedef enum e_builtin
 	BUILTIN_EXPORT,
 	BUILTIN_UNSET,
 	BUILTIN_ENV,
-	BUILTIN_EXIT
+	BUILTIN_EXIT,
+	BUILTIN_COUNT
 }	t_builtin;
 
 typedef struct s_token
@@ -47,13 +50,11 @@ typedef struct s_token
 	t_tokentype		type;
 	char			*value;
 	int				quoted;
-	struct s_token	*next;
 }	t_token;
 
 typedef struct s_arg
 {
 	char			*value;
-	struct s_arg	*next;
 }	t_arg;
 
 typedef struct s_redir
@@ -61,19 +62,17 @@ typedef struct s_redir
 	char			*file;
 	int				fd;
 	int				append;
-	struct s_redir	*next;
 }	t_redir;
 
 typedef struct s_command
 {
-	t_arg				*args;
+	t_list				*args;
 	char				**argv;
-	t_redir				*redirs;
+	t_list				*redirs;
 	int					heredoc_fd;
 	char				*heredoc_delim;
 	int					heredoc_quoted;
 	int					is_builtin;
-	struct s_command	*next;
 }	t_command;
 
 typedef struct s_shell
@@ -84,13 +83,19 @@ typedef struct s_shell
 	int			last_exit;
 	int			had_path;
 	int			barrier_write_fd;
-	t_token		*tokens;
-	t_command	*commands;
+	t_list		*tokens;
+	t_list		*commands;
 	char		*input;
 	int			word_quoted;
 	int			heredoc_mode;
-	int			oom;
+	int			oom; /* 1 after lexer OOM (free_lex) or heredoc line OOM */
 }	t_shell;
+
+typedef struct s_builtin_reg
+{
+	const char	*name;
+	int			(*run)(char **, t_shell *);
+}	t_builtin_reg;
 
 typedef struct s_heredoc_ctx
 {

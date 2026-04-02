@@ -1,74 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   utils.c                                            :+:      :+:    :+:   */
+/*   ft_arrdup.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/25 22:47:25 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/01/16 16:28:17 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/04/01 14:00:00 by thanh-ng        #+#    #+#               */
+/*   Updated: 2026/04/01 16:00:00 by thanh-ng       ###   ########.fr         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-char	*ft_strcat(char *dest, const char *src)
-{
-	size_t	i;
-	size_t	j;
-
-	i = 0;
-	while (dest[i])
-		i++;
-	j = 0;
-	while (src[j])
-	{
-		dest[i + j] = src[j];
-		j++;
-	}
-	dest[i + j] = '\0';
-	return (dest);
-}
-
-char	*ft_realloc(char *ptr, const size_t new_size)
-{
-	char	*res;
-	size_t	old_size;
-	size_t	copy_size;
-
-	if (new_size == 0)
-	{
-		free(ptr);
-		return (NULL);
-	}
-	if (ptr == NULL)
-		return (ft_calloc(new_size, sizeof(char)));
-	res = ft_calloc(new_size, sizeof(char));
-	if (!res)
-		return (NULL);
-	old_size = ft_strlen(ptr);
-	if (old_size < new_size - 1)
-		copy_size = old_size;
-	else
-		copy_size = new_size - 1;
-	ft_memcpy(res, ptr, copy_size);
-	free(ptr);
-	return (res);
-}
-
-/** ft_calloc or clean_exit on failure. */
-void	*msh_calloc(t_shell *shell, const size_t nmemb, const size_t size)
-{
-	char	*res;
-
-	res = ft_calloc(nmemb, size);
-	if (!res)
-	{
-		perror("minishell");
-		clean_exit(shell, EXIT_FAILURE);
-	}
-	return (res);
-}
 
 static void	ft_arrdup_cleanup(char **copy, size_t i)
 {

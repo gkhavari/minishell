@@ -31,11 +31,14 @@ SRCS		+=	$(SRC_DIR)/core/init_runtime.c
 SRCS		+=	$(SRC_DIR)/core/init_utils.c
 
 # utils
-SRCS		+=	$(SRC_DIR)/utils/utils.c \
-				$(SRC_DIR)/utils/utils2.c
+SRCS		+=	$(SRC_DIR)/utils/ft_strcat.c \
+				$(SRC_DIR)/utils/ft_arrdup.c \
+				$(SRC_DIR)/utils/ft_realloc.c \
+				$(SRC_DIR)/utils/msh_string.c
 
 # free
 SRCS		+=	$(SRC_DIR)/free/free_utils.c \
+				$(SRC_DIR)/free/free_exit.c \
 				$(SRC_DIR)/free/free_runtime.c \
 				$(SRC_DIR)/free/free_shell.c
 
@@ -45,30 +48,34 @@ SRCS		+=	$(SRC_DIR)/signals/signal_handler.c \
 
 # tokenizer
 SRCS		+=	$(SRC_DIR)/tokenizer/tokenizer.c \
+				$(SRC_DIR)/tokenizer/tokenizer_loop.c \
 				$(SRC_DIR)/tokenizer/tokenizer_utils.c \
-				$(SRC_DIR)/tokenizer/tokenizer_utils2.c \
 				$(SRC_DIR)/tokenizer/tokenizer_ops.c \
 				$(SRC_DIR)/tokenizer/expansion.c \
+				$(SRC_DIR)/tokenizer/expansion_word.c \
 				$(SRC_DIR)/tokenizer/expansion_utils.c \
 				$(SRC_DIR)/tokenizer/tokenizer_handlers.c \
 				$(SRC_DIR)/tokenizer/tokenizer_quotes.c
 
 # parser
 SRCS		+=	$(SRC_DIR)/parser/parser.c \
+				$(SRC_DIR)/parser/parser_build.c \
+				$(SRC_DIR)/parser/parser_redir.c \
 				$(SRC_DIR)/parser/parser_syntax_check.c \
 				$(SRC_DIR)/parser/add_token_to_cmd.c \
 				$(SRC_DIR)/parser/argv_build.c \
 				$(SRC_DIR)/parser/heredoc.c \
+				$(SRC_DIR)/parser/heredoc_input.c \
 				$(SRC_DIR)/parser/heredoc_warning.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
 
 # executor
 SRCS        += $(SRC_DIR)/executor/executor.c \
-			   $(SRC_DIR)/executor/executor_utils.c \
+			   $(SRC_DIR)/executor/executor_redir_apply.c \
 			   $(SRC_DIR)/executor/executor_external.c \
-			   $(SRC_DIR)/executor/executor_pipeline.c \
-			   $(SRC_DIR)/executor/executor_pipeline_not_found.c \
-			   $(SRC_DIR)/executor/executor_pipeline_steps.c \
+			   $(SRC_DIR)/executor/executor_pip.c \
+			   $(SRC_DIR)/executor/executor_pip_not_found.c \
+			   $(SRC_DIR)/executor/executor_pip_steps.c \
 			   $(SRC_DIR)/executor/executor_child_format.c \
 			   $(SRC_DIR)/executor/executor_child_exec.c \
 

@@ -19,8 +19,7 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 {
 	if (*state == ST_SQUOTE || *state == ST_DQUOTE)
 	{
-		free(*word);
-		*word = NULL;
+		msh_strptr_free(word);
 		ft_dprintf(STDERR_FILENO,
 			"minishell: syntax error: unclosed quote\n");
 		shell->last_exit = EXIT_SYNTAX_ERROR;
@@ -33,16 +32,16 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 }
 
 /**
- * ST_NORMAL: \\X — skip backslash, append X literally. Returns 1 if handled.
+ * ST_NORMAL: \\X — skip backslash, append X literally.
  */
 int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 {
 	if (shell->input[*i] != '\\' || *state != ST_NORMAL)
-		return (0);
+		return (MSH_LEX_NO);
 	if (!shell->input[*i + 1])
 	{
 		(*i)++;
-		return (1);
+		return (MSH_LEX_YES);
 	}
 	if (!*word)
 	{
@@ -53,72 +52,70 @@ int	handle_backslash(t_shell *shell, size_t *i, char **word, t_state *state)
 	if (append_char(shell, word, shell->input[*i + 1]) == MSH_OOM)
 		return (MSH_OOM);
 	*i += 2;
-	return (1);
+	return (MSH_LEX_YES);
 }
 
 /**
  * Toggle ST_NORMAL <-> ST_SQUOTE/ST_DQUOTE on quote chars.
- * Returns 1 if consumed.
  */
 int	process_quote(t_shell *shell, char c, t_state *state)
 {
 	if (*state == ST_NORMAL && c == '\'')
 	{
 		*state = ST_SQUOTE;
-		mark_word_quoted(shell);
-		return (1);
+		shell->word_quoted = 1;
+		return (MSH_LEX_YES);
 	}
 	if (*state == ST_SQUOTE && c == '\'')
 	{
 		*state = ST_NORMAL;
-		return (1);
+		return (MSH_LEX_YES);
 	}
 	if (*state == ST_NORMAL && c == '"')
 	{
 		*state = ST_DQUOTE;
-		mark_word_quoted(shell);
-		return (1);
+		shell->word_quoted = 1;
+		return (MSH_LEX_YES);
 	}
 	if (*state == ST_DQUOTE && c == '"')
 	{
 		*state = ST_NORMAL;
-		return (1);
+		return (MSH_LEX_YES);
 	}
-	return (0);
+	return (MSH_LEX_NO);
 }
 
 /**
  * If op char: flush word, append operator token, advance i.
- * Returns 1 if handled.
  */
 int	handle_operator(t_shell *shell, size_t *i, char **word)
 {
 	int	n;
 
 	if (!is_op_char(shell->input[*i]))
-		return (0);
+		return (MSH_LEX_NO);
 	if (flush_word(shell, word, &shell->tokens) == MSH_OOM)
 		return (MSH_OOM);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
-		set_heredoc_mode(shell, 1);
+		shell->heredoc_mode = 1;
 	n = read_operator(shell, &shell->input[*i], &shell->tokens);
 	if (n == MSH_OOM)
 		return (MSH_OOM);
 	*i += (size_t)n;
-	return (1);
+	return (MSH_LEX_YES);
 }
 
 /**
- * Space/tab: flush word and advance i. Returns 1 if handled.
+ * Space/tab: flush word and advance i.
  */
 int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
-	if (shell->input[*i] == ' ' || shell->input[*i] == '\t')
+	if (msh_is_lexer_blank((unsigned char)shell->input[*i]))
 	{
 		if (flush_word(shell, word, &shell->tokens) == MSH_OOM)
 			return (MSH_OOM);
 		(*i)++;
-		return (1);
+		return (MSH_LEX_YES);
 	}
-	return (0);
+	return (MSH_LEX_NO);
 }

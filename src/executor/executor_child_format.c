@@ -49,24 +49,11 @@ static int	append_escaped_char(char *out, int j, char c)
 	return (j);
 }
 
-/**
- * $'...' form when cmd_name has control bytes (exec error / not-found line).
- */
-static char	*format_cmd_name_for_error(char *cmd_name)
+static int	fill_dquote_body(char *out, int j, char *cmd_name)
 {
-	char	*out;
-	int		i;
-	int		j;
+	int	i;
 
-	if (!cmd_name || !needs_dollar_quote(cmd_name))
-		return (NULL);
-	out = malloc((ft_strlen(cmd_name) * 2) + 4);
-	if (!out)
-		return (NULL);
-	out[0] = '$';
-	out[1] = '\'';
 	i = 0;
-	j = 2;
 	while (cmd_name[i])
 	{
 		if ((unsigned char)cmd_name[i] < 32
@@ -77,6 +64,25 @@ static char	*format_cmd_name_for_error(char *cmd_name)
 			out[j++] = cmd_name[i];
 		i++;
 	}
+	return (j);
+}
+
+/**
+ * $'...' form when cmd_name has control bytes (exec error / not-found line).
+ */
+static char	*format_cmd_name_for_error(char *cmd_name)
+{
+	char	*out;
+	int		j;
+
+	if (!cmd_name || !needs_dollar_quote(cmd_name))
+		return (NULL);
+	out = malloc((ft_strlen(cmd_name) * 2) + 4);
+	if (!out)
+		return (NULL);
+	out[0] = '$';
+	out[1] = '\'';
+	j = fill_dquote_body(out, 2, cmd_name);
 	out[j++] = '\'';
 	out[j] = '\0';
 	return (out);

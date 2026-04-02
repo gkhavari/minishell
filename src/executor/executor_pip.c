@@ -1,19 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_pipeline.c                                :+:      :+:    :+:   */
+/*   executor_pip.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:44:42 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 00:30:26 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-pid_t	run_pipe_step(t_command *cmd, t_shell *shell,
-			int *prev_fd, int sync_fd[2]);
 
 static int	consume_wait_result(pid_t pid, int status, pid_t last_pid,
 		int *last_status)
@@ -59,7 +56,7 @@ static int	wait_children_last(pid_t last_pid, int n)
 }
 
 /** Fork each cmd with pipes + sync_fd barrier; return child count. */
-static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
+static int	run_pipeline_loop(t_list *cmd_node, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
 {
 	int		prev_fd;
@@ -69,13 +66,13 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 	prev_fd = -1;
 	i = 0;
 	*last_pid = -1;
-	while (cmd)
+	while (cmd_node)
 	{
-		pid = run_pipe_step(cmd, shell, &prev_fd, sync_fd);
+		pid = run_pipe_step(cmd_node, shell, &prev_fd, sync_fd);
 		if (pid < 0)
 			break ;
 		*last_pid = pid;
-		cmd = cmd->next;
+		cmd_node = cmd_node->next;
 		i++;
 	}
 	if (prev_fd != -1)
@@ -84,7 +81,7 @@ static int	run_pipeline_loop(t_command *cmd, t_shell *shell,
 }
 
 /** Pipe chain: fork children, wait, return last command exit status. */
-int	execute_pipeline(t_command *cmds, t_shell *shell)
+int	execute_pipeline(t_list *cmds, t_shell *shell)
 {
 	pid_t	last_pid;
 	int		sync_fd[2];

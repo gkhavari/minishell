@@ -6,7 +6,7 @@
 /*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:01:23 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/03/08 12:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/01 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,60 +24,63 @@ static void	cleanup_partial_argv(char **argv, size_t count)
 }
 
 /**
- * Build cmd->argv from cmd->args (NULL-terminated); exit on strdup failure.
+ * Build cmd->argv from cmd->args (NULL-terminated). Returns 0 or -1 on OOM.
  */
-static void	build_argv_array(t_shell *shell, t_command *cmd,
-		t_arg *tmp, size_t count)
+static int	build_argv_array(t_command *cmd, t_list *arg_node, size_t count)
 {
 	size_t	i;
+	t_arg	*a;
 
 	i = 0;
-	while (i < count)
+	while (i < count && arg_node)
 	{
-		cmd->argv[i] = ft_strdup(tmp->value);
+		a = arg_node->content;
+		cmd->argv[i] = ft_strdup(a->value);
 		if (!cmd->argv[i])
 		{
 			cleanup_partial_argv(cmd->argv, i);
 			cmd->argv = NULL;
-			clean_exit(shell, EXIT_FAILURE);
+			return (-1);
 		}
-		tmp = tmp->next;
+		arg_node = arg_node->next;
 		i++;
 	}
 	cmd->argv[count] = NULL;
+	return (0);
 }
 
-static void	finalize_argv(t_shell *shell, t_command *cmd)
+static int	finalize_argv(t_shell *shell, t_command *cmd)
 {
-	t_arg	*tmp;
 	size_t	count;
 
 	(void)shell;
-	tmp = cmd->args;
-	count = 0;
-	while (tmp)
-	{
-		count++;
-		tmp = tmp->next;
-	}
+	count = (size_t)ft_lstsize(cmd->args);
 	cmd->argv = ft_calloc(count + 1, sizeof(char *));
 	if (!cmd->argv)
-		clean_exit(shell, EXIT_FAILURE);
-	build_argv_array(shell, cmd, cmd->args, count);
+		return (-1);
+	return (build_argv_array(cmd, cmd->args, count));
 }
 
 /**
- * For each command: build argv, set is_builtin (with env special-case).
+ * For each command: build argv, set is_builtin from get_builtin_type (env rule).
+ * Returns 0 or -1 on allocation failure.
  */
-void	finalize_all_commands(t_shell *shell, t_command *cmd)
+int	finalize_all_commands(t_shell *shell, t_list *cmd_list)
 {
-	while (cmd)
+	t_list		*node;
+	t_command	*cmd;
+
+	node = cmd_list;
+	while (node)
 	{
-		finalize_argv(shell, cmd);
-		cmd->is_builtin = is_builtin(cmd->argv[0]);
+		cmd = node->content;
+		if (finalize_argv(shell, cmd) < 0)
+			return (-1);
+		cmd->is_builtin = (get_builtin_type(cmd->argv[0]) != NOT_BUILTIN);
 		if (cmd->is_builtin && cmd->argv[1]
 			&& ft_strcmp(cmd->argv[0], "env") == 0)
 			cmd->is_builtin = 0;
-		cmd = cmd->next;
+		node = node->next;
 	}
+	return (0);
 }
