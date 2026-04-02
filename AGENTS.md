@@ -17,6 +17,8 @@ This file is for **humans and coding agents** working on the repo. It records **
 
 If behavior or structure disagrees with these, **fix code or docs** in small, reviewable steps.
 
+**Libft:** This repo’s **`libft/`** does **not** include **`get_next_line`**. Minishell reads lines with **`read`**, **`readline`**, and **`ft_read_stdin_line`** (`src/utils/read_stdin_line.c`). Dropping GNL avoids an extra **static** stash in the library alongside the subject’s single allowed global (**`g_signum`**).
+
 ---
 
 ## 2. Development setup (Windows host → Linux in Docker)

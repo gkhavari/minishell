@@ -129,10 +129,10 @@ typedef struct s_shell {
 | **user, cwd** | Prompt construction; updated by `cd`. |
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
 | **had_path** | Set in **`init_runtime_fields()`**: whether **`PATH`** was present in the environment **after** dup (used by **`resolve_cmd_path()`** and edge cases when **`PATH`** is unset later). |
-| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pipeline()`** currently sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`**. The all-not-found fast path (**`pipeline_all_nf()`** in **`exe_child.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
+| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pipeline()`** sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`** (inactive). The all-not-found fast path (**`pipeline_all_nf()`** in **`exe_pipeline_nf.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **commands** | Output of parser; input to heredoc + executor; freed after execution or on error. |
-| **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via `read_line_stdin` in `main.c` (non-TTY); freed in tokenizer or in `reset_shell()`. |
+| **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via **`shell_repl.c`** (non-TTY); freed in tokenizer or in `reset_shell()`. |
 | **word_quoted** | Internal flag set by `mark_word_quoted()` during tokenization; tells `flush_word()` whether the current token came from a quoted span. |
 | **heredoc_mode** | Internal flag set by `set_heredoc_mode()`; when active, the tokenizer does not expand `$` in the heredoc delimiter string. |
 
@@ -204,16 +204,17 @@ erDiagram
 
 Functions are grouped by **source file**. Each row: function name, return type / signature summary, and a short description.
 
-### 2.1 Main & init
+### 2.1 Main, REPL & init
 
 | File | Function | Description |
 |------|----------|-------------|
-| **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, `shell_loop()`, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
-| **utils/read_stdin_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; `READ_LINE` / `READ_EOF` / `OOM`; optional `shell->oom` on append failure. |
-| **main.c** (src/) | `read_line_stdin(shell)` | Wrapper: `ft_read_stdin_line(..., 0)` into `*out` (static). |
-| **main.c** (src/) | `build_prompt(shell)` | Prompt string for TTY `readline`; caller frees. (static) |
-| **main.c** (src/) | `read_input(shell)` | TTY: `build_prompt` + `readline`; else `read_line_stdin`. EOF → 0 (prints `exit` on TTY). After non-NULL line: `check_signal_received` may return -1 (SIGINT). Else 1. (static) |
-| **main.c** (src/) | `shell_loop(shell)` | Loop: `check_signal_received`, `read_input`; on 0 break; on -1 continue; if `input[0]` then `process_input`; detect syntax_err (`!commands && last_exit==EXIT_SYNTAX_ERROR`); `reset_shell`; non-TTY + syntax_err → break. (static) |
+| **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, **`shell_loop()`**, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
+| **core/shell_repl.c** | `shell_loop(shell)` | REPL: `check_signal_received`, `read_input`; **`RL_EOF`** break; **`RL_SIG`** continue; **`OOM`** sets `shell->oom`, `reset_shell`, continue; else **`repl_after_read`** (`process_input` if `input[0]`, syntax_err / `reset_shell`, non-TTY break on **`XSYN`**). |
+| **core/shell_repl.c** | *(static)* `read_input(shell)` | TTY: `build_prompt` + `readline`; else **`read_line_stdin`** → **`ft_read_stdin_line(..., 0)`**. Returns **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**, or **`OOM`**. |
+| **core/shell_repl.c** | *(static)* `build_prompt(shell)` | Prompt string for TTY `readline`; caller frees. |
+| **core/shell_repl.c** | *(static)* `read_line_stdin(shell, out)` | Wrapper: `ft_read_stdin_line(shell, out, 0)`. |
+| **core/shell_repl.c** | *(static)* `repl_after_read(shell)` | If `input[0]` → `process_input`; syntax_err when `!commands && last_exit == XSYN`; `reset_shell`; returns 1 to break on non-TTY + syntax_err. |
+| **utils/read_stdin_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; **`RL_LN`** / **`RL_EOF`** / **`OOM`**; optional `shell->oom` on append failure. |
 | **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `EXIT_SIGINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
 | **core/init.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
 | **core/init_utils.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc/OOM path `ft_dprintf` + `FAILURE` via `clean_exit`. |
@@ -286,11 +287,11 @@ Functions are grouped by **source file**. Each row: function name, return type /
 |------|----------|-------------|
 | **parser/parser.c** | `process_heredocs(shell)` | Walks commands; if `heredoc_delim`, `read_heredoc`; returns **FAILURE** on interrupt/error. |
 | **parser/heredoc_input.c** | `heredoc_read_line(shell)` | TTY `readline("> ")` else `ft_read_stdin_line(..., 1)` (sets `shell->oom` on OOM). |
-| **parser/heredoc.c** | `read_heredoc(cmd, shell, line_no)` | `pipe`, read loop + delimiter match / expand; sets `cmd->heredoc_fd`. |
+| **parser/heredoc_input.c** | `print_heredoc_eof_warning(line_no, delim)` | Bash-style EOF-before-delim warning to stderr. |
+| **parser/heredoc_input.c** | `write_heredoc_line(line, fd, expand, shell)` | Writes one line to pipe write end; optional expansion. |
+| **parser/heredoc.c** | `read_heredoc(cmd, shell, line_no)` | `pipe`, loop via **`heredoc_read_one`** / **`heredoc_read_line`**; sets `cmd->heredoc_fd`. |
 | **parser/heredoc_utils.c** | `is_quoted_delimiter(delim)` | Returns 1 if delimiter is quoted (e.g. `'EOF'` or `"EOF"`) so body is not expanded. |
 | **parser/heredoc_utils.c** | `expand_heredoc_line(line, shell)` | Expands `$VAR` and `$?` in line; returns new string (caller frees). |
-| **parser/heredoc_warning.c** | `print_heredoc_eof_warning(line_no, delim)` | Bash-style EOF-before-delim warning. |
-| **parser/heredoc_warning.c** | `write_heredoc_line(line, fd, expand, shell)` | Writes one line to pipe write end; optional expansion. |
 
 ---
 
@@ -310,8 +311,8 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/exe_child.c** | *(static)* `bi_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
 | **executor/exe_child.c** | *(static)* `ch_nf` / `ch_abort` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
 | **executor/exe_child.c** | `run_in_child(cmd, shell)` | Builtin branch, empty argv, `resolve_cmd_path`, `execve` or errors. |
-| **executor/exe_child.c** | `pipeline_all_nf(cmds, shell)` | If every stage is simple missing-PATH external (no redir/heredoc), print all “not found” via `put_cmd_not_found` in parent; returns **TRUE** so caller returns **`EXIT_CMD_NOT_FOUND`**. |
-| **executor/exe_child.c** | *(static)* `is_nf_cmd` | Predicate for `pipeline_all_nf`. |
+| **executor/exe_pipeline_nf.c** | *(static)* `is_nf_cmd` | Predicate: simple missing-PATH external, no redir/heredoc, no `/` in argv0. |
+| **executor/exe_pipeline_nf.c** | `pipeline_all_nf(cmds, shell)` | If every stage matches **`is_nf_cmd`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pipeline`** returns **`EXIT_CMD_NOT_FOUND`**. |
 | **executor/exe_not_found.c** | `put_cmd_not_found` (+ static `fmt_nf`, `need_dq`, `esc_c`, `fill_dq`) | One stderr line for not-found (`$'…'` when name has control bytes). |
 | **executor/exe_pipeline.c** | *(static)* `wait_nlast` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`wait_one`). |
 | **executor/exe_pipeline.c** | *(static)* `pl_loop` | Chains `pipe_step`, closes trailing `prev_fd`. |
@@ -394,4 +395,4 @@ flowchart TB
 |----------|---------|
 | [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |
-| [`includes/defines.h`](../includes/defines.h) | **`OK` / `ERR`** (aliases **`SUCCESS` / `FAILURE`**), **`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, lexer/parser sentinels. |
+| [`includes/defines.h`](../includes/defines.h) | **`OK` / `ERR`**, **`RL_LN` / `RL_EOF` / `RL_SIG`**, **`XSYN`**, **`XNF` / `XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, lexer/parser sentinels; long names kept as aliases where defined. |

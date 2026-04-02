@@ -61,14 +61,14 @@ Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYe
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/` | `main.c` only — REPL loop, read_input, process_input |
-| `src/core/` | `init.c` (`init_shell`, `process_input`), `init_utils.c` (`init_shell_identity`, `init_runtime_fields`, `get_env_value`); prompt in `main.c` (`build_prompt`, static) |
+| `src/` | `main.c` only — `main`: `init_shell`, `shell_loop`, teardown (`rl_clear_history`, `free_all`, close std fds, return `last_exit`). |
+| `src/core/` | `init.c` (`init_shell`, `process_input`), `init_utils.c` (`init_shell_identity`, `init_runtime_fields`, `get_env_value`), `shell_repl.c` (`shell_loop`; static `read_input`, `build_prompt`, `read_line_stdin`, `repl_after_read`) |
 | `src/utils/` | `ft_strcat`, `ft_arrdup`, `ft_realloc`, `msh_string` (lexer/expansion char helpers) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
 | `src/tokenizer/` | Lexer: tokenizer.c, expansion, quote/operator handlers, utils |
-| `src/parser/` | Parser: parser.c, syntax_check, argv_build, heredoc, heredoc_utils, heredoc_warning |
-| `src/executor/` | **`exe_*` files (parser-style):** `exe.c`, `exe_redir.c`, `exe_external.c`, `exe_not_found.c`, `exe_child.c`, `exe_pipeline.c`, `exe_pipe_step.c` — public symbols are unprefixed (`run_commands`, `apply_redirs`, …). |
+| `src/parser/` | Parser: `parser.c`, `parser_syntax_check.c`, `parser_build.c`, `parser_redir.c`, `add_token_to_cmd.c`, `argv_build.c`, `heredoc.c`, **`heredoc_input.c`** (`heredoc_read_line`, `print_heredoc_eof_warning`, `write_heredoc_line`), `heredoc_utils.c` |
+| `src/executor/` | **`exe_*` (parser-style names):** `exe.c`, `exe_redir.c`, `exe_external.c`, `exe_not_found.c`, `exe_child.c`, **`exe_pipeline_nf.c`** (`pipeline_all_nf`), `exe_pipeline.c`, `exe_pipe_step.c` — public API unprefixed (`run_commands`, `apply_redirs`, …). |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
 
 ```mermaid
@@ -79,9 +79,7 @@ graph TB
     subgraph core
         init[core/init.c]
         init_u[core/init_utils.c]
-    end
-    subgraph utils
-        utils_file[utils/utils.c]
+        repl[core/shell_repl.c]
     end
     subgraph free
         free_utils[free/free_utils.c]
@@ -95,11 +93,12 @@ graph TB
     subgraph Tokenizer
         tok[tokenizer.c]
         tok_utils[tokenizer_utils.c]
-        tok_utils2[tokenizer_utils2.c]
+        tok_loop[tokenizer_loop.c]
         tok_ops[tokenizer_ops.c]
         tok_handlers[tokenizer_handlers.c]
         tok_quotes[tokenizer_quotes.c]
         expansion[expansion.c]
+        expansion_word[expansion_word.c]
         expansion_utils[expansion_utils.c]
     end
     subgraph Parser
@@ -107,9 +106,9 @@ graph TB
         syntax[parser_syntax_check.c]
         add_token[add_token_to_cmd.c]
         argv_build[argv_build.c]
-        heredoc[heredoc.c + heredoc_input.c]
+        heredoc[heredoc.c]
+        heredoc_input[heredoc_input.c]
         heredoc_utils[heredoc_utils.c]
-        heredoc_warn[heredoc_warning.c]
     end
     subgraph Executor
         exe_m[exe.c]
@@ -117,6 +116,7 @@ graph TB
         exe_external[exe_external.c]
         exe_nf[exe_not_found.c]
         exe_child[exe_child.c]
+        exe_pnf[exe_pipeline_nf.c]
         exe_pl[exe_pipeline.c]
         exe_ps[exe_pipe_step.c]
     end
@@ -134,21 +134,21 @@ graph TB
         exit_utils[exit_utils.c]
     end
     main --> init
+    main --> repl
+    repl --> init
     init --> init_u
-    main --> utils_file
-    main --> tok
-    main --> parser
-    main --> exe_m
+    init --> tok
     tok --> parser
     parser --> exe_m
     exe_m --> dispatcher
     exe_m --> exe_redir
     exe_m --> exe_external
     exe_m --> exe_pl
+    exe_pl --> exe_pnf
     exe_pl --> exe_ps
-    exe_pl --> exe_child
-    exe_external --> exe_child
+    exe_pnf --> exe_nf
     exe_ps --> exe_child
+    exe_external --> exe_child
     exe_child --> exe_nf
     dispatcher --> echo
     dispatcher --> cd
@@ -178,7 +178,7 @@ flowchart LR
     E -.-> I[empty / builtin / external / pipeline → child or parent]
 ```
 
-- **main.c** (src/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**).
+- **`shell_repl.c`** (src/core/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls `init_shell`, `shell_loop`, and teardown.
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
 - **Executor** (src/executor/): **`run_commands()`** in **`exe.c`** — empty argv, **`run_empty`**; else single command: **`run_bi`** (parent with optional `dup`/`apply_redirs`/`rs_fd`, or **`run_external`** if builtin has redirs and type is not cd/export/unset/exit) or **`run_external`**; pipeline → **`run_pipeline()`** → **`pipe_step`** / **`wait_nlast`**; child path → **`run_in_child()`** in **`exe_child.c`**.
@@ -272,23 +272,24 @@ Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
 ## 2. Main Loop (REPL Cycle)
 
-**Implementation:** `src/main.c` → **`shell_loop()`** → **`read_input()`** → (optional) **`process_input()`** in `src/core/init.c`.
+**Implementation:** `src/core/shell_repl.c` → **`shell_loop()`** → **`read_input()`** → (optional) **`process_input()`** in `src/core/init.c`. Entry point from **`main.c`** is **`shell_loop(&shell)`** after **`init_shell`**.
 
-**Input source:** When stdin is a **TTY**, `read_input()` uses **`readline(prompt)`** after **`build_prompt(shell)`** (history, line editing). When stdin is **not** a TTY (e.g. **42_minishell_tester**), it uses **`read_line_stdin()`** (static in `main.c`): **`read(STDIN_FILENO, &c, 1)`** until **`'\n'`** or **EOF**—no prompt, no readline. The returned string **does not** include the newline. If **EOF** is read after at least one character without a newline, that partial line is still returned (then the next call may get **EOF** on an empty buffer → **`NULL`**, same as clean EOF on an empty line).
+**Input source:** When stdin is a **TTY**, `read_input()` uses **`readline(prompt)`** after **`build_prompt(shell)`** (history, line editing). When stdin is **not** a TTY (e.g. **42_minishell_tester**), it uses **`read_line_stdin()`** (static wrapper → **`ft_read_stdin_line`** in `utils/read_stdin_line.c`): byte **`read(STDIN_FILENO, &c, 1)`** until **`'\n'`** or **EOF**—no prompt, no readline. The stored string **does not** include the newline. If **EOF** is read after at least one character without a newline, that partial line is still returned; the next read may see empty buffer → **EOF** path.
 
-**`read_input()` return values** (only `shell_loop` sees these):
+**`read_input()` return values** (macros in **`defines.h`**; only `shell_loop` branches on them):
 
-| Return | Meaning | `shell_loop` action |
-|--------|---------|---------------------|
-| **0** | **EOF** (`NULL` from readline / stdin path) | **TTY:** prints **`exit\n`** then **`break`**. **Non-TTY:** **`break`** without printing. |
-| **-1** | **SIGINT** path: **`check_signal_received()`** inside `read_input` fired; **`shell->input`** freed and cleared | **`continue`** (no `process_input`, no `reset_shell` for that iteration—nothing to free beyond what `read_input` already did). |
-| **1** | A non-**NULL** line was read | If **`shell->input[0] != '\0'`** → **`process_input(shell)`**; if the first byte is **`'\0'`** → skip **`process_input`** entirely (empty line: no tokenize, no history). Then **`reset_shell(shell)`** always runs. |
+| Return | Macro | Meaning | `shell_loop` action |
+|--------|-------|---------|---------------------|
+| **0** | **`RL_EOF`** | **EOF** (`NULL` from readline / stdin path) | **TTY:** prints **`exit\n`** then **`break`**. **Non-TTY:** **`break`** without printing. |
+| **-1** | **`RL_SIG`** | **`check_signal_received()`** inside `read_input` fired; **`shell->input`** freed and cleared | **`continue`** (no `process_input`, no `reset_shell` for that iteration). |
+| **`OOM`** | **`OOM`** | e.g. **`build_prompt`** allocation failure | Set **`shell->oom`**, **`last_exit = FAILURE`**, **`reset_shell`**, **`continue`**. |
+| **1** | **`RL_LN`** | A non-**NULL** line was read | **`repl_after_read`**: if **`shell->input[0] != '\0'`** → **`process_input`**, else skip it; then **`reset_shell`**; non-TTY + syntax error may **`break`**. |
 
-**Inside `read_input()`** (after a line pointer is obtained): **`check_signal_received(shell)`** runs for **every** non-**NULL** line (**empty** `""` included) before returning **1**—same mechanism as Ctrl+C at the prompt (§1.4). **`build_prompt()`** failure returns **0** (loop exits as if EOF).
+**Inside `read_input()`** (after a line pointer is obtained): **`check_signal_received(shell)`** runs for **every** non-**NULL** line (**empty** `""` included) before returning **`RL_LN`**—same mechanism as Ctrl+C at the prompt (§1.4). **`build_prompt()`** failure returns **`OOM`** (not EOF).
 
-**After `process_input()`** (when it was called): **`shell_loop`** sets **`syntax_err = 1`** if **`!shell->commands && shell->last_exit == EXIT_SYNTAX_ERROR`** (e.g. unclosed quote from tokenizer). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
+**After `process_input()`** (when it was called): **`repl_after_read`** sets **`syntax_err`** if **`!shell->commands && shell->last_exit == XSYN`** (`EXIT_SYNTAX_ERROR`, e.g. unclosed quote). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
 
-> **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->commands && shell->last_exit == EXIT_SYNTAX_ERROR`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
+> **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->commands && shell->last_exit == XSYN`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
 
 **`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->commands`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = EXIT_SIGINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
 
@@ -299,13 +300,15 @@ flowchart TD
     START([shell_loop iteration]) --> CHECK1["check_signal_received(shell)"]
     CHECK1 --> READ["read_input(shell)"]
     READ --> RVAL{read_input return}
-    RVAL -->|0| EXIT["break — EOF"]
-    RVAL -->|-1| START
-    RVAL -->|1| INEMPTY{shell->input[0] != 0?}
+    RVAL -->|RL_EOF| EXIT["break — EOF"]
+    RVAL -->|RL_SIG| START
+    RVAL -->|OOM| OOMH["oom + reset_shell + continue"]
+    OOMH --> START
+    RVAL -->|RL_LN| INEMPTY{shell->input[0] != 0?}
     INEMPTY -->|no| RESET["reset_shell — empty line"]
     INEMPTY -->|yes| PROC["process_input — tokenize → parse → heredocs → execute"]
     PROC --> RESET
-    RESET --> SYNTAX{"!isatty(stdin) && syntax_err<br/>(no commands && last_exit==EXIT_SYNTAX_ERROR)"}
+    RESET --> SYNTAX{"!isatty(stdin) && syntax_err<br/>(no commands && last_exit==XSYN)"}
     SYNTAX -->|yes| EXIT
     SYNTAX -->|no| START
 ```
@@ -313,13 +316,13 @@ flowchart TD
 | Step | Code / behavior |
 |------|------------------|
 | 1 | Top of loop: **`check_signal_received(shell)`** — if **`g_signum == SIGINT`**, set **`last_exit = EXIT_SIGINT`**, clear **`g_signum`** (§1). |
-| 2 | **`read_input()`**: TTY → **`build_prompt`**, **`readline`**; non-TTY → **`read_line_stdin()`**. |
-| 3 | **`read_input`:** **`!shell->input`** → return **0** (see table above). |
-| 4 | **`read_input`:** **`check_signal_received`** on non-**NULL** line → may return **-1** (SIGINT). |
-| 5 | **`shell_loop`:** only if **`shell->input[0]`** → **`process_input()`** (tokenize → parse → heredocs → execute). |
+| 2 | **`read_input()`**: TTY → **`build_prompt`**, **`readline`**; non-TTY → **`read_line_stdin()`** → **`ft_read_stdin_line`**. |
+| 3 | **`read_input`:** **`!shell->input`** → **`RL_EOF`** (see table above). |
+| 4 | **`read_input`:** **`check_signal_received`** on non-**NULL** line → may return **`RL_SIG`**. |
+| 5 | **`repl_after_read`:** only if **`shell->input[0]`** → **`process_input()`** (tokenize → parse → heredocs → execute). |
 | 6 | **Readline history:** **`add_history(shell->input)`** in **`handle_end_of_string()`** (`tokenizer_handlers.c`) only if **`isatty(STDIN_FILENO)`** and **`shell->input[0]`** (non-empty line reached EOL without unclosed quote). Empty lines never enter tokenization, so no history entry. |
 | 7 | **`reset_shell(shell)`** frees tokens, commands, input string. |
-| 8 | Non-TTY **+** syntax error (**`last_exit == EXIT_SYNTAX_ERROR`** and no commands) → **break** loop. |
+| 8 | Non-TTY **+** syntax error (**`last_exit == XSYN`** and no commands) → **break** loop. |
 
 ---
 
@@ -422,27 +425,31 @@ $ ls < >            # bash: syntax error near unexpected token `>'
 
 ### 3.4 Syntax Validation (actual: `parser_syntax_check.c`)
 
+**API:** **`syntax_check(t_list *lst)`** — each node’s **`content`** is **`t_token *`**. Leading **PIPE** → error; **PIPE** cannot be last or doubled; each redirection must be followed by a **WORD** (else **`"newline"`** or the next token’s type string). See the file for **`check_redir_syntax`** and **`syntax_error`**.
+
 ```c
-/* Leading PIPE → error. Then: PIPE cannot be last or doubled; each redir needs WORD next. */
-int	syntax_check(t_token *token)
+/* Sketch — real code walks t_list, not token->next */
+int	syntax_check(t_list *lst)
 {
-	if (!token)
+	t_list	*node;
+	t_token	*token;
+
+	if (!lst)
 		return (OK);
+	token = lst->content;
 	if (token->type == PIPE)
 		return (syntax_error("|"));
-	while (token)
+	node = lst;
+	while (node)
 	{
+		token = node->content;
 		if (token->type == PIPE
-			&& (!token->next || token->next->type == PIPE))
+			&& (!node->next
+				|| ((t_token *)node->next->content)->type == PIPE))
 			return (syntax_error("|"));
-		if (is_redirection(token->type))
-		{
-			if (!token->next)
-				return (syntax_error("newline"));
-			if (token->next->type != WORD)
-				return (syntax_error(get_token_str(token->next->type)));
-		}
-		token = token->next;
+		if (is_redirection(token->type) && check_redir_syntax(node))
+			return (ERR);
+		node = node->next;
 	}
 	return (OK);
 }
@@ -722,13 +729,13 @@ flowchart LR
     E --> L[read_heredoc_line loop]
     L -->|delimiter| F[cmd->heredoc_fd]
     L -->|SIGINT| X[FAILURE → last_exit 130 in init.c]
-    L -->|EOF| W[heredoc_warning then continue]
+    L -->|EOF| W[print_heredoc_eof_warning → continue]
     F --> EX[execute: dup2 heredoc_fd → stdin]
 ```
 
 ### 6.3 Heredoc + Signals
 
-**Implementation:** `parser/heredoc.c` — static `read_heredoc_line()` uses `readline("> ")` on a TTY, else the same byte-by-byte pattern as `main.c` `read_line_stdin`. Loop checks `g_signum == SIGINT` after each line → close pipe ends, return `FAILURE` (`process_input` sets `last_exit = EXIT_SIGINT`). EOF without delimiter → `print_heredoc_eof_warning()` (see `heredoc_warning.c`).
+**Implementation:** `parser/heredoc.c` — loop calls **`heredoc_read_line()`** in **`heredoc_input.c`**: TTY → **`readline("> ")`**, else **`ft_read_stdin_line(..., 1)`** (OOM may set **`shell->oom`**). After each line, **`g_signum == SIGINT`** → close pipe ends, return **`FAILURE`** (`process_input` sets **`last_exit = EXIT_SIGINT`**). EOF without delimiter → **`print_heredoc_eof_warning()`** (same file); body lines go through **`write_heredoc_line()`** when expanding.
 
 ### 6.4 Heredoc Expansion Rules
 
@@ -755,7 +762,7 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/exe.c` (`run_commands`, static `run_empty` / `run_bi`), `executor/exe_redir.c` (`apply_redirs`), `executor/exe_external.c` (`run_external`, `resolve_cmd_path`), `executor/exe_pipeline.c` + `executor/exe_pipe_step.c` (`run_pipeline`, `pipe_step`, barrier-ready child setup), `executor/exe_child.c` (`run_in_child`, `pipeline_all_nf`), `executor/exe_not_found.c` (`put_cmd_not_found`).
+**Implementation:** `executor/exe.c` (`run_commands`, static `run_empty` / `run_bi`), `executor/exe_redir.c` (`apply_redirs`), `executor/exe_external.c` (`run_external`, `resolve_cmd_path`), `executor/exe_pipeline_nf.c` (`pipeline_all_nf`), `executor/exe_pipeline.c` + `executor/exe_pipe_step.c` (`run_pipeline`, `pipe_step`; **`sync_fd` inactive**), `executor/exe_child.c` (`run_in_child`), `executor/exe_not_found.c` (`put_cmd_not_found`).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -898,7 +905,7 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 
 **Supporting files:**
 - **`exe_not_found.c`**: **`put_cmd_not_found`** — not-found line to stderr (`$'…'` when name has control bytes).
-- **`exe_child.c`**: **`pipeline_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent and caller returns **`EXIT_CMD_NOT_FOUND`** without forking children for that path.
+- **`exe_pipeline_nf.c`**: **`pipeline_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent; **`run_pipeline`** returns **`EXIT_CMD_NOT_FOUND`** without forking that pipeline.
 
 ### 7.7 Path Resolution (actual: `exe_external.c`)
 
@@ -1212,7 +1219,7 @@ Reflects the **built** codebase; phase1 + hardening tests pass.
 ```
 Phase 1: Foundation
 ├── [x] Shell struct and initialization (core/init.c, structs.h)
-├── [x] Main loop with readline (TTY) / read_line_stdin (non-TTY) (src/main.c)
+├── [x] Main loop with readline (TTY) / ft_read_stdin_line (non-TTY) (`shell_repl.c`, `read_stdin_line.c`)
 ├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
@@ -1244,10 +1251,10 @@ Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)
 ├── [x] Memory cleanup (free/free_shell.c, free/free_runtime.c, reset_shell)
 ├── [x] Edge case handling (hardening tests pass)
-├── [x] Executor split: exe_child, exe_not_found, exe_pipe_step, pipeline_all_nf (in exe_child)
+├── [x] Executor split: exe_child, exe_not_found, exe_pipe_step, exe_pipeline_nf (`pipeline_all_nf`)
 ├── [x] Exit utils extracted: parse_exit_value in exit_utils.c
-├── [x] Pipeline barrier for stderr ordering (barrier_write_fd in t_shell)
-└── [ ] Norminette / 42 compliance (project-specific)
+├── [x] `barrier_write_fd` reserved on `t_shell`; pipeline **`sync_fd`** inactive; stderr ordering for all-not-found via **`pipeline_all_nf`**
+└── [x] Norminette / 42 compliance (`norminette` on `includes`, `libft`, `src` in Linux)
 ```
 
 ---
@@ -1258,5 +1265,5 @@ Phase 6: Polish & Refactor
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`OK`/`ERR`** (**`SUCCESS`/`FAILURE`**), **`EXIT_SYNTAX_ERROR`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, lexer/parser sentinels. |
+| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`OK`/`ERR`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, lexer/parser sentinels. Long names (**`EXIT_SYNTAX_ERROR`**, etc.) remain as aliases where defined. |
 | **README.md** | Project overview, build, usage, how to run tests. |

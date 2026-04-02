@@ -20,7 +20,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
-**Exit-status macros (code):** **`includes/defines.h`** names bash/POSIX meanings: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128+signal number, use with **`WTERMSIG`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`OOM`** from **`read_input()`** / **`read_line_stdin`** is an internal status sentinel, not a shell exit code.
+**Exit-status macros (code):** **`includes/defines.h`** — bash/POSIX-style exits: **`OK`** / **`ERR`** (**`SUCCESS`** / **`FAILURE`**, 0/1), **`EXIT_SYNTAX_ERROR`** / **`XSYN`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`**, **`EXIT_SIGINT`** (usually 130). **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or lexer/parser allocations), not a shell exit code.
 
 ---
 
@@ -29,7 +29,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 | What you need | Where in the architecture doc |
 |---------------|-------------------------------|
 | Tester layout, script map (`cmds/mand/`) | §0.1, §0.2 |
-| **readline** vs **`read_line_stdin`**, empty-line gate (**`input[0]`**), non-TTY syntax **break**, **`main` return `last_exit`** | §2 |
+| **readline** vs **`ft_read_stdin_line`**, empty-line gate (**`input[0]`**), non-TTY syntax **break**, **`main` return `last_exit`** | §2 |
 | **`g_signum`**, **`check_signal_received`**, **`rl_event_hook`**, SIGPIPE install | §1 |
 | Tokenizer loop, operators, heredoc delimiter mode | §3 (e.g. §3.2.1) |
 | Expansion vs heredoc body, **`~`** | §4 |
@@ -45,7 +45,7 @@ For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DA
 - Reads test **blocks** from scripts under `cmds/mand/` (LeaYeh splits builtins into `1_builtins_echo.sh`, `1_builtins_cd.sh`, …; plus `8_syntax_errors.sh`, `1_redirs.sh`, etc.). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
 - For each block: sends the same input to **minishell** and to **bash** (with `enable -n .` prepended so bash runs the test as the last command).
 - **Pass** requires: stdout identical (`diff -q`), normalized stderr identical (`diff -q`), and exit code identical.
-- **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`read_line_stdin()`** in **`main.c`** (byte **`read`**, not readline) for non-TTY stdin — one logical line per block (no trailing newline in the buffer; EOF after text returns a final partial line).
+- **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`ft_read_stdin_line()`** via **`shell_repl.c`** (static **`read_line_stdin`** wrapper; byte **`read`**, not readline) for non-TTY stdin — one logical line per block (no trailing newline in the buffer; EOF after text returns a final partial line).
 - **Per-line gate:** an **empty** line (**`input[0] == '\0'`**) runs **`reset_shell`** only—no tokenize/parse/execute for that iteration (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §2**).
 - After a **syntax error** (**`last_exit == EXIT_SYNTAX_ERROR`**), **non-TTY** mode may **exit the shell** on the **next** line even if that line is empty (**`reset_shell`** does not clear **`last_exit`**—same §2).
 - The tester runs minishell first, then bash, in the same temporary test directory for each block. Blocks with filesystem side effects can expose order-sensitive differences.
@@ -205,7 +205,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 **Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
 barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
 `sync_fd[1] = -1` in `run_pipeline`). The all-not-found fast path
-(`pipeline_all_nf` in `exe_child.c`) handles the ordering problem for that case
+(`pipeline_all_nf` in `exe_pipeline_nf.c`) handles the ordering problem for that case
 by printing errors in the parent before forking — no barrier needed.
 Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 

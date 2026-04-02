@@ -37,7 +37,7 @@ Produces the **`minishell`** binary. Optional debug build (e.g. for Valgrind):
 make debug
 ```
 
-The Makefile builds **libft** first, then links **minishell**. Targets include at least **`all`**, **`clean`**, **`fclean`**, **`re`**, and **`$(NAME)`**, per 42 common instructions.
+The Makefile builds **libft** first, then links **minishell**. The vendored **`libft/`** does **not** ship **`get_next_line`** (line input uses **`read(2)`**, **readline**, and **`ft_read_stdin_line`**). Targets include at least **`all`**, **`clean`**, **`fclean`**, **`re`**, and **`$(NAME)`**, per 42 common instructions.
 
 ### Execution
 
