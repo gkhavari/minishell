@@ -35,6 +35,7 @@ static int	append_pipe_command(t_shell *shell, t_command **cmd,
 	{
 		free(nc);
 		free_cmds(cmds_root);
+		shell->last_exit = FAILURE;
 		return (OOM);
 	}
 	ft_lstadd_back(cmds_root, node);

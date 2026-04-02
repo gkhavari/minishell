@@ -45,13 +45,13 @@ static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 	(void)shell;
 	new = malloc(sizeof(t_arg));
 	if (!new)
-		return (FAILURE);
+		return (OOM);
 	new->value = ft_strdup(word);
 	if (!new->value)
-		return (free(new), FAILURE);
+		return (free(new), OOM);
 	node = ft_lstnew(new);
 	if (!node)
-		return (free(new->value), free(new), FAILURE);
+		return (free(new->value), free(new), OOM);
 	ft_lstadd_back(&cmd->args, node);
 	return (SUCCESS);
 }
@@ -71,7 +71,7 @@ int	add_token_to_command(t_shell *shell, t_command *cmd, t_list *tok_node)
 		if (token->value
 			&& ft_strcmp(token->value, S_EMPTY) == 0)
 			return (PR_1);
-		if (add_word_to_cmd(shell, cmd, token->value) == FAILURE)
+		if (add_word_to_cmd(shell, cmd, token->value) == OOM)
 			return (OOM);
 		return (PR_1);
 	}

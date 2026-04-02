@@ -20,17 +20,17 @@ static int	append_redir(t_command *cmd, char *file, int fd, int append)
 
 	r = malloc(sizeof(t_redir));
 	if (!r)
-		return (FAILURE);
+		return (OOM);
 	r->file = ft_strdup(file);
 	if (!r->file)
-		return (free(r), FAILURE);
+		return (free(r), OOM);
 	r->fd = fd;
 	r->append = append;
 	if (fd == STDIN_FILENO)
 		cmd->stdin_last = STDIN_LAST_FILE;
 	node = ft_lstnew(r);
 	if (!node)
-		return (free(r->file), free(r), FAILURE);
+		return (free(r->file), free(r), OOM);
 	ft_lstadd_back(&cmd->redirs, node);
 	return (SUCCESS);
 }
@@ -38,7 +38,7 @@ static int	append_redir(t_command *cmd, char *file, int fd, int append)
 /** Call `append_redir`; returns PR_2 or OOM when `append_redir` fails. */
 static int	redir_pair(t_command *cmd, char *file, int fd, int append)
 {
-	if (append_redir(cmd, file, fd, append) == FAILURE)
+	if (append_redir(cmd, file, fd, append) == OOM)
 		return (OOM);
 	return (PR_2);
 }

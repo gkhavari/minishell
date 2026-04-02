@@ -19,7 +19,10 @@
 void	process_input(t_shell *shell)
 {
 	if (tokenize_input(shell) == OOM)
+	{
+		shell->last_exit = FAILURE;
 		return ;
+	}
 	parse_input(shell);
 	if (shell->oom)
 		return ;

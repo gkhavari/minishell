@@ -12,20 +12,23 @@
 
 #include "minishell.h"
 
-/** Resolve cd operand: HOME, OLDPWD (-), or args[1]; sets *print for '-'. */
-static char	*get_cd_target(char **args, t_shell *shell, int *print)
+/**
+ * Resolve cd operand at args[arg_i]: HOME if missing/empty, OLDPWD for `-`,
+ * else path. `arg_i` is 1 normally, 2 when `builtin_cd` consumed `args[1]` as `--`.
+ */
+static char	*get_cd_target(char **args, t_shell *shell, int *print, int arg_i)
 {
 	char	*target;
 
 	*print = 0;
-	if (!args[1] || args[1][0] == '\0' || ft_strcmp(args[1], "--") == 0)
+	if (!args[arg_i] || args[arg_i][0] == '\0')
 	{
 		target = get_env_value(shell->envp, "HOME");
 		if (!target)
 			return (ft_dprintf(STDERR_FILENO, "cd: HOME not set\n"), NULL);
 		return (target);
 	}
-	if (ft_strcmp(args[1], "-") == 0)
+	if (ft_strcmp(args[arg_i], "-") == 0)
 	{
 		target = get_env_value(shell->envp, "OLDPWD");
 		if (!target)
@@ -33,7 +36,7 @@ static char	*get_cd_target(char **args, t_shell *shell, int *print)
 		*print = 1;
 		return (target);
 	}
-	return (args[1]);
+	return (args[arg_i]);
 }
 
 /** Replace or append KEY=value in envp. */
@@ -94,17 +97,21 @@ static int	do_chdir(char *target, char *old_pwd)
 	return (SUCCESS);
 }
 
-/** chdir with HOME, OLDPWD (-), or path; updates PWD/OLDPWD and shell->cwd. */
+/** chdir with HOME, OLDPWD (-), optional `--`, or path; updates cwd env. */
 int	builtin_cd(char **args, t_shell *shell)
 {
 	char	*target;
 	char	*old_pwd;
 	int		print;
+	int		arg_i;
 
-	if (args[1] && args[2])
+	arg_i = 1;
+	if (args[1] && ft_strcmp(args[1], "--") == 0)
+		arg_i = 2;
+	if (args[arg_i] && args[arg_i + 1])
 		return (ft_dprintf(STDERR_FILENO,
 				"minishell: cd: too many arguments\n"), FAILURE);
-	target = get_cd_target(args, shell, &print);
+	target = get_cd_target(args, shell, &print, arg_i);
 	if (!target)
 		return (FAILURE);
 	old_pwd = getcwd(NULL, 0);
