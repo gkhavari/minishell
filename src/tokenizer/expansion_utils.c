@@ -34,7 +34,7 @@ static int	exp_redir_tok(t_shell *shell, char *word)
 }
 
 /**
- * Push one WORD token whose value is `S_AMBIG` plus the input slice [start, end).
+ * Push one WORD token: value is `S_AMBIG` plus the input slice [start, end).
  */
 static int	exp_ambg_push(t_shell *shell, size_t start, size_t end)
 {

@@ -40,6 +40,24 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md).
 
+### 0.2 Mandatory builtins vs [minishellv10.md](minishellv10.md) (Chapter IV)
+
+Subject **v10.0** requires these builtins only (no `export`/`unset` flags like **`-p`** beyond what bash-style scripts need; **`echo`** only **`-n`** as a special case):
+
+| Subject builtin | Implementation | Notes / validation |
+|-----------------|----------------|-------------------|
+| **`echo`** with **`-n`** | `builtins/echo.c` | Multiple **`-n`** / **`-nn`** like bash; tested **`1_builtins_echo.sh`**. |
+| **`cd`** with a path | `builtins/cd.c` | No-arg → **`$HOME`**; **`-`** → **`$OLDPWD`** (bash-like); optional leading **`--`** then operand (**`cd -- /tmp`**) — POSIX; two separate operands (e.g. **`cd /a /b`**) → **too many arguments** (bash). |
+| **`pwd`** with no options | `builtins/pwd.c` | Extra words are ignored (bash-like for this tester); prints **`shell->cwd`**. |
+| **`export`** with no options | `builtins/export.c`, `export_utils.c`, `export_print.c` | No **`export -x`**; bare **`export`**, **`KEY=value`**, **`KEY+=value`**; invalid id → stderr + exit **1**. **`1_builtins_export.sh`**. |
+| **`unset`** with no options | `builtins/unset.c` | Leading **`-`** on a name → invalid option / syntax-style error; **`1_builtins_unset.sh`**. |
+| **`env`** with no args | `builtins/env.c` + **`argv_build.c`** | **`env` alone** → builtin lists env. **Any extra token** → **`is_builtin = 0`** → run **external** **`env`** from **`PATH`** (subject: not the zero-arg builtin case). **`1_builtins_env.sh`**. |
+| **`exit`** with no options | `builtins/exit.c`, `exit_utils.c` | Numeric arg, too many args, non-numeric; **delta:** non-numeric exits with **`XSYN` (2)**, not bash **255** — see §4. **`1_builtins_exit.sh`**. |
+
+**Dispatcher:** `builtins/builtin_dispatcher.c` (**`run_builtin`**, **`get_builtin_type`**).
+
+---
+
 ### 0.1 Design rationale (defense quick view)
 
 Why behavior matches this shape:
@@ -106,11 +124,13 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `cd` (no args) | — | none | 0; changes to `$HOME` |
 | `cd -` | New cwd path (after chdir to OLDPWD) | none | 0 |
 | `cd $PWD` | — | none | 0 |
-| `cd $PWD hi`, `cd /tmp /var` | — | none | 0; **only first argument** used as target, rest ignored (bash behavior) |
+| `cd /tmp /var`, `cd $PWD hi` (two path operands) | — | `cd: too many arguments` (or equivalent) | **1** (bash; this repo **FAILURE**) |
+| `cd -- /tmp` | — | none | **0**; operand is **`/tmp`** (leading **`--`** ends option scan, POSIX) |
+| `cd --` (no further operand) | — | none | **0**; same as **`cd`** → **`$HOME`** when **`HOME`** set |
 | `cd 123123` (non-existent) | — | message e.g. "No such file or directory" | 1 |
 | `cd '/////'` (normalized by bash to `/`) | — | bash: none; minishell may differ (path normalization) | bash 0 |
 
-**Test-design note:** Cover no-arg (HOME), `-` (OLDPWD), nonexistent path (exit 1), and **extra arguments** (use first only, exit 0). See `1_builtins_pwd.sh`, `1_builtins_cd.sh`.
+**Test-design note:** Cover no-arg (HOME), `-` (OLDPWD), **`cd -- <path>`**, two operands (error), nonexistent path (exit 1). See `1_builtins_pwd.sh`, `1_builtins_cd.sh`.
 
 ---
 

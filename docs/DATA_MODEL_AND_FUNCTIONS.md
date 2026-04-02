@@ -333,7 +333,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **builtins/builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (`B_ECHO`, etc.) or `B_NONE`; `argv_build.c` uses `!= B_NONE` to set `cmd->is_builtin`. |
 | **builtins/builtin_dispatcher.c** | `run_builtin(argv, shell)` | Looks up `argv[0]` and calls the matching `builtin_*` via the static registry inside `builtin_registry()`. |
 | **builtins/echo.c** | `builtin_echo(args, shell)` | Prints args to stdout with spaces; handles -n (no newline). Returns 0. |
-| **builtins/cd.c** | `builtin_cd(args, shell)` | Changes directory (arg or HOME); updates PWD/OLDPWD in envp; returns 0/1. |
+| **builtins/cd.c** | `builtin_cd(args, shell)` | **`cd`**, **`cd --`**, **`cd -- /path`**, **`-`**, **`$HOME`**; two operands → too many args; updates PWD/OLDPWD and **`shell->cwd`**. |
 | **builtins/pwd.c** | `builtin_pwd(args, shell)` | Prints current working directory. Returns 0. |
 | **builtins/env.c** | `builtin_env(args, shell)` | Prints envp (one KEY=value per line). Returns 0. |
 | **builtins/export.c** | `builtin_export(args, shell)` | No args: print declare -x list; with args: add/update env; invalid name → error, return 1. |
