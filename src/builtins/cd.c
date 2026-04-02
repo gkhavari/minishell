@@ -13,8 +13,8 @@
 #include "minishell.h"
 
 /**
- * Resolve cd operand at args[arg_i]: HOME if missing/empty, OLDPWD for `-`,
- * else path. `arg_i` is 1 normally, 2 when `builtin_cd` consumed `args[1]` as `--`.
+ * Operand at args[arg_i]: HOME if missing/empty, OLDPWD for `-`, else path.
+ * `arg_i` is 1, or 2 after `builtin_cd` skips `args[1]` when it is `--`.
  */
 static char	*get_cd_target(char **args, t_shell *shell, int *print, int arg_i)
 {
