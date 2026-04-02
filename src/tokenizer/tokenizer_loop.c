@@ -13,7 +13,7 @@
 #include "minishell.h"
 
 /**
- * Run fn(shell,i,word); OOM propagates; handled → TOK_Y else TOK_N.
+ * Call `fn(shell, i, word)`; propagate OOM; if handled return TOK_Y else TOK_N.
  */
 static int	tok_call_handler(t_shell *shell, size_t *i, char **word,
 		int (*fn)(t_shell *, size_t *, char **))
@@ -29,7 +29,8 @@ static int	tok_call_handler(t_shell *shell, size_t *i, char **word,
 }
 
 /**
- * In normal (non-heredoc) mode: try exp_dollar then exp_tilde at *i.
+ * When not tokenizing a heredoc delimiter (`!shell->hd_mod`): try `exp_dollar`
+ * then `exp_tilde` at *i.
  */
 static int	tok_try_expand_unquoted(t_shell *shell, size_t *i, char **word)
 {
@@ -107,7 +108,8 @@ static int	tok_run_secondary(t_shell *shell, size_t *i, t_state *state,
 }
 
 /**
- * Main per-char loop over shell->input until NUL: quotes, expand, operators.
+ * Main per-character loop over `shell->input` until NUL: quotes, expansion,
+ * operators.
  */
 int	tokenizer_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 {

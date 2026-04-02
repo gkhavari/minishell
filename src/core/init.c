@@ -13,8 +13,8 @@
 #include "minishell.h"
 
 /**
- * Tokenize, parse, heredocs, run_commands; updates last_exit / oom.
- * tokenizer OOM returns early; later OOM is shell->oom only.
+ * Tokenize, parse, read heredocs, then `run_commands`; updates last_exit and
+ * oom flags. Lexer OOM returns immediately; parse/heredoc OOM uses `shell->oom`.
  */
 void	process_input(t_shell *shell)
 {

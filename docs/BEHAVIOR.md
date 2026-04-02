@@ -224,8 +224,8 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
 barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
-`sync_fd[1] = -1` in `run_pipeline`). The all-not-found fast path
-(`pipeline_all_nf` in `exe_pipeline_nf.c`) handles the ordering problem for that case
+`sync_fd[1] = -1` in `run_pip`). The all-not-found fast path
+(`pip_all_nf` in `exe_pip_nf.c`) handles the ordering problem for that case
 by printing errors in the parent before forking — no barrier needed.
 Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 

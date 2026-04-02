@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** dup stdin and stdout into in and out for builtin redir restore. */
+/** Duplicate stdin and stdout into `in` and `out` for later restore. */
 static int	backup_stdio_fds(int *in, int *out)
 {
 	*in = dup(STDIN_FILENO);
@@ -28,7 +28,7 @@ static int	backup_stdio_fds(int *in, int *out)
 	return (SUCCESS);
 }
 
-/** dup2 back from backups and close backup fds. */
+/** Restore stdin and stdout from backup fds, then close backups. */
 static void	restore_stdio_fds(int stdin_backup, int stdout_backup)
 {
 	dup2(stdin_backup, STDIN_FILENO);
@@ -37,7 +37,7 @@ static void	restore_stdio_fds(int stdin_backup, int stdout_backup)
 	close(stdout_backup);
 }
 
-/** No argv[0]: optional redirs/heredoc only, then restore stdio. */
+/** No `argv[0]`: optional redirects and heredoc only, then restore stdio. */
 static int	run_empty_command(t_command *cmd, int *in, int *out)
 {
 	int	need_restore;
@@ -55,7 +55,10 @@ static int	run_empty_command(t_command *cmd, int *in, int *out)
 	return (SUCCESS);
 }
 
-/** Builtin with redir: backup/apply/restore or delegate to run_external. */
+/**
+ * Builtin with redirects: backup stdio, apply, restore; or delegate to
+ * `run_external` when builtins must run in a subshell.
+ */
 static int	run_single_builtin(t_command *cmd, t_shell *shell,
 		int *in, int *out)
 {
@@ -80,8 +83,9 @@ static int	run_single_builtin(t_command *cmd, t_shell *shell,
 }
 
 /**
- * Run parsed commands from shell->cmds: empty argv, builtin or external,
- * or pipeline. Last exit status; SUCCESS if nothing to run.
+ * Run parsed commands from `shell->cmds`: empty command, builtin, external,
+ * or pipeline via `run_pip`. Updates last exit status; SUCCESS if nothing to
+ * run.
  */
 int	run_commands(t_shell *shell)
 {
@@ -101,5 +105,5 @@ int	run_commands(t_shell *shell)
 					&stdin_backup, &stdout_backup));
 		return (run_external(cmd, shell));
 	}
-	return (run_pipeline(shell->cmds, shell));
+	return (run_pip(shell->cmds, shell));
 }

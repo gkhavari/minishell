@@ -32,12 +32,13 @@ SRCS		+=	$(SRC_DIR)/core/init.c
 SRCS		+=	$(SRC_DIR)/core/init_utils.c
 SRCS		+=	$(SRC_DIR)/core/shell_repl.c
 
-# utils
-SRCS		+=	$(SRC_DIR)/utils/ft_strcat.c \
-				$(SRC_DIR)/utils/ft_arrdup.c \
-				$(SRC_DIR)/utils/ft_realloc.c \
-				$(SRC_DIR)/utils/msh_string.c \
-				$(SRC_DIR)/utils/read_stdin_line.c
+# utils (shared across modules)
+SRCS		+=	$(SRC_DIR)/utils/msh_string_append_char.c \
+				$(SRC_DIR)/utils/msh_word_append_expanded.c \
+				$(SRC_DIR)/utils/msh_strarray_dup.c \
+				$(SRC_DIR)/utils/msh_char_buffer_realloc.c \
+				$(SRC_DIR)/utils/msh_string_expand_scan.c \
+				$(SRC_DIR)/utils/msh_stdin_read_line.c
 
 # free
 SRCS		+=	$(SRC_DIR)/free/free_utils.c \
@@ -77,8 +78,8 @@ SRCS        += $(SRC_DIR)/executor/exe.c \
 			   $(SRC_DIR)/executor/exe_external.c \
 			   $(SRC_DIR)/executor/exe_not_found.c \
 			   $(SRC_DIR)/executor/exe_child.c \
-			   $(SRC_DIR)/executor/exe_pipeline_nf.c \
-			   $(SRC_DIR)/executor/exe_pipeline.c \
+			   $(SRC_DIR)/executor/exe_pip_nf.c \
+			   $(SRC_DIR)/executor/exe_pip.c \
 			   $(SRC_DIR)/executor/exe_pipe_step.c \
 
 # builtins

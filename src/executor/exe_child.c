@@ -12,14 +12,14 @@
 
 #include "minishell.h"
 
-/** Child: ignore SIGPIPE, exit with builtin return status. */
+/** Child process: ignore SIGPIPE, `exit_norl` with builtin return status. */
 static void	run_builtin_in_child(t_command *cmd, t_shell *shell)
 {
 	signal(SIGPIPE, SIG_IGN);
 	exit_norl(shell, run_builtin(cmd->argv, shell));
 }
 
-/** Print argv0+suffix to stderr, exit_norl(code). */
+/** Print argv0 plus suffix to stderr, then `exit_norl(code)`. */
 static void	child_abort_msg(t_shell *shell, char *argv0, int code,
 		const char *suffix)
 {
@@ -27,7 +27,7 @@ static void	child_abort_msg(t_shell *shell, char *argv0, int code,
 	exit_norl(shell, code);
 }
 
-/** not found message then exit_norl(XNF). */
+/** Print command-not-found, then `exit_norl` with XNF. */
 static void	child_exit_not_found(t_shell *shell, char *argv0)
 {
 	put_cmd_not_found(argv0);
@@ -35,8 +35,8 @@ static void	child_exit_not_found(t_shell *shell, char *argv0)
 }
 
 /**
- * Child after fork: run a builtin in the child, execve an external, or print
- * an error and exit_norl. Does not return to the caller.
+ * Child after fork: run builtin in child, `execve` external, or print error
+ * and `exit_norl`. Does not return.
  */
 void	run_in_child(t_command *cmd, t_shell *shell)
 {

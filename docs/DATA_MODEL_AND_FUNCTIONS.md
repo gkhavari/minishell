@@ -131,7 +131,7 @@ typedef struct s_shell {
 | **user, cwd** | Prompt construction; updated by `cd`. |
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
 | **had_path** | Set in **`init_runtime_fields()`**: whether **`PATH`** was present in the environment **after** dup (used by **`resolve_cmd_path()`** and edge cases when **`PATH`** is unset later). |
-| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pipeline()`** sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`** (inactive). The all-not-found fast path (**`pipeline_all_nf()`** in **`exe_pipeline_nf.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
+| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pip()`** sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`** (inactive). The all-not-found fast path (**`pip_all_nf()`** in **`exe_pip_nf.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **cmds** | Output of parser; input to heredoc + executor; freed after execution or on error. |
 | **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via **`shell_repl.c`** (non-TTY); freed in tokenizer or in `reset_shell()`. |
@@ -216,7 +216,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **core/shell_repl.c** | *(static)* `build_prompt(shell)` | Prompt string for TTY `readline`; caller frees. |
 | **core/shell_repl.c** | *(static)* `read_line_stdin(shell, out)` | Wrapper: `ft_read_stdin_line(shell, out, 0)`. |
 | **core/shell_repl.c** | *(static)* `repl_after_read(shell)` | If `input[0]` → `process_input`; syntax_err when `!shell->cmds && last_exit == XSYN`; `reset_shell`; returns 1 to break on non-TTY + syntax_err. |
-| **utils/read_stdin_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; **`RL_LN`** / **`RL_EOF`** / **`OOM`**; optional `shell->oom` on append failure. |
+| **utils/msh_stdin_read_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; **`RL_LN`** / **`RL_EOF`** / **`OOM`**; optional `shell->oom` on append failure. |
 | **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `EXIT_SIGINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
 | **core/init.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
 | **core/init_utils.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc/OOM path `ft_dprintf` + `FAILURE` via `clean_exit`. |
@@ -229,11 +229,10 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **utils/ft_strcat.c** | `ft_strcat(dest, src)` | Appends `src` to `dest` in place. |
-| **utils/ft_realloc.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
-| **utils/ft_arrdup.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
-| **utils/msh_string.c** | `msh_is_blank(c, ifs_mode)` | `ifs_mode` 0: space+tab (tokenizer); 1: space+tab+newline (default IFS; not full `ft_isspace`). |
-| **utils/msh_string.c** | `msh_env_var_body_span`, `msh_is_dollar_var_leader`, … | Shared `$NAME` tail and heredoc `$` leader checks (uses `ft_isalnum` / `ft_isalpha`). |
+| **utils/msh_char_buffer_realloc.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
+| **utils/msh_strarray_dup.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
+| **utils/msh_string_expand_scan.c** | `msh_is_blank(c, ifs_mode)` | `ifs_mode` 0: space+tab (tokenizer); 1: space+tab+newline (default IFS; not full `ft_isspace`). |
+| **utils/msh_string_expand_scan.c** | `msh_env_var_body_span`, `msh_is_dollar_var_leader`, … | Shared `$NAME` tail and heredoc `$` leader checks (uses `ft_isalnum` / `ft_isalpha`). |
 | **free/free_exit.c** | `exit_norl(shell, status)` | `free_all`, close std fds, `exit` — init OOM before any `readline()` (no `rl_clear_history`). |
 | **free/free_exit.c** | `clean_exit(shell, status)` | `free_all`, `rl_clear_history`, close std fds, `exit` — child / post-readline fatal paths. |
 
@@ -248,7 +247,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/tokenizer_utils.c** | `flush_word(shell, word, tokens)` | If *word non-empty, creates a WORD token and `ft_lstadd_back` on `*tokens`; frees *word. |
 | **tokenizer/tokenizer_utils.c** | `add_token(head, new_tok)` | `ft_lstnew` + `ft_lstadd_back`; on failure frees `new_tok`. |
 | **tokenizer/tokenizer_utils.c** | `new_token(shell, type, value)` | Allocates `t_token` with `ft_strdup(value)`. |
-| **tokenizer/tokenizer_utils.c** | `append_char(shell, dst, c)` | Appends one char to *dst via `ft_realloc`. |
+| **utils/msh_string_append_char.c** | `append_char(shell, dst, c)` | Appends one char to *dst via `ft_realloc`. |
 | **tokenizer/tokenizer_utils.c** | `process_normal_char(shell, c, i, word)` | Appends char `c` to word and advances `*i`. |
 | **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state, &word)` | At end of input: add history in normal state; on unclosed quote set syntax error and discard partial word. |
 | **tokenizer/tokenizer_handlers.c** | `process_quote(shell, c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
@@ -262,7 +261,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/expansion.c** | `exp_var(shell, i)` | Expands one variable at *i ($VAR or $?); advances *i; returns new string (caller frees). |
 | **tokenizer/expansion_word.c** | `exp_dollar(shell, i, word)` | If input at *i is `$` and expandable, expands and appends to word. |
 | **tokenizer/expansion_word.c** | `exp_tilde(shell, i, word)` | Expands `~` to HOME and appends to word. |
-| **tokenizer/expansion_utils.c** | `exp_q_cat(word, exp)` | Appends string `exp` to *word (quoted context). |
+| **utils/msh_word_append_expanded.c** | `exp_q_cat(word, exp)` | Appends expanded segment `exp` to *word (quotes + heredoc growth). |
 | **tokenizer/expansion_word.c** | `exp_unq(shell, word, exp, tokens)` | Appends expansion result; may split into multiple WORDs (blanks). |
 | **tokenizer/expansion_utils.c** | `exp_empty(shell, start, end, word)` | Handles empty expansion in unquoted context (inserts `EMPTY_EXPAND` or adjusts for ambiguous redirect). |
 | *(continuation support removed — unclosed quotes now emit a syntax error immediately)* |
@@ -302,7 +301,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **executor/exe.c** | `run_commands(shell)` | No commands → success; single cmd → `run_empty_command` / `run_single_builtin` / `run_external`; else `run_pipeline`. Returns last status. |
+| **executor/exe.c** | `run_commands(shell)` | No commands → success; single cmd → `run_empty_command` / `run_single_builtin` / `run_external`; else `run_pip`. Returns last status. |
 | **executor/exe.c** | *(static)* `run_empty_command` | Redirs/heredoc only: `backup_stdio_fds`, `apply_redirs`, `restore_stdio_fds`. |
 | **executor/exe.c** | *(static)* `run_single_builtin` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
 | **executor/exe.c** | *(static)* `backup_stdio_fds` / `restore_stdio_fds` | Dup stdin/stdout for builtin redir in parent. |
@@ -314,14 +313,14 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/exe_child.c** | *(static)* `run_builtin_in_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
 | **executor/exe_child.c** | *(static)* `child_exit_not_found` / `child_abort_msg` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
 | **executor/exe_child.c** | `run_in_child(cmd, shell)` | Builtin branch, empty argv, `resolve_cmd_path`, `execve` or errors. |
-| **executor/exe_pipeline_nf.c** | *(static)* `is_simple_not_found_command` | Predicate: simple missing-PATH external, no redir/heredoc, no `/` in argv0. |
-| **executor/exe_pipeline_nf.c** | `pipeline_all_nf(cmds, shell)` | If every stage matches **`is_simple_not_found_command`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pipeline`** returns **`EXIT_CMD_NOT_FOUND`**. |
+| **executor/exe_pip_nf.c** | *(static)* `is_simple_not_found_command` | Predicate: simple missing-PATH external, no redir/heredoc, no `/` in argv0. |
+| **executor/exe_pip_nf.c** | `pip_all_nf(cmds, shell)` | If every stage matches **`is_simple_not_found_command`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pip`** returns **`EXIT_CMD_NOT_FOUND`**. |
 | **executor/exe_not_found.c** | `put_cmd_not_found` (+ static `format_not_found_name`, `needs_dollar_quotes`, `append_escaped_char`, `fill_dollar_quoted_name`) | One stderr line for not-found (`$'…'` when name has control bytes). |
-| **executor/exe_pipeline.c** | *(static)* `wait_pipes` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`upd_wait_st`). |
-| **executor/exe_pipeline.c** | *(static)* `spawn_pipes` | Chains `pipe_step`, closes trailing `prev_fd`. |
-| **executor/exe_pipeline.c** | `run_pipeline(cmds, shell)` | `sync_fd` inactive (-1); `pipeline_all_nf` → **`EXIT_CMD_NOT_FOUND`**; ignore signals, loop, wait, restore interactive. |
-| **executor/exe_pipe_step.c** | *(static)* `setup_pipeline_child_fds` / `fork_pipeline_child` / `advance_prev_pipe_fd` | Pipe wiring between stages. |
-| **executor/exe_pipe_step.c** | `pipe_step(cmd, shell, prev_fd, sync_fd)` | One pipeline segment; used by `exe_pipeline.c`. |
+| **executor/exe_pip.c** | *(static)* `wait_pipes` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`upd_wait_st`). |
+| **executor/exe_pip.c** | *(static)* `spawn_pipes` | Chains `pipe_step`, closes trailing `prev_fd`. |
+| **executor/exe_pip.c** | `run_pip(cmds, shell)` | `sync_fd` inactive (-1); `pip_all_nf` → **`EXIT_CMD_NOT_FOUND`**; ignore signals, loop, wait, restore interactive. |
+| **executor/exe_pipe_step.c** | *(static)* `setup_pip_child_fds` / `fork_pip_child` / `advance_prev_pipe_fd` | Pipe wiring between stages. |
+| **executor/exe_pipe_step.c** | `pipe_step(cmd, shell, prev_fd, sync_fd)` | One pipeline segment; used by `exe_pip.c`. |
 
 ---
 
@@ -383,7 +382,7 @@ flowchart TB
     hd --> ex[run_commands]
     ex --> br{single vs pipeline}
     br --> emp[run_empty_command / run_single_builtin / run_external]
-    br --> pl[run_pipeline → pipe_step]
+    br --> pl[run_pip → pipe_step]
     emp --> ich[run_in_child / clean_exit in child]
     pl --> ich
     proc --> rs

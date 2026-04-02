@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_pipeline.c                                     :+:      :+:    :+:   */
+/*   exe_pip.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -12,7 +12,10 @@
 
 #include "minishell.h"
 
-/** waitpid result: update *last_st when pid matches last pipeline child. */
+/**
+ * `waitpid` helper: when `pid` matches `last_pid`, store exit or signal status
+ * in `*last_st` (pipeline last-segment rule).
+ */
 static int	upd_wait_st(pid_t pid, int status, pid_t last_pid, int *last_st)
 {
 	if (pid < 0)
@@ -33,7 +36,7 @@ static int	upd_wait_st(pid_t pid, int status, pid_t last_pid, int *last_st)
 	return (1);
 }
 
-/** waitpid(-1) until n children; return last segment's exit status. */
+/** `waitpid(-1)` until `n` children reap; return last segment exit status. */
 static int	wait_pipes(pid_t last_pid, int n)
 {
 	int		status;
@@ -55,7 +58,10 @@ static int	wait_pipes(pid_t last_pid, int n)
 	return (last_st);
 }
 
-/** Fork each pipe_step; return count or break on fork/pipe error. */
+/**
+ * Walk commands calling `pipe_step`; return count or stop on fork or pipe
+ * error.
+ */
 static int	spawn_pipes(t_list *cmd_node, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
 {
@@ -81,10 +87,10 @@ static int	spawn_pipes(t_list *cmd_node, t_shell *shell,
 }
 
 /**
- * Execute cmds as a pipe chain: optional pipeline_all_nf short-circuit, then
+ * Run a pipeline: optional all-not-found fast path (`pip_all_nf`), then
  * fork each segment, wait for children, return the last segment's exit status.
  */
-int	run_pipeline(t_list *cmds, t_shell *shell)
+int	run_pip(t_list *cmds, t_shell *shell)
 {
 	pid_t	last_pid;
 	int		sync_fd[2];
@@ -94,7 +100,7 @@ int	run_pipeline(t_list *cmds, t_shell *shell)
 	sync_fd[0] = -1;
 	sync_fd[1] = -1;
 	shell->barrier_write_fd = -1;
-	if (pipeline_all_nf(cmds, shell))
+	if (pip_all_nf(cmds, shell))
 		return (XNF);
 	set_signals_ignore();
 	n = spawn_pipes(cmds, shell, &last_pid, sync_fd);

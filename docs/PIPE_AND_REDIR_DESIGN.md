@@ -100,7 +100,7 @@ So whichever of `<` and `<<` appears **last in the source** wins stdin, like bas
 
 Pipeline execution is in:
 
-- `src/executor/exe_pipeline.c` (`run_pipeline`,
+- `src/executor/exe_pip.c` (`run_pip`,
   `wait_pipes`)
 - `src/executor/exe_pipe_step.c` (`pipe_step`)
 
@@ -132,7 +132,7 @@ We **reap** children via `waitpid`:
 
 - **Single external**: `src/executor/exe_external.c` (`run_external`) forks once and `waitpid(pid, ...)` for that pid.
   - We also handle `EINTR` by retrying `waitpid` (theoretical correctness).
-- **Pipeline**: `src/executor/exe_pipeline.c`
+- **Pipeline**: `src/executor/exe_pip.c`
   (`wait_pipes`) loops until it has reaped **N** children.
   - It calls `waitpid(-1, ...)` and on `EINTR` it retries without counting progress.
 
@@ -230,14 +230,14 @@ Behavior is unchanged.
 - `rs_fd` -> `restore_stdio_fds` (`src/executor/exe.c`)
 - `run_empty` -> `run_empty_command` (`src/executor/exe.c`)
 - `run_bi` -> `run_single_builtin` (`src/executor/exe.c`)
-- `ch_fds` -> `setup_pipeline_child_fds` (`src/executor/exe_pipe_step.c`)
-- `fork_pl` -> `fork_pipeline_child` (`src/executor/exe_pipe_step.c`)
+- `ch_fds` -> `setup_pip_child_fds` (`src/executor/exe_pipe_step.c`)
+- `fork_pl` -> `fork_pip_child` (`src/executor/exe_pipe_step.c`)
 - `adv_prev` -> `advance_prev_pipe_fd` (`src/executor/exe_pipe_step.c`)
 - `wait_one` -> `upd_wait_st`
-  (`src/executor/exe_pipeline.c`)
+  (`src/executor/exe_pip.c`)
 - `wait_nlast` -> `wait_pipes`
-  (`src/executor/exe_pipeline.c`)
-- `pl_loop` -> `spawn_pipes` (`src/executor/exe_pipeline.c`)
+  (`src/executor/exe_pip.c`)
+- `pl_loop` -> `spawn_pipes` (`src/executor/exe_pip.c`)
 - `need_dq` -> `needs_dollar_quotes` (`src/executor/exe_not_found.c`)
 - `esc_c` -> `append_escaped_char` (`src/executor/exe_not_found.c`)
 - `fill_dq` -> `fill_dollar_quoted_name` (`src/executor/exe_not_found.c`)
@@ -246,7 +246,7 @@ Behavior is unchanged.
 - `rdr_out` -> `apply_output_redir` (`src/executor/exe_redir.c`)
 - `rdr_one` -> `apply_one_redir` (`src/executor/exe_redir.c`)
 - `is_nf_cmd` -> `is_simple_not_found_command`
-  (`src/executor/exe_pipeline_nf.c`)
+  (`src/executor/exe_pip_nf.c`)
 - `bi_child` -> `run_builtin_in_child` (`src/executor/exe_child.c`)
 - `ch_abort` -> `child_abort_msg` (`src/executor/exe_child.c`)
 - `ch_nf` -> `child_exit_not_found` (`src/executor/exe_child.c`)

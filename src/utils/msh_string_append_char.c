@@ -1,34 +1,36 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   utils.c                                            :+:      :+:    :+:   */
+/*   msh_string_append_char.c                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/11/25 22:47:25 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/01/16 16:28:17 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/04/02 00:00:00 by thanh-ng         #+#    #+#             */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
 /**
- * Append src to dest (NUL-terminated); dest must have room. Returns dest.
+ * Grow *dst with `ft_realloc` and append c.
+ * On failure frees *dst, sets NULL, returns OOM.
  */
-char	*ft_strcat(char *dest, const char *src)
+int	append_char(t_shell *shell, char **dst, char c)
 {
-	size_t	i;
-	size_t	j;
+	size_t	len;
+	char	*new;
 
-	i = 0;
-	while (dest[i])
-		i++;
-	j = 0;
-	while (src[j])
-	{
-		dest[i + j] = src[j];
-		j++;
-	}
-	dest[i + j] = '\0';
-	return (dest);
+	(void)shell;
+	if (!(*dst))
+		len = 0;
+	else
+		len = ft_strlen(*dst);
+	new = ft_realloc(*dst, len + 2);
+	if (!new)
+		return (free(*dst), (*dst = NULL), OOM);
+	*dst = new;
+	new[len] = c;
+	new[len + 1] = '\0';
+	return (SUCCESS);
 }

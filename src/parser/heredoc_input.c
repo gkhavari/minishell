@@ -12,6 +12,8 @@
 
 #include "minishell.h"
 
+char	*exp_hd_line(char *line, t_shell *shell);
+
 /**
  * Print bash-style warning when heredoc ends on EOF before delimiter.
  */
@@ -28,7 +30,8 @@ void	print_heredoc_eof_warning(int line_no, char *delim)
 }
 
 /**
- * Write one heredoc body line to pipe fd; if expand, use exp_hd_line first.
+ * Write one heredoc body line to pipe fd; if expand, build line with
+ * `exp_hd_line` first.
  */
 void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 {

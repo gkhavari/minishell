@@ -22,7 +22,7 @@ int	is_op_char(char c)
 	return (FALSE);
 }
 
-/** Operator at s → *type and byte length (0 if not an operator). */
+/** Parse operator at s: set *type, return byte length (0 if none). */
 static size_t	get_op_len_type(const char *s, t_tokentype *type)
 {
 	if (s[0] == '|')

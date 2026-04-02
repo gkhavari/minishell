@@ -13,30 +13,8 @@
 #include "minishell.h"
 
 /**
- * Grow *dst with ft_realloc and append c.
- * On failure frees *dst, sets NULL, returns OOM.
- */
-int	append_char(t_shell *shell, char **dst, char c)
-{
-	size_t	len;
-	char	*new;
-
-	(void)shell;
-	if (!(*dst))
-		len = 0;
-	else
-		len = ft_strlen(*dst);
-	new = ft_realloc(*dst, len + 2);
-	if (!new)
-		return (free(*dst), (*dst = NULL), OOM);
-	*dst = new;
-	new[len] = c;
-	new[len + 1] = '\0';
-	return (SUCCESS);
-}
-
-/**
- * If *word non-empty: emit WORD token, clear buffer and quote/heredoc flags.
+ * If *word non-empty: emit WORD token, clear buffer, word_quoted, and
+ * heredoc-delimiter mode (`hd_mod`).
  * Returns OOM if new_token or list append fails.
  */
 int	flush_word(t_shell *shell, char **word, t_list **tokens)

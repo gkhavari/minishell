@@ -8,9 +8,9 @@
 
 This repository implements the **mandatory** scope: prompt and **readline** history, **PATH** / relative / absolute execution, quotes (`'` and `"` with `$` still special inside `"`), redirections (`<`, `>`, `>>`, `<<`), **pipes**, environment variable expansion (`$VAR`, `$?`), signal handling (**Ctrl+C**, **Ctrl+D**, **Ctrl+\\** like bash in interactive mode), and builtins **`echo -n`**, **`cd`**, **`pwd`**, **`export`**, **`unset`**, **`env`**, **`exit`**. A single **global** stores only the last signal number (e.g. **`g_signum`**), per subject.
 
-The subject does **not** require `\`, `;`, **`&&` / `||`**, or wildcard `*` in the mandatory part; this project follows that scope. **Bonus** (logical operators with parentheses and `*` wildcards) is only evaluated if the mandatory part is perfect—see subject **Chapter VI**.
+The subject does **not** require `\`, `;`, **`&&` / `||`**, or wildcard `*` in the mandatory part; this project follows that scope. **Bonus** (logical operators with parentheses and `*` wildcards) is only evaluated if the mandatory part is perfect.
 
-For behavior details (exit codes, edge cases, tester alignment), see **[docs/BEHAVIOR.md](docs/BEHAVIOR.md)**. For architecture and data flow, see **[docs/MINISHELL_ARCHITECTURE.md](docs/MINISHELL_ARCHITECTURE.md)**. Exit-status names in C (**`EXIT_SIGINT`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_CMD_NOT_FOUND`**, etc.) live in **[includes/defines.h](includes/defines.h)** (see docs §8 / BEHAVIOR §11).
+Shell and wait exit conventions (syntax error **2**, not found **127**, signal exits **128+n**, etc.) are reflected in **`includes/defines.h`** (macros such as **`XSYN`**, **`XNF`**, **`XSIG`** and their longer **`EXIT_*`** names).
 
 ---
 
@@ -31,13 +31,13 @@ From the repository root:
 make
 ```
 
-Produces the **`minishell`** binary. Optional debug build (e.g. for Valgrind):
+Produces the **`minishell`** binary. Optional debug build with debug symbols:
 
 ```bash
 make debug
 ```
 
-The Makefile builds **libft** first, then links **minishell**. The vendored **`libft/`** does **not** ship **`get_next_line`** (line input uses **`read(2)`**, **readline**, and **`ft_read_stdin_line`**). Targets include at least **`all`**, **`clean`**, **`fclean`**, **`re`**, and **`$(NAME)`**, per 42 common instructions.
+The Makefile builds **libft** first, then links **minishell**. The vendored **`libft/`** does **not** ship **`get_next_line`** (line input uses **`read(2)`**, **readline**, and **`ft_read_stdin_line`**). Targets include at least **`all`**, **`clean`**, **`fclean`**, **`re`**, and **`$(NAME)`**, per common 42 project layout.
 
 ### Execution
 
@@ -66,6 +66,7 @@ here doc
 EOF
 exit
 ```
+
 ---
 
 ## Resources
@@ -75,10 +76,6 @@ exit
 | [GNU Bash manual](https://www.gnu.org/software/bash/manual/) | Reference for interactive behavior, builtins, expansion. |
 | `man` pages: **`readline`**, **`signal`**, **`sigaction`**, **`pipe`**, **`dup2`**, **`fork`**, **`waitpid`**, **`execve`**, **`open`**, **`errno`** | Direct API and semantics for the allowed functions. |
 | *Advanced Programming in the UNIX Environment* (Stevens) | Processes, FDs, signals—classic background for the subject. |
-| [LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester) | Automated comparison against **bash** for mandatory/bonus modes. |
-| In-repo **[docs/MINISHELL_ARCHITECTURE.md](docs/MINISHELL_ARCHITECTURE.md)**, **[docs/DATA_MODEL_AND_FUNCTIONS.md](docs/DATA_MODEL_AND_FUNCTIONS.md)**, **[docs/BEHAVIOR.md](docs/BEHAVIOR.md)** | Design, structs/functions catalog, and test-oriented behavior notes. |
-
-**Use of AI:** AI-assisted tools may be used for **documentation** (e.g. README structure, wording), **explaining** APIs or subject text, and **suggesting** refactors or tests. **Implementation and correctness** are validated against the official subject, **Norm**, and the **42_minishell_tester** (and manual checks).
 
 ---
 
@@ -87,18 +84,17 @@ exit
 ```
 minishell/
 ├── src/
-│   ├── main.c              # REPL, read_input
-│   ├── core/               # init_shell, prompt, process_input
-│   ├── utils/, free/
+│   ├── main.c
+│   ├── core/
+│   ├── utils/
+│   ├── free/
 │   ├── signals/
-│   ├── tokenizer/          # tokens, quotes, expansion
-│   ├── parser/             # commands, heredoc, syntax
-│   ├── executor/           # builtins, external, pipeline
+│   ├── tokenizer/
+│   ├── parser/
+│   ├── executor/
 │   └── builtins/
-├── includes/               # minishell.h, structs.h, prototypes.h
+├── includes/
 ├── libft/
-├── scripts/                # run_minishell_tester.sh, helpers
-├── docs/                   # architecture, data model, behavior
 ├── Makefile
 └── README.md
 ```

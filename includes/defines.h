@@ -14,18 +14,17 @@
 # define DEFINES_H
 
 /*
-** General 0/1 outcomes. SUCCESS and FAILURE are aliases of OK and ERR.
+** General 0/1 function outcomes (finished vs problem). Use OOM (-2) when malloc
+** or similar fails and the caller must unwind specially.
 */
-# define OK		    0
-# define ERR		1
-# define SUCCESS	OK
-# define FAILURE	ERR
+# define SUCCESS	0
+# define FAILURE	1
 /* Structural parse error in command build; not heap OOM (see OOM). */
 # define PR_ERR		-1
 # define OOM		-2
 
 /*
- * Logical predicates (int 0/1). Not OK/ERR/OOM.
+ * Logical predicates (int 0/1). Not SUCCESS/FAILURE/OOM.
  * Use in is_* / needs_* helpers instead of raw 0/1.
  */
 # define FALSE	0
@@ -33,10 +32,11 @@
 
 /*
 ** Last stdin redirect in source order (bash): << vs < — last token wins.
-** Stored on t_command during parse; apply_redirs uses it with hd_fd.
+** Stored on t_command during parse; `apply_redirs` uses it with the heredoc fd
+** (`hd_fd`).
 */
 # define STDIN_LAST_NONE	0
-# define STDIN_LAST_HD	1
+# define STDIN_LAST_HD	    1
 # define STDIN_LAST_FILE	2
 
 /*
@@ -51,7 +51,7 @@
 # define PM_USR		"user"
 # define PM_CWD		"/minishell/"
 
-/* read_input status — not $? (see AGENTS.md). */
+/* read_input status */
 # define RL_LN		1
 # define RL_EOF		0
 # define RL_SIG		-1
@@ -90,7 +90,7 @@
 # define HD_DELIM	1
 # define HD_EOF		2
 
-/* Program name for stderr (BEHAVIOR / subject). */
+/* Program name prefix for stderr messages. */
 # define SH_NAME	"minishell"
 
 /* Internal WORD sentinels (lexer/parser). */
@@ -105,7 +105,7 @@
 #  define PATH_MAX 4096
 # endif
 
-/* --- Long names (docs / grep); alias to abbreviations above --- */
+/* --- Longer alias names for the abbreviations above --- */
 # define PARSE_ERR		        PR_ERR
 # define TOK_NO			        TOK_N
 # define TOK_YES		        TOK_Y

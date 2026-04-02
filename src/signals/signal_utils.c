@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Readline hook: if SIGINT pending, discard line and finish this read. */
+/** Readline hook: if SIGINT is pending, clear the line and end this read. */
 int	readline_event_hook(void)
 {
 	if (g_signum == SIGINT)
@@ -25,7 +25,8 @@ int	readline_event_hook(void)
 }
 
 /**
- * If SIGINT pending: last_exit XSINT, clear g_signum; return non-zero.
+ * If SIGINT is pending: set `shell->last_exit` to XSINT, clear `g_signum`,
+ * return non-zero.
  */
 int	check_signal_received(t_shell *shell)
 {

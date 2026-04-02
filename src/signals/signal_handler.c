@@ -13,11 +13,12 @@
 #include "minishell.h"
 
 /**
- * Last signal (SIGINT only); async-safe; consumed by readline hook / main loop.
+ * Last signal received (SIGINT only); async-safe; read by readline hook and
+ * main loop via `g_signum`.
  */
 volatile sig_atomic_t	g_signum = 0;
 
-/** SIGINT: record signal; newline so the next prompt starts on a fresh line. */
+/** SIGINT: set `g_signum`; write newline so the next prompt starts cleanly. */
 static void	interactive_sigint_handler(int signum)
 {
 	(void)signum;

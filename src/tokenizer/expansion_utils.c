@@ -13,8 +13,8 @@
 #include "minishell.h"
 
 /**
- * True when the last token is a redirect op and *word is empty (next arg).
- * Used to detect ambiguous redirect after empty `$` expansion.
+ * True when the last token is a redirect operator and *word is empty (next arg).
+ * Detects ambiguous redirect after `$` expanded to nothing.
  */
 static int	exp_redir_tok(t_shell *shell, char *word)
 {
@@ -34,7 +34,7 @@ static int	exp_redir_tok(t_shell *shell, char *word)
 }
 
 /**
- * Push one WORD with S_AMBIG prefix for input slice [start, end) (ambiguous).
+ * Push one WORD token whose value is `S_AMBIG` plus the input slice [start, end).
  */
 static int	exp_ambg_push(t_shell *shell, size_t start, size_t end)
 {
@@ -57,8 +57,9 @@ static int	exp_ambg_push(t_shell *shell, size_t start, size_t end)
 }
 
 /**
- * After `$` expanded to empty: at word boundary, emit EMPTY token or ambig.
- * Returns TOK_N if not at boundary, TOK_Y if handled, OOM on failure.
+ * After `$` expanded to empty: at a word boundary, emit `S_EMPTY` or an
+ * ambiguous-redirect WORD. Returns TOK_N if not at boundary, TOK_Y if handled,
+ * OOM on failure.
  */
 int	exp_empty(t_shell *shell, size_t start, size_t end, char **word)
 {
@@ -74,31 +75,4 @@ int	exp_empty(t_shell *shell, size_t start, size_t end, char **word)
 	if (!tok || add_token(&shell->tokens, tok) == OOM)
 		return (OOM);
 	return (TOK_Y);
-}
-
-/**
- * Append expanded string to *word inside quotes (no blank-based splitting).
- * Returns OOM if ft_realloc fails; else SUCCESS.
- */
-int	exp_q_cat(char **word, const char *exp)
-{
-	size_t	len_word;
-	size_t	len_exp;
-	char	*tmp;
-
-	if (*word)
-		len_word = ft_strlen(*word);
-	else
-		len_word = 0;
-	if (exp)
-		len_exp = ft_strlen(exp);
-	else
-		len_exp = 0;
-	tmp = ft_realloc(*word, len_word + len_exp + 1);
-	if (!tmp)
-		return (OOM);
-	*word = tmp;
-	ft_memcpy(*word + len_word, exp, len_exp);
-	(*word)[len_word + len_exp] = '\0';
-	return (SUCCESS);
 }

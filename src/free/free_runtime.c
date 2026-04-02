@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Free NULL-terminated argv and its strings. */
+/** Free a NULL-terminated `argv` array and each string. */
 static void	free_argv(char **argv)
 {
 	int	i;
@@ -25,7 +25,7 @@ static void	free_argv(char **argv)
 	free(argv);
 }
 
-/** ft_lstclear hook: free t_redir file string and node. */
+/** `ft_lstclear` del: free `t_redir` file path and struct. */
 static void	del_redir_content(void *content)
 {
 	t_redir	*r;
@@ -36,7 +36,7 @@ static void	del_redir_content(void *content)
 	free(r);
 }
 
-/** One t_command payload: args/redirs/argv/delim/fd (for ft_lstclear). */
+/** `ft_lstclear` del: free one `t_command` (args, redirs, argv, heredoc). */
 static void	del_command_content(void *content)
 {
 	t_command	*cmd;
@@ -52,7 +52,7 @@ static void	del_command_content(void *content)
 	free(cmd);
 }
 
-/** Free command pipeline (t_list of t_command *). */
+/** Free a command list (pipeline as `t_list` of `t_command *`). */
 void	free_cmds(t_list **lst)
 {
 	if (!lst || !*lst)

@@ -15,8 +15,9 @@
 static void	run_parse_core(t_shell *shell);
 
 /**
- * Parse shell->tokens into shell->cmds. Empty list: cmds NULL.
- * Syntax error: XSYN, free tokens. Success: tokens freed in run_parse_core.
+ * Parse `shell->tokens` into `shell->cmds`. Empty list leaves cmds NULL.
+ * Syntax error: XSYN and free tokens. On success, tokens are freed inside
+ * `run_parse_core`.
  */
 void	parse_input(t_shell *shell)
 {
@@ -25,7 +26,7 @@ void	parse_input(t_shell *shell)
 		shell->cmds = NULL;
 		return ;
 	}
-	if (syntax_check(shell->tokens) == ERR)
+	if (syntax_check(shell->tokens) == FAILURE)
 	{
 		shell->last_exit = XSYN;
 		free_tokens(&shell->tokens);
@@ -36,8 +37,8 @@ void	parse_input(t_shell *shell)
 }
 
 /**
- * Read each heredoc body into cmd->hd_fd; *line_no tracks EOF warnings.
- * FAILURE on read_heredoc error (SIGINT, OOM, write, etc.).
+ * Read each heredoc body; store read end in `cmd->hd_fd`. *line_no tracks EOF
+ * warnings. FAILURE on `read_heredoc` error (SIGINT, OOM, write, etc.).
  */
 int	process_heredocs(t_shell *shell)
 {
@@ -58,7 +59,8 @@ int	process_heredocs(t_shell *shell)
 }
 
 /**
- * build_command_list, free tokens; FAILURE/oom clears cmds and sets flags.
+ * Call `build_command_list`, then free token list; on FAILURE or oom, clear
+ * cmds and set `shell` flags accordingly.
  */
 static void	run_parse_core(t_shell *shell)
 {

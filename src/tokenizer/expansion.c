@@ -13,8 +13,8 @@
 #include "minishell.h"
 
 /**
- * Handle $? / $digit / quotes after $ / literal $ when not start of $NAME.
- * Advances *i; returns new string or NULL if caller should use exp_env.
+ * Handle `$?`, `$digit`, quotes after `$`, or a lone `$` when not `$NAME`.
+ * Advances *i; returns a new string, or NULL so the caller uses `exp_env`.
  */
 static char	*exp_spec(t_shell *shell, size_t *i)
 {
@@ -43,8 +43,8 @@ static char	*exp_spec(t_shell *shell, size_t *i)
 }
 
 /**
- * Expand $NAME: copy env value (or ""), advance *i past the name.
- * Caller frees the returned string; returns NULL only on name alloc fail.
+ * Expand `$NAME`: copy environment value (or empty string); advance *i past
+ * the name. Caller frees the return; NULL only if the name buffer alloc fails.
  */
 static char	*exp_env(t_shell *shell, size_t *i)
 {
@@ -70,7 +70,7 @@ static char	*exp_env(t_shell *shell, size_t *i)
 }
 
 /**
- * Expand one $ token at *i (special forms first, else environment variable).
+ * Expand one `$` at *i (special forms first, else environment variable).
  * Advances *i; caller must free the returned string.
  */
 char	*exp_var(t_shell *shell, size_t *i)

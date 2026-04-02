@@ -22,7 +22,7 @@ static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 }
 
 /**
- * Write line to pipe or match delim: HD_MORE, HD_DELIM, or -1 on OOM write.
+ * Write line to pipe or match delimiter: HD_MORE, HD_DELIM, or -1 on OOM write.
  */
 static int	heredoc_consume_line(t_heredoc_ctx *ctx, char *line, int *line_no)
 {
@@ -36,7 +36,7 @@ static int	heredoc_consume_line(t_heredoc_ctx *ctx, char *line, int *line_no)
 }
 
 /**
- * Read one heredoc line: -1 interrupt/OOM; else HD_MORE, HD_DELIM, or HD_EOF.
+ * Read one heredoc line: -1 on interrupt/OOM; else HD_MORE, HD_DELIM, or HD_EOF.
  */
 static int	heredoc_read_one(t_heredoc_ctx *ctx, int *line_no, int start_line)
 {
@@ -65,7 +65,7 @@ static int	heredoc_read_one(t_heredoc_ctx *ctx, int *line_no, int start_line)
 	return (st);
 }
 
-/** Open pipe, read lines until delim; set cmd->hd_fd to read end. */
+/** Open pipe, read lines until delimiter; heredoc read fd is `cmd->hd_fd`. */
 int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 {
 	t_heredoc_ctx	ctx;

@@ -12,8 +12,11 @@
 
 #include "minishell.h"
 
-/** Child: sync read, wire prev pipe to stdin, current pipe to stdout. */
-static void	setup_pipeline_child_fds(int prev_fd, int pipe_fd[3],
+/**
+ * Child: barrier read on sync fd, `dup2` previous segment read to stdin,
+ * current pipe write to stdout when there is a next segment.
+ */
+static void	setup_pip_child_fds(int prev_fd, int pipe_fd[3],
 		int has_next, int barrier_write_fd)
 {
 	char	sync;
@@ -38,8 +41,10 @@ static void	setup_pipeline_child_fds(int prev_fd, int pipe_fd[3],
 	}
 }
 
-/** Fork; child applies fds/redirs then run_in_child; parent returns pid. */
-static pid_t	fork_pipeline_child(t_list *cmd_node, t_shell *shell,
+/**
+ * `fork`: child wires fds, `apply_redirs`, `run_in_child`; parent returns pid.
+ */
+static pid_t	fork_pip_child(t_list *cmd_node, t_shell *shell,
 		int prev_fd, int pipe_fd[3])
 {
 	t_command	*cmd;
@@ -54,7 +59,7 @@ static pid_t	fork_pipeline_child(t_list *cmd_node, t_shell *shell,
 	if (pid == 0)
 	{
 		set_signals_default();
-		setup_pipeline_child_fds(prev_fd, pipe_fd, has_next,
+		setup_pip_child_fds(prev_fd, pipe_fd, has_next,
 			shell->barrier_write_fd);
 		if (apply_redirs(cmd) != SUCCESS)
 			exit_norl(shell, FAILURE);
@@ -63,7 +68,7 @@ static pid_t	fork_pipeline_child(t_list *cmd_node, t_shell *shell,
 	return (pid);
 }
 
-/** Parent: close write end; prev read becomes next segment's stdin source. */
+/** Parent: close write end; keep read end as next segment's stdin source. */
 static void	advance_prev_pipe_fd(int *prev_fd, int has_next, int p0, int p1)
 {
 	if (*prev_fd != -1)
@@ -78,8 +83,8 @@ static void	advance_prev_pipe_fd(int *prev_fd, int has_next, int p0, int p1)
 }
 
 /**
- * Fork one pipeline command: connect stdin from the previous pipe (if any),
- * stdout to the next segment (if any), optional sync_fd barrier read.
+ * Fork one stage of a pipeline: stdin from previous pipe (if any), stdout to
+ * the next stage, optional sync_fd barrier read.
  */
 pid_t	pipe_step(t_list *cmd_node, t_shell *shell,
 		int *prev_fd, int sync_fd[2])
@@ -94,7 +99,7 @@ pid_t	pipe_step(t_list *cmd_node, t_shell *shell,
 	pipe_fd[2] = sync_fd[0];
 	if (has_next && pipe(pipe_fd) == -1)
 		return (-1);
-	pid = fork_pipeline_child(cmd_node, shell, *prev_fd, pipe_fd);
+	pid = fork_pip_child(cmd_node, shell, *prev_fd, pipe_fd);
 	if (pid < 0)
 	{
 		if (has_next)

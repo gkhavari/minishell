@@ -12,13 +12,13 @@
 
 #include "minishell.h"
 
-/** Non-TTY: one line via ft_read_stdin_line (no shell->oom on OOM). */
+/** Non-TTY: one line with `ft_read_stdin_line` (does not set `shell->oom`). */
 static int	read_line_stdin(t_shell *shell, char **out)
 {
 	return (ft_read_stdin_line(shell, out, 0));
 }
 
-/** user + cwd prompt string; caller frees (readline). */
+/** Build username and cwd prompt string; caller frees after `readline`. */
 static char	*build_prompt(t_shell *shell)
 {
 	char		*prompt;
@@ -39,15 +39,15 @@ static char	*build_prompt(t_shell *shell)
 	prompt = ft_calloc(total_len + 1, sizeof(char));
 	if (!prompt)
 		return (NULL);
-	ft_strcat(prompt, user);
-	ft_strcat(prompt, PM_PFX);
-	ft_strcat(prompt, cwd);
-	ft_strcat(prompt, PM_SFX);
+	ft_strlcat(prompt, user, total_len + 1);
+	ft_strlcat(prompt, PM_PFX, total_len + 1);
+	ft_strlcat(prompt, cwd, total_len + 1);
+	ft_strlcat(prompt, PM_SFX, total_len + 1);
 	return (prompt);
 }
 
 /**
- * TTY: readline; else read_line_stdin.
+ * TTY: `readline`; else `read_line_stdin`.
  * Returns RL_LN, RL_EOF, RL_SIG, or OOM.
  */
 static int	read_input(t_shell *shell)
@@ -73,7 +73,7 @@ static int	read_input(t_shell *shell)
 	return (RL_LN);
 }
 
-/** One REPL iteration after read_input. Returns 1 to exit loop. */
+/** After `read_input`: run line, `reset_shell`; return 1 to leave the loop. */
 static int	repl_after_read(t_shell *shell)
 {
 	int	syntax_err;
@@ -90,7 +90,8 @@ static int	repl_after_read(t_shell *shell)
 }
 
 /**
- * REPL: read_input, process_input, reset until EOF/OOM or non-TTY syntax exit.
+ * Main loop: `read_input`, optional `process_input`, `reset_shell` until EOF,
+ * OOM, or non-TTY exit after a syntax error.
  */
 void	shell_loop(t_shell *shell)
 {

@@ -13,7 +13,7 @@
 #include "minishell.h"
 
 /**
- * Inside double quotes: expand $ via exp_var and append with exp_q_cat.
+ * Inside double quotes: expand `$` with `exp_var`, append with `exp_q_cat`.
  */
 static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 {
@@ -28,7 +28,7 @@ static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 }
 
 /**
- * In ST_DQUOTE: expand $ (unless heredoc/next quote),
+ * In ST_DQUOTE: expand `$` unless delimiter mode (`hd_mod`) or next is a quote;
  * handle \\$, or append char.
  */
 static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
@@ -42,7 +42,7 @@ static int	handle_escaped_dollar(t_shell *shell, size_t *i, char **word)
 }
 
 /**
- * In ST_DQUOTE: $ / \\$ / literal; else return TOK_N.
+ * In ST_DQUOTE: `$`, escaped `\\$`, or literal; else return TOK_N.
  */
 int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 {

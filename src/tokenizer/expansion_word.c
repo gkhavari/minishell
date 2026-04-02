@@ -42,7 +42,7 @@ int	exp_unq(t_shell *shell, char **word, const char *exp, t_list **tokens)
 }
 
 /**
- * Run exp_unq into shell->tokens, then free exp. Returns TOK_Y or OOM.
+ * Run `exp_unq` into `shell->tokens`, then `free(exp)`. Returns TOK_Y or OOM.
  */
 static int	exp_unq_wrap(t_shell *shell, char **word, char *exp)
 {
@@ -52,8 +52,8 @@ static int	exp_unq_wrap(t_shell *shell, char **word, char *exp)
 }
 
 /**
- * If *i is `$`, expand via exp_var; merge into word/tokens or handle empty $.
- * Returns TOK_N if not `$`, TOK_Y if handled, OOM on failure.
+ * If *i is `$`, expand with `exp_var`; merge into *word / tokens or handle
+ * empty expansion via `exp_empty`. Returns TOK_N, TOK_Y, or OOM.
  */
 int	exp_dollar(t_shell *shell, size_t *i, char **word)
 {

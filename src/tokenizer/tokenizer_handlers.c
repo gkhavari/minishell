@@ -87,6 +87,7 @@ int	process_quote(t_shell *shell, char c, t_state *state)
 
 /**
  * If op char: flush word, append operator token, advance i.
+ * After `<<`, sets `hd_mod` so the heredoc delimiter word is not $-expanded.
  */
 int	handle_operator(t_shell *shell, size_t *i, char **word)
 {

@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Next WORD is heredoc delimiter; replaces any previous delim. */
+/** Next WORD is the heredoc delimiter string; replaces any previous one. */
 static int	handle_heredoc_token(t_command *cmd, t_list *tok_node)
 {
 	char		*new_delim;
@@ -57,8 +57,8 @@ static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 }
 
 /**
- * WORD → args; redir/heredoc → file or delim.
- * Returns advance count, PR_ERR (structural), or OOM.
+ * WORD adds an argument; redirects and heredoc consume file or delimiter.
+ * Returns advance count, PR_ERR for structural errors, or OOM.
  */
 int	add_token_to_command(t_shell *shell, t_command *cmd, t_list *tok_node)
 {

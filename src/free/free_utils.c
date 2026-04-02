@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** ft_lstclear hook: free t_token value and node. */
+/** `ft_lstclear` del: free `t_token` value string and struct. */
 static void	del_token_content(void *content)
 {
 	t_token	*t;
@@ -23,7 +23,7 @@ static void	del_token_content(void *content)
 	free(t);
 }
 
-/** ft_lstclear hook: free t_arg value and node. */
+/** `ft_lstclear` del: free `t_arg` value string and struct. */
 static void	del_arg_content(void *content)
 {
 	t_arg	*a;
@@ -34,7 +34,7 @@ static void	del_arg_content(void *content)
 	free(a);
 }
 
-/** Clear token list (t_list nodes); each content is t_token *. */
+/** Clear token `t_list`; each node content is `t_token *`. */
 void	free_tokens(t_list **lst)
 {
 	if (!lst || !*lst)
@@ -42,7 +42,7 @@ void	free_tokens(t_list **lst)
 	ft_lstclear(lst, del_token_content);
 }
 
-/** Clear arg list (t_list nodes); each content is t_arg *. */
+/** Clear argument `t_list`; each node content is `t_arg *`. */
 void	free_args(t_list **lst)
 {
 	if (!lst || !*lst)
@@ -50,7 +50,7 @@ void	free_args(t_list **lst)
 	ft_lstclear(lst, del_arg_content);
 }
 
-/** Free *p, set *p to NULL (lexer word buffer, etc.). */
+/** Free `*p` and set it to NULL (lexer word buffer, etc.). */
 void	msh_strptr_free(char **p)
 {
 	if (p && *p)

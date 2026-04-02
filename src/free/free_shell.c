@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Free each env string and the envp pointer array. */
+/** Free each environment string and the `envp` pointer array. */
 static void	free_envp(char **envp)
 {
 	int	i;
@@ -29,7 +29,8 @@ static void	free_envp(char **envp)
 }
 
 /**
- * After tokenizer OOM: free word, tokens, input; last_exit FAILURE (not oom).
+ * After tokenizer OOM: free word buffer, tokens, and input; set last_exit to
+ * FAILURE (does not set `shell->oom`).
  */
 void	free_tokenize(t_shell *shell, char **word)
 {
@@ -46,7 +47,10 @@ void	free_tokenize(t_shell *shell, char **word)
 	shell->last_exit = FAILURE;
 }
 
-/** Free tokens, commands, and input for the next prompt (keep env/user/cwd). */
+/**
+ * Free tokens, commands, and input before the next prompt (keep env, user,
+ * cwd).
+ */
 void	reset_shell(t_shell *shell)
 {
 	if (!shell)
@@ -63,7 +67,7 @@ void	reset_shell(t_shell *shell)
 	shell->input = NULL;
 }
 
-/** Full teardown: env, user, cwd, tokens, commands, input. */
+/** Full teardown: environment, user, cwd, tokens, commands, input line. */
 void	free_all(t_shell *shell)
 {
 	if (!shell)

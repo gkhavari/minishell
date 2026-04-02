@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   read_stdin_line.c                                  :+:      :+:    :+:   */
+/*   msh_stdin_read_line.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: minishell <minishell@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -13,8 +13,9 @@
 #include "minishell.h"
 
 /**
- * Read stdin byte-wise into *line until newline/EOF (realloc via append_char).
- * RL_LN, RL_EOF, or OOM; optional shell->oom on append failure.
+ * Read stdin byte-wise into *line until newline or EOF (grows via
+ * `append_char`). Returns RL_LN, RL_EOF, or OOM; may set `shell->oom` on
+ * append failure.
  */
 int	ft_read_stdin_line(t_shell *shell, char **line, int set_shell_oom_on_fail)
 {

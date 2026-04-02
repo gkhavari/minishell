@@ -37,7 +37,7 @@ static char	*exp_hd_name(char *line, size_t start, size_t *i, t_shell *shell)
 }
 
 /**
- * Expand `$` at *i in heredoc line: $? or $NAME via exp_hd_name.
+ * Expand `$` at *i in a heredoc line (`?` or `NAME`); uses `exp_hd_name`.
  */
 static char	*exp_hd_var(char *line, size_t *i, t_shell *shell)
 {

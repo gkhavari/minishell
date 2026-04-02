@@ -13,8 +13,8 @@
 #include "minishell.h"
 
 /**
- * Program entry: init shell/env, interactive signals, REPL,
- * exit with last status.
+ * Program entry: `init_shell`, interactive signals, `shell_loop`, teardown,
+ * return the shell's last exit status.
  */
 int	main(int argc, char **argv, char **envp)
 {

@@ -13,7 +13,8 @@
 #include "minishell.h"
 
 /**
- * Finish tokenize: flush or discard word/tokens; always free shell->input.
+ * End tokenization: `flush_word` in ST_NORMAL, or discard partial state in
+ * quotes; always free `shell->input`.
  */
 static int	tokenizer_end(t_shell *shell, t_state state, char **word)
 {
@@ -38,8 +39,8 @@ static int	tokenizer_end(t_shell *shell, t_state state, char **word)
 }
 
 /**
- * Tokenize shell->input into shell->tokens; frees input;
- * clears tokens on quote error. Returns OOM on malloc failure (unwound).
+ * Tokenize `shell->input` into `shell->tokens`, then free the line buffer.
+ * Unclosed quote clears tokens and sets exit status. Returns OOM if unwound.
  */
 int	tokenize_input(t_shell *shell)
 {

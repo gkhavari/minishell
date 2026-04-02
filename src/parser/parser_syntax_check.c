@@ -38,7 +38,7 @@ static int	check_redir_syntax(t_list *node)
 	next_tok = node->next->content;
 	if (next_tok->type != WORD)
 		return (syntax_error(get_token_str(next_tok->type)));
-	return (OK);
+	return (SUCCESS);
 }
 
 /** True if type is any redirection or heredoc token. */
@@ -49,7 +49,7 @@ static int	is_redirection(t_tokentype type)
 }
 
 /**
- * Validate pipes and redir+WORD; ERR via syntax_error() on failure.
+ * Validate pipes and redir+WORD; FAILURE via syntax_error() on failure.
  */
 int	syntax_check(t_list *lst)
 {
@@ -57,7 +57,7 @@ int	syntax_check(t_list *lst)
 	t_token	*token;
 
 	if (!lst)
-		return (OK);
+		return (SUCCESS);
 	token = lst->content;
 	if (token->type == PIPE)
 		return (syntax_error("|"));
@@ -72,17 +72,17 @@ int	syntax_check(t_list *lst)
 		if (is_redirection(token->type))
 		{
 			if (check_redir_syntax(node))
-				return (ERR);
+				return (FAILURE);
 		}
 		node = node->next;
 	}
-	return (OK);
+	return (SUCCESS);
 }
 
-/** Print bash-style unexpected-token message to stderr; return ERR. */
+/** Print bash-style unexpected-token message to stderr; return FAILURE. */
 int	syntax_error(const char *msg)
 {
 	ft_dprintf(STDERR_FILENO,
 		"syntax error near unexpected token `%s'\n", msg);
-	return (ERR);
+	return (FAILURE);
 }

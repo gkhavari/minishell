@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exe_pipeline_nf.c                                  :+:      :+:    :+:   */
+/*   exe_pip_nf.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -33,9 +33,9 @@ static int	is_simple_not_found_command(t_command *cmd, t_shell *shell)
 
 /**
  * Pipeline fast path: every stage is a simple PATH miss (no redirs/heredoc);
- * print not-found lines in parent; TRUE so run_pipeline skips fork.
+ * print not-found lines in parent. Returns TRUE so `run_pip` skips fork.
  */
-int	pipeline_all_nf(t_list *cmds, t_shell *shell)
+int	pip_all_nf(t_list *cmds, t_shell *shell)
 {
 	t_list		*node;
 	t_command	*cmd;

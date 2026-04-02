@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Open file read-only, dup2 to stdin. */
+/** Open redirect file read-only, `dup2` onto standard input. */
 static int	apply_input_redir(t_redir *r)
 {
 	int	fd;
@@ -28,7 +28,7 @@ static int	apply_input_redir(t_redir *r)
 	return (SUCCESS);
 }
 
-/** Open file for write (truncate/append), dup2 to r->fd. */
+/** Open for write (truncate or append), `dup2` onto `r->fd`. */
 static int	apply_output_redir(t_redir *r)
 {
 	int	fd;
@@ -47,7 +47,7 @@ static int	apply_output_redir(t_redir *r)
 	return (SUCCESS);
 }
 
-/** Reject ambiguous redirect; dispatch < vs >/>>. */
+/** Reject ambiguous redirect token; dispatch `<` vs `>` / `>>`. */
 static int	apply_one_redir(t_redir *r)
 {
 	size_t	prefix_len;
@@ -65,9 +65,9 @@ static int	apply_one_redir(t_redir *r)
 }
 
 /**
- * Apply cmd->redirs left-to-right (bash). Then heredoc: dup to stdin only if
- * the last stdin redirect in the source was << (stdin_last); always close the
- * heredoc pipe read fd.
+ * Apply `cmd->redirs` left-to-right (bash order). Then heredoc: dup to stdin
+ * only if the last stdin redirect was `<<` (`stdin_last == STDIN_LAST_HD`);
+ * always close the heredoc read fd.
  */
 int	apply_redirs(t_command *cmd)
 {

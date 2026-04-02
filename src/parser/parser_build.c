@@ -12,7 +12,10 @@
 
 #include "minishell.h"
 
-/** New command after PIPE: alloc cmd, link into cmds_root, advance tok_node. */
+/**
+ * After `PIPE`: allocate `t_command`, append to pipeline list, advance
+ * `tok_node`.
+ */
 static int	append_pipe_command(t_shell *shell, t_command **cmd,
 		t_list **tok_node, t_list **cmds_root)
 {
@@ -40,7 +43,7 @@ static int	append_pipe_command(t_shell *shell, t_command **cmd,
 	return (SUCCESS);
 }
 
-/** add_token_to_command and advance *tok_node by consumed tokens. */
+/** Call `add_token_to_command` and advance `*tok_node` by consumed count. */
 static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 		t_list **tok_node, t_list **cmds_root)
 {
@@ -67,7 +70,8 @@ static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 }
 
 /**
- * One parse step: pipe splits command; else add_token_to_command and advance.
+ * One parse step: `PIPE` starts a new command; otherwise `add_token_to_command`
+ * and advance the token pointer.
  */
 static int	parse_token_step(t_shell *shell, t_command **cmd,
 		t_list **tok_node, t_list **cmds_root)
@@ -89,7 +93,7 @@ static int	parse_token_step(t_shell *shell, t_command **cmd,
 	return (parse_token_nonpipe(shell, *cmd, tok_node, cmds_root));
 }
 
-/** Allocate first pipeline command and list head; OOM → NULL. */
+/** Allocate first pipeline command and list head node; OOM returns NULL. */
 static t_list	*cmdlist_first_node(t_shell *shell, t_command **cmd_out)
 {
 	t_command	*c;
@@ -113,9 +117,7 @@ static t_list	*cmdlist_first_node(t_shell *shell, t_command **cmd_out)
 	return (lst);
 }
 
-/**
- * Walk token list into a pipeline of t_command (t_list nodes).
- */
+/** Walk the token list into a pipeline (`t_list` of `t_command *`). */
 t_list	*build_command_list(t_shell *shell, t_list *tokens)
 {
 	t_command	*cmd;
