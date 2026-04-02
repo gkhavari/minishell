@@ -19,7 +19,7 @@ static int	child_wait_st(int status)
 	{
 		if (WTERMSIG(status) == SIGQUIT)
 			ft_dprintf(STDERR_FILENO, "Quit (core dumped)\n");
-		return (XSIG(WTERMSIG(status)));
+		return (XSB + WTERMSIG(status));
 	}
 	if (WIFEXITED(status))
 		return (WEXITSTATUS(status));

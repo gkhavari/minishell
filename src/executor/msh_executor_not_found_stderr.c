@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** True if cmd name needs bash $'…' style display (non-printable bytes). */
+/** True if cmd name needs $'…' quoting for non-printable bytes. */
 static int	needs_dollar_quotes(char *cmd_name)
 {
 	int	i;
@@ -88,8 +88,8 @@ static char	*format_not_found_name(char *cmd_name)
 }
 
 /**
- * Print bash-style "cmd: command not found" to stderr; uses $'…' when the name
- * contains non-printable bytes.
+ * Print "cmd: command not found" on stderr; use $'…' when the name has
+ * non-printable bytes.
  */
 void	put_cmd_not_found(char *cmd_name)
 {

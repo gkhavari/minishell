@@ -13,16 +13,13 @@
 #include "minishell.h"
 
 /**
- * Child: barrier read on sync fd, `dup2` previous segment read to stdin,
- * current pipe write to stdout when there is a next segment.
+ * Child: optional sync-fd barrier read, then wire prev_fd to stdin
+ * and the new pipe write-end to stdout when there is a next segment.
  */
-static void	setup_pip_child_fds(int prev_fd, int pipe_fd[3],
-		int has_next, int barrier_write_fd)
+static void	setup_pip_child_fds(int prev_fd, int pipe_fd[3], int has_next)
 {
 	char	sync;
 
-	if (barrier_write_fd != -1)
-		close(barrier_write_fd);
 	if (pipe_fd[2] != -1)
 	{
 		read(pipe_fd[2], &sync, 1);
@@ -59,8 +56,7 @@ static pid_t	fork_pip_child(t_list *cmd_node, t_shell *shell,
 	if (pid == 0)
 	{
 		set_signals_default();
-		setup_pip_child_fds(prev_fd, pipe_fd, has_next,
-			shell->barrier_write_fd);
+		setup_pip_child_fds(prev_fd, pipe_fd, has_next);
 		if (apply_redirs(cmd) != SUCCESS)
 			exit_norl(shell, FAILURE);
 		run_in_child(cmd, shell);

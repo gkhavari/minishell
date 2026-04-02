@@ -65,9 +65,9 @@ static int	apply_one_redir(t_redir *r)
 }
 
 /**
- * Apply `cmd->redirs` left-to-right (bash order). Then heredoc: dup to stdin
- * only if the last stdin redirect was `<<` (`stdin_last == STDIN_LAST_HD`);
- * always close the heredoc read fd.
+ * Apply `cmd->redirs` left-to-right. Then heredoc: dup to stdin only if
+ * the last stdin redirect was `<<` (`stdin_last == STDIN_LAST_HD`); always
+ * close the heredoc read fd.
  */
 int	apply_redirs(t_command *cmd)
 {

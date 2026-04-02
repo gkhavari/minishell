@@ -79,7 +79,7 @@ int	syntax_check(t_list *lst)
 	return (SUCCESS);
 }
 
-/** Print bash-style unexpected-token message to stderr; return FAILURE. */
+/** Print syntax error with unexpected token to stderr; return FAILURE. */
 int	syntax_error(const char *msg)
 {
 	ft_dprintf(STDERR_FILENO,

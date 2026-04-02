@@ -229,7 +229,7 @@ int			pip_all_nf(t_list *cmds, t_shell *shell);
 int			run_pip(t_list *cmds, t_shell *shell);
 
 /* --- msh_executor_pipeline_segment.c --- */
-/** One pipeline segment: fork, pipes, and fd wiring (`pipe_step`). */
+/** Fork one pipeline stage: wire prev_fd/stdout, optional sync-fd read. */
 pid_t		pipe_step(t_list *cmd_node, t_shell *shell,
 				int *prev_fd, int sync_fd[2]);
 

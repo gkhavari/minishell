@@ -14,9 +14,7 @@
 
 char	*exp_hd_line(char *line, t_shell *shell);
 
-/**
- * Print bash-style warning when heredoc ends on EOF before delimiter.
- */
+/** Warn on stderr when heredoc hits EOF before the closing delimiter. */
 void	print_heredoc_eof_warning(int line_no, char *delim)
 {
 	int	display_line;

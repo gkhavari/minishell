@@ -62,7 +62,8 @@ static int	finalize_argv(t_shell *shell, t_command *cmd)
 }
 
 /**
- * For each command: build argv, set is_builtin from get_builtin_type (env rule).
+ * For each command: build argv; set is_builtin from get_builtin_type.
+ * `env` with argv[1] set is not a builtin here (exec searches PATH).
  * Returns 0 or OOM.
  */
 int	finalize_cmds(t_shell *shell, t_list *cmd_list)

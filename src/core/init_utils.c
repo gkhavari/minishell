@@ -105,7 +105,6 @@ void	init_runtime_fields(t_shell *shell)
 {
 	ensure_default_envs(shell);
 	shell->last_exit = SUCCESS;
-	shell->barrier_write_fd = -1;
 	shell->tokens = NULL;
 	shell->cmds = NULL;
 	shell->input = NULL;

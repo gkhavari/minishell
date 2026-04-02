@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Print shell->cwd. */
+/** Print shell->cwd; argv[1+] ignored. */
 int	builtin_pwd(char **args, t_shell *shell)
 {
 	(void)args;

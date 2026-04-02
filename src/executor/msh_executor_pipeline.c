@@ -31,7 +31,7 @@ static int	upd_wait_st(pid_t pid, int status, pid_t last_pid, int *last_st)
 		if (WIFEXITED(status))
 			*last_st = WEXITSTATUS(status);
 		else if (WIFSIGNALED(status))
-			*last_st = XSIG(WTERMSIG(status));
+			*last_st = (XSB + WTERMSIG(status));
 	}
 	return (1);
 }
@@ -99,7 +99,6 @@ int	run_pip(t_list *cmds, t_shell *shell)
 
 	sync_fd[0] = -1;
 	sync_fd[1] = -1;
-	shell->barrier_write_fd = -1;
 	if (pip_all_nf(cmds, shell))
 		return (XNF);
 	set_signals_ignore();
