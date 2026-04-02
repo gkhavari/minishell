@@ -17,7 +17,7 @@
 # Valgrind flags used by the tester:
 #   --leak-check=full --show-leak-kinds=all
 #   --track-fds=all --trace-children=yes
-#   --suppressions=minishell.supp  (suppresses readline/ncurses leaks)
+#   --suppressions=readline.supp  (suppresses readline/ncurses leaks; repo file)
 #
 # All leaks in minishell + libft code are treated as failures.
 

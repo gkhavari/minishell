@@ -49,7 +49,15 @@ From the repo root on the host (requires Docker daemon and the container running
 ./scripts/run_minishell_tester.sh vm   # mandatory + Valgrind
 ```
 
-See the script header for modes (`ne`, `b`, `a`, `va`, …). Valgrind uses project **`minishell.supp`** for readline noise; **leaks in our code + libft still fail the run**.
+See the script header for modes (`ne`, `b`, `a`, `va`, …). Valgrind stress scripts use **`readline.supp`** for readline noise; **leaks in our code + libft still fail the run**.
+
+**Funcheck (allocation hardening):** `funcheck` without **`-a`** still runs failure injection on detected alloc sites; **`-a`** adds JSON **`allocations-not-freed`** in the fetch phase. For a practical tiered flow (Valgrind leak truth → funcheck without **`-a`** on a small smoke stdin → **`-jac`** only if Valgrind leaks, pass 1 fails, or `FUNCHECK_ALWAYS_A=1`), use:
+
+```bash
+docker compose exec run-container bash /app/scripts/run_funcheck_phased.sh
+```
+
+Default stdin is **`scripts/funcheck_smoke_builtin_pipe_redir.txt`** (builtins, pipes, redirs, `unset PATH`). Override with **`INPUT=/app/scripts/…`**. Full Valgrind + funcheck on one file: **`scripts/run_stress_memcheck.sh`**.
 
 **Norm (optional but recommended before push):**
 

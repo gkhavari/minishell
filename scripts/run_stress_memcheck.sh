@@ -51,9 +51,10 @@ echo "==> Valgrind log: $VG_LOG"
 echo "==> Minishell stdout (captured): $VG_OUT"
 echo ""
 
-valgrind --trace-children=yes --track-fds=yes \
+valgrind --trace-children=yes --track-fds=all \
 	--leak-check=full --show-leak-kinds=all \
 	--errors-for-leak-kinds=all --error-exitcode=42 \
+	--suppressions="$ROOT_DIR/readline.supp" \
 	"$MSH" < "$TMP_IN" > "$VG_OUT" 2> "$VG_LOG" || VG_EC=$?
 VG_EC=${VG_EC:-0}
 echo "Valgrind exit code: $VG_EC (42 = leak kind flagged with --errors-for-leak-kinds)"

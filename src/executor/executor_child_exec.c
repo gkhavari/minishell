@@ -37,8 +37,8 @@ static void	child_exit_not_found(t_shell *shell, char *argv0)
 /** After fork: builtin, execve, or errors with clean_exit (never returns). */
 void	execute_in_child(t_command *cmd, t_shell *shell)
 {
-	char		*path;
-	struct stat	sb;
+	char			*path;
+	struct stat		sb;
 
 	if (cmd->is_builtin)
 		run_builtin_child(cmd, shell);

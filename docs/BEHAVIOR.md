@@ -35,7 +35,7 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 | Expansion vs heredoc body, **`~`** | §4 |
 | **`parse_input`**: **`syntax_check`** then **`parse_tokens`** → **`finalize`** | §5 |
 | Heredoc pipes, SIGINT during heredoc → **`last_exit = EXIT_SIGINT`** (130), no **`execute_commands`** | §6 |
-| **`execute_commands`**, single vs pipeline, **`must_run_in_parent`**, not-found fast path | §7 |
+| **`execute_commands`**, single vs pipeline, parent-only builtins (cd/export/unset/exit), not-found fast path | §7 |
 | Exit codes, who sets **`last_exit`**, **`reset_shell` does not clear `last_exit`** | §8, §11 |
 
 For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md).

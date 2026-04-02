@@ -184,7 +184,7 @@ flowchart LR
 - **main.c** (src/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**).
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
-- **Executor** (src/executor/): `execute_commands()` in `executor.c` — empty argv, `run_empty_command`; else single command: `run_builtin_command` (parent with optional `dup`/`apply_redirections`/`restore_fds`, or `execute_external` if builtin has redirs and is not `must_run_in_parent`) or `execute_external`; pipeline → `execute_pipeline()` → `run_pipe_step` / `wait_children_last`; child path → `execute_in_child()` in `executor_child_exec.c`.
+- **Executor** (src/executor/): `execute_commands()` in `executor.c` — empty argv, `run_empty_command`; else single command: `run_builtin_command` (parent with optional `dup`/`apply_redirections`/`restore_fds`, or `execute_external` if builtin has redirs and type is not cd/export/unset/exit) or `execute_external`; pipeline → `execute_pipeline()` → `run_pipe_step` / `wait_children_last`; child path → `execute_in_child()` in `executor_child_exec.c`.
 
 ---
 
@@ -773,7 +773,7 @@ flowchart TD
     EMP -->|no| BUILTIN{cmd->is_builtin?}
     BUILTIN -->|yes| RB[run_builtin_command]
     BUILTIN -->|no| EXT[execute_external]
-    RB --> RBX{redirs and not must_run_in_parent?}
+    RB --> RBX{redirs and not parent-only builtin?}
     RBX -->|yes| EXT
     RBX -->|no| RBP[dup2/apply_redirections/restore as needed]
     RBP --> RUNB[run_builtin]
@@ -823,7 +823,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    SC[Single command] --> MT{must_run_in_parent?}
+    SC[Single command] --> MT{parent-only builtin?}
     MT -->|cd export unset exit| PAR[run_builtin in parent]
     MT -->|no| RD{redirs or heredoc_fd?}
     RD -->|yes| FK[fork via execute_external]
@@ -833,7 +833,7 @@ flowchart TD
 
 ### 7.3 Single command (actual: `executor/executor.c`)
 
-Redirections use static `backup_fds` / `restore_fds` only when `cmd->redirs` or `heredoc_fd` is set. Empty argv → `run_empty_command`. Builtin path → `run_builtin_command` (may delegate to `execute_external` if redirs + not `must_run_in_parent`). Else → `execute_external` → fork → child `apply_redirections` + `execute_in_child`.
+Redirections use static `backup_fds` / `restore_fds` only when `cmd->redirs` or `heredoc_fd` is set. Empty argv → `run_empty_command`. Builtin path → `run_builtin_command` (may delegate to `execute_external` if redirs + not cd/export/unset/exit). Else → `execute_external` → fork → child `apply_redirections` + `execute_in_child`.
 
 ### 7.4 Pipeline Execution
 

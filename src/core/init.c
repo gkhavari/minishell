@@ -18,6 +18,8 @@ void	process_input(t_shell *shell)
 	if (tokenize_input(shell) == MSH_OOM)
 		return ;
 	parse_input(shell);
+	if (shell->oom)
+		return ;
 	if (!shell->commands)
 		return ;
 	if (process_heredocs(shell))

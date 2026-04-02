@@ -24,7 +24,8 @@ static int	heredoc_interrupted(t_heredoc_ctx *ctx, char *line)
 }
 
 /*
-** Returns 0 continue, 1 stop (delimiter matched), -1 error (OOM after write).
+** Returns MSH_HEREDOC_LINE_MORE, MSH_HEREDOC_LINE_DELIM,
+** or -1 (OOM after write).
 */
 static int	heredoc_consume_line(t_heredoc_ctx *ctx, char *line, int *line_no)
 {
@@ -32,7 +33,7 @@ static int	heredoc_consume_line(t_heredoc_ctx *ctx, char *line, int *line_no)
 	if (ft_strcmp(line, ctx->cmd->heredoc_delim) == 0)
 	{
 		free(line);
-		return (1);
+		return (MSH_HEREDOC_LINE_DELIM);
 	}
 	write_heredoc_line(line, ctx->pipe_fd[1], ctx->expand, ctx->shell);
 	if (ctx->shell->oom)
@@ -41,11 +42,12 @@ static int	heredoc_consume_line(t_heredoc_ctx *ctx, char *line, int *line_no)
 		return (-1);
 	}
 	free(line);
-	return (0);
+	return (MSH_HEREDOC_LINE_MORE);
 }
 
 /*
-** -1 interrupt/OOM path; 0 continue; 1 delimiter; 2 EOF (no line).
+** -1 interrupt/OOM path; MSH_HEREDOC_LINE_MORE continue;
+** MSH_HEREDOC_LINE_DELIM / MSH_HEREDOC_LINE_EOF end read loop.
 */
 static int	heredoc_read_one(t_heredoc_ctx *ctx, int *line_no, int start_line)
 {
@@ -63,7 +65,7 @@ static int	heredoc_read_one(t_heredoc_ctx *ctx, int *line_no, int start_line)
 	if (!line)
 	{
 		print_heredoc_eof_warning(start_line, ctx->cmd->heredoc_delim);
-		return (2);
+		return (MSH_HEREDOC_LINE_EOF);
 	}
 	st = heredoc_consume_line(ctx, line, line_no);
 	if (st < 0)

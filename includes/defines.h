@@ -15,6 +15,7 @@
 
 # define SUCCESS   0
 # define FAILURE   1
+/* Structural parse error in command build; not OOM (see MSH_OOM). */
 # define PARSE_ERR -1
 # define MSH_OOM   -2
 
@@ -33,10 +34,6 @@
 
 # define SINGLE_QUOTE 39
 # define DOUBLE_QUOTE 34
-/*
- * ASCII DEL (display filter); value equals EXIT_CMD_NOT_FOUND
- * but not exit API.
- */
 # define MSH_ASCII_DEL 127
 
 /* read_input status — not $? / exit codes (see AGENTS.md §9) */
@@ -71,6 +68,18 @@
 # define EXIT_STATUS_FROM_SIGNAL(sig)	((EXIT_STATUS_SIGNAL_BASE) + (sig))
 /* SIGINT from <signal.h>; include that before defines.h (minishell.h order). */
 # define EXIT_SIGINT			EXIT_STATUS_FROM_SIGNAL(SIGINT)
+
+/*
+ * Parser: tokens consumed per add_token_to_command / parse_redir step
+ * (see parser_build parse_token_step). Not $?.
+ */
+# define MSH_PARSE_ADVANCE_ONE	1
+# define MSH_PARSE_ADVANCE_PAIR	2
+
+/* Heredoc line reader state (heredoc_read_one / heredoc_consume_line). */
+# define MSH_HEREDOC_LINE_MORE	0
+# define MSH_HEREDOC_LINE_DELIM	1
+# define MSH_HEREDOC_LINE_EOF	2
 
 /* Shell name for stderr lines (see BEHAVIOR / subject). */
 # define MSH_NAME "minishell"

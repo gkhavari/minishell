@@ -19,13 +19,13 @@ static int	handle_heredoc_token(t_command *cmd, t_list *tok_node)
 	t_token		*next_tok;
 
 	if (!tok_node->next)
-		return (FAILURE);
+		return (PARSE_ERR);
 	next_tok = tok_node->next->content;
 	if (!next_tok->value)
-		return (FAILURE);
+		return (PARSE_ERR);
 	new_delim = ft_strdup(next_tok->value);
 	if (!new_delim)
-		return (FAILURE);
+		return (MSH_OOM);
 	if (cmd->heredoc_delim)
 		free(cmd->heredoc_delim);
 	cmd->heredoc_delim = new_delim;
@@ -63,27 +63,32 @@ static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 }
 
 /**
- * WORD → args; redir/heredoc → file or delim. Returns 1, 2, or PARSE_ERR.
+ * WORD → args; redir/heredoc → file or delim.
+ * Returns advance count, PARSE_ERR (structural), or MSH_OOM.
  */
 int	add_token_to_command(t_shell *shell, t_command *cmd, t_list *tok_node)
 {
 	t_token	*token;
+	int		hr;
 
 	token = tok_node->content;
 	if (token->type == WORD)
 	{
 		if (token->value
 			&& ft_strcmp(token->value, MSH_EMPTY_EXPAND_TOKEN) == 0)
-			return (1);
+			return (MSH_PARSE_ADVANCE_ONE);
 		if (add_word_to_cmd(shell, cmd, token->value) == FAILURE)
-			return (PARSE_ERR);
-		return (1);
+			return (MSH_OOM);
+		return (MSH_PARSE_ADVANCE_ONE);
 	}
 	if (token->type == HEREDOC)
 	{
-		if (handle_heredoc_token(cmd, tok_node) == FAILURE)
+		hr = handle_heredoc_token(cmd, tok_node);
+		if (hr == MSH_OOM)
+			return (MSH_OOM);
+		if (hr != SUCCESS)
 			return (PARSE_ERR);
-		return (2);
+		return (MSH_PARSE_ADVANCE_PAIR);
 	}
 	return (parse_redir_token_pair(cmd, tok_node));
 }

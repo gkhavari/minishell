@@ -93,7 +93,7 @@ typedef struct s_command {
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
-| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. The executor uses it with **`must_run_in_parent()`**: **`cd` / `export` / `unset` / `exit`** always run in the **parent**; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`execute_external`** (fork) like an external command. |
+| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. In `executor.c`, **`run_builtin_command`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`execute_external`** (fork) like an external command. |
 
 **Pipeline:** **`t_shell.commands`** is **`t_list *`** (`content` → **`t_command *`**).
 
@@ -230,7 +230,8 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **utils/ft_arrdup.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
 | **utils/msh_string.c** | `msh_is_lexer_blank` / `msh_is_ifs_blank` | Space+tab for readline-line lexer; space+tab+newline for default-IFS-style unquoted expansion (not full `ft_isspace`). |
 | **utils/msh_string.c** | `msh_env_var_body_span`, `msh_is_dollar_var_leader`, … | Shared `$NAME` tail and heredoc `$` leader checks (uses `ft_isalnum` / `ft_isalpha`). |
-| **free/free_exit.c** | `clean_exit(shell, status)` | `free_all`, close std fds, `_exit(status)` — child / fatal exit paths. |
+| **free/free_exit.c** | `clean_exit_before_readline(shell, status)` | `free_all`, close std fds, `exit` — init OOM before any `readline()` (no `rl_clear_history`). |
+| **free/free_exit.c** | `clean_exit(shell, status)` | `free_all`, `rl_clear_history`, close std fds, `exit` — child / post-readline fatal paths. |
 
 ---
 
@@ -267,11 +268,11 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **parser/parser.c** | `parse_input(shell)` | `syntax_check`; `build_command_list` + `finalize_all_commands`; frees token list. |
-| **parser/parser_build.c** | `build_command_list(shell, tokens)` | Walks `t_list` of tokens into `t_list` of `t_command *` (pipes split commands). |
-| **parser/parser_redir.c** | `parse_redir_token_pair(cmd, tok_node)` | Redir token + following WORD → `ft_lstadd_back` on `cmd->redirs`. |
-| **parser/add_token_to_cmd.c** | `add_token_to_command(shell, cmd, tok_node)` | Dispatches by `tok_node->content`; WORD → `ft_lstadd_back` on `args`; HEREDOC → delim; else `parse_redir_token_pair`. |
-| **parser/argv_build.c** | `finalize_all_commands(shell, cmd_list)` | Walks `t_list` of commands; `ft_lstsize`/`finalize_argv` per node. |
+| **parser/parser.c** | `parse_input(shell)` | `syntax_check`; `build_command_list` + `finalize_all_commands`; frees token list; **`MSH_OOM`** from finalize sets **`shell->oom`**, frees commands. |
+| **parser/parser_build.c** | `build_command_list(shell, tokens)` | Walks tokens into `t_list` of `t_command *`; **`PARSE_ERR`** → drop partial pipeline; **`MSH_OOM`** → **`shell->oom`**, drop pipeline. |
+| **parser/parser_redir.c** | `parse_redir_token_pair(cmd, tok_node)` | Redir + WORD → `cmd->redirs`; **`PARSE_ERR`** if missing word; **`MSH_OOM`** if malloc fails. |
+| **parser/add_token_to_cmd.c** | `add_token_to_command(...)` | WORD/HEREDOC/redir dispatch; **`PARSE_ERR`** structural; **`MSH_OOM`** on allocation failure. |
+| **parser/argv_build.c** | `finalize_all_commands(shell, cmd_list)` | Per command: `finalize_argv`; returns **`MSH_OOM`** on allocation failure (else **0**). |
 | **parser/argv_build.c** | `finalize_argv(shell, cmd)` | Builds cmd->argv from cmd->args (NULL-terminated array). |
 | **parser/parser_syntax_check.c** | `syntax_check(lst)` | Walks token `t_list`; validates pipes and redir+WORD. |
 | **parser/parser_syntax_check.c** | `syntax_error(msg)` | Prints "minishell: syntax error near unexpected token 'msg'" to stderr; returns SYNTAX_ERR. |
@@ -298,7 +299,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 |------|----------|-------------|
 | **executor/executor.c** | `execute_commands(shell)` | No commands → success; single cmd → empty / `run_builtin_command` / `execute_external`; else `execute_pipeline`. Returns last status. |
 | **executor/executor.c** | *(static)* `run_empty_command` | Redirs/heredoc only: backup fds, `apply_redirections`, restore. |
-| **executor/executor.c** | *(static)* `run_builtin_command` | If builtin with redirs and **not** `must_run_in_parent` → `execute_external`; else dup/apply/restore and `run_builtin`. |
+| **executor/executor.c** | *(static)* `run_builtin_command` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `execute_external`; else dup/apply/restore and `run_builtin`. |
 | **executor/executor.c** | *(static)* `backup_fds` / `restore_fds` | Dup stdin/stdout for builtin redir in parent. |
 | **executor/executor_redir_apply.c** | `apply_redirections(cmd)` | Walk `redirs`, open/dup2; then dup `heredoc_fd` to stdin if ≥ 0. |
 | **executor/executor_external.c** | `execute_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirections`, `execute_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `get_child_status`. |
@@ -323,7 +324,6 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **builtins/builtin_dispatcher.c** | `get_builtin_type(cmd)` | Returns enum (BUILTIN_ECHO, etc.) or `NOT_BUILTIN`; `argv_build.c` uses `!= NOT_BUILTIN` to set `cmd->is_builtin`. |
-| **builtins/builtin_dispatcher.c** | `must_run_in_parent(type)` | True for **cd / export / unset / exit** (must mutate parent shell or exit process). |
 | **builtins/builtin_dispatcher.c** | `run_builtin(argv, shell)` | Looks up `argv[0]` and calls the matching `builtin_*` via the static registry inside `builtin_registry()`. |
 | **builtins/echo.c** | `builtin_echo(args, shell)` | Prints args to stdout with spaces; handles -n (no newline). Returns 0. |
 | **builtins/cd.c** | `builtin_cd(args, shell)` | Changes directory (arg or HOME); updates PWD/OLDPWD in envp; returns 0/1. |

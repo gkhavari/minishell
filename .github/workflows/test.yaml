@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - evaluation
+      - fixvm
 env:
   HOME: /home/runner
   TESTER_DIR: /home/runner/42_minishell_tester

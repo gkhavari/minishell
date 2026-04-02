@@ -24,7 +24,9 @@ int	readline_event_hook(void)
 	return (0);
 }
 
-/** After readline returns: if SIGINT, set exit status 130 and clear flag. */
+/*
+** After readline: SIGINT -> last_exit EXIT_SIGINT, clear flag.
+*/
 int	check_signal_received(t_shell *shell)
 {
 	if (g_signum == SIGINT)

@@ -19,7 +19,7 @@ static void	init_fatal_errno(t_shell *shell, const char *detail)
 			MSH_NAME ": %s: %s\n", detail, strerror(errno));
 	else
 		ft_dprintf(STDERR_FILENO, MSH_NAME ": %s\n", strerror(errno));
-	clean_exit(shell, FAILURE);
+	clean_exit_before_readline(shell, FAILURE);
 }
 
 /** Dup envp, USER, cwd (fallback "/"); never returns on allocation failure. */

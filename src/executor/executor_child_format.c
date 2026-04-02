@@ -19,8 +19,7 @@ static int	needs_dollar_quote(char *cmd_name)
 	i = 0;
 	while (cmd_name && cmd_name[i])
 	{
-		if ((unsigned char)cmd_name[i] < 32
-			|| (unsigned char)cmd_name[i] == MSH_ASCII_DEL)
+		if (!ft_isprint((unsigned char)cmd_name[i]))
 			return (1);
 		i++;
 	}
@@ -56,8 +55,7 @@ static int	fill_dquote_body(char *out, int j, char *cmd_name)
 	i = 0;
 	while (cmd_name[i])
 	{
-		if ((unsigned char)cmd_name[i] < 32
-			|| (unsigned char)cmd_name[i] == MSH_ASCII_DEL
+		if (!ft_isprint((unsigned char)cmd_name[i])
 			|| cmd_name[i] == '\\' || cmd_name[i] == '\'')
 			j = append_escaped_char(out, j, cmd_name[i]);
 		else

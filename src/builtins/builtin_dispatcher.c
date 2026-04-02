@@ -52,13 +52,6 @@ t_builtin	get_builtin_type(char *cmd)
 	return (NOT_BUILTIN);
 }
 
-/** cd/export/unset/exit must not run in a forked child. */
-int	must_run_in_parent(t_builtin type)
-{
-	return (type == BUILTIN_CD || type == BUILTIN_EXPORT
-		|| type == BUILTIN_UNSET || type == BUILTIN_EXIT);
-}
-
 /** Dispatch argv[0] via registry (uniform int (*)(char **, t_shell *)). */
 int	run_builtin(char **argv, t_shell *shell)
 {

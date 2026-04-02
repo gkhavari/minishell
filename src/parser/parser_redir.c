@@ -39,29 +39,16 @@ static int	append_redir(t_command *cmd, char *file, int fd, int append)
 	return (SUCCESS);
 }
 
-static int	do_redir_in(t_command *cmd, char *file)
+static int	redir_pair(t_command *cmd, char *file, int fd, int append)
 {
-	if (append_redir(cmd, file, STDIN_FILENO, 0) == FAILURE)
-		return (PARSE_ERR);
-	return (2);
-}
-
-static int	do_redir_out(t_command *cmd, char *file)
-{
-	if (append_redir(cmd, file, STDOUT_FILENO, 0) == FAILURE)
-		return (PARSE_ERR);
-	return (2);
-}
-
-static int	do_redir_append(t_command *cmd, char *file)
-{
-	if (append_redir(cmd, file, STDOUT_FILENO, 1) == FAILURE)
-		return (PARSE_ERR);
-	return (2);
+	if (append_redir(cmd, file, fd, append) == FAILURE)
+		return (MSH_OOM);
+	return (MSH_PARSE_ADVANCE_PAIR);
 }
 
 /**
- * Redirection token + following WORD. Returns 2 or PARSE_ERR (or 1 fallback).
+ * Redirection token + following WORD.
+ * Returns MSH_PARSE_ADVANCE_PAIR, MSH_PARSE_ADVANCE_ONE, PARSE_ERR, or MSH_OOM.
  */
 int	parse_redir_token_pair(t_command *cmd, t_list *tok_node)
 {
@@ -75,10 +62,10 @@ int	parse_redir_token_pair(t_command *cmd, t_list *tok_node)
 	if (!next_tok->value)
 		return (PARSE_ERR);
 	if (cur->type == REDIR_IN)
-		return (do_redir_in(cmd, next_tok->value));
+		return (redir_pair(cmd, next_tok->value, STDIN_FILENO, 0));
 	if (cur->type == REDIR_OUT)
-		return (do_redir_out(cmd, next_tok->value));
+		return (redir_pair(cmd, next_tok->value, STDOUT_FILENO, 0));
 	if (cur->type == APPEND)
-		return (do_redir_append(cmd, next_tok->value));
-	return (1);
+		return (redir_pair(cmd, next_tok->value, STDOUT_FILENO, 1));
+	return (MSH_PARSE_ADVANCE_ONE);
 }

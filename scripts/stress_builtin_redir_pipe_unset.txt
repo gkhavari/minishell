@@ -1,0 +1,28 @@
+echo start
+export PATH=/usr/bin:/bin
+echo hi > /tmp/ms_stress1
+cat < /tmp/ms_stress1
+echo line2 >> /tmp/ms_stress1
+cat /tmp/ms_stress1 | wc -l
+/bin/echo a | /bin/echo b | /bin/cat
+cd /tmp
+pwd
+cd /
+export Z=1
+echo $Z
+unset Z
+/bin/echo outer > /tmp/ms_o
+/bin/cat < /tmp/ms_o
+unset PATH
+pwd
+/bin/echo no_path_ok
+export PATH=/bin:/usr/bin
+/bin/true | /bin/false
+echo $?
+unset HOME
+pwd
+export PATH=
+/bin/echo path_empty
+unset PATH
+export
+exit

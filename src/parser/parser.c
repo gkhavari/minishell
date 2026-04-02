@@ -22,9 +22,10 @@ static void	run_parse_core(t_shell *shell)
 		shell->last_exit = FAILURE;
 		return ;
 	}
-	if (finalize_all_commands(shell, shell->commands) < 0)
+	if (finalize_all_commands(shell, shell->commands) == MSH_OOM)
 	{
 		shell->last_exit = FAILURE;
+		shell->oom = 1;
 		free_commands(&shell->commands);
 		shell->commands = NULL;
 	}

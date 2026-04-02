@@ -42,6 +42,7 @@ size_t		msh_env_var_body_span(const char *s, size_t start);
 int			msh_is_dollar_var_leader(int c);
 
 /* free_exit.c */
+void		clean_exit_before_readline(t_shell *shell, int exit_status);
 void		clean_exit(t_shell *shell, int exit_status);
 
 /* tokenizer_loop.c */
@@ -194,7 +195,6 @@ int			check_signal_received(t_shell *shell);
 int			readline_event_hook(void);
 
 /* builtin_dispatcher.c */
-int			must_run_in_parent(t_builtin type);
 int			run_builtin(char **argv, t_shell *shell);
 t_builtin	get_builtin_type(char *cmd);
 
