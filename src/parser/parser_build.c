@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** New command after PIPE: alloc cmd, link into cmds_root, advance tok_node. */
 static int	append_pipe_command(t_shell *shell, t_command **cmd,
 		t_list **tok_node, t_list **cmds_root)
 {
@@ -22,15 +23,15 @@ static int	append_pipe_command(t_shell *shell, t_command **cmd,
 	if (!nc)
 	{
 		shell->last_exit = FAILURE;
-		free_commands(cmds_root);
+		free_cmds(cmds_root);
 		return (OOM);
 	}
-	nc->heredoc_fd = -1;
+	nc->hd_fd = -1;
 	node = ft_lstnew(nc);
 	if (!node)
 	{
 		free(nc);
-		free_commands(cmds_root);
+		free_cmds(cmds_root);
 		return (OOM);
 	}
 	ft_lstadd_back(cmds_root, node);
@@ -39,6 +40,7 @@ static int	append_pipe_command(t_shell *shell, t_command **cmd,
 	return (SUCCESS);
 }
 
+/** add_token_to_command and advance *tok_node by consumed tokens. */
 static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 		t_list **tok_node, t_list **cmds_root)
 {
@@ -47,13 +49,13 @@ static int	parse_token_nonpipe(t_shell *shell, t_command *cmd,
 	consumed = add_token_to_command(shell, cmd, *tok_node);
 	if (consumed == OOM)
 	{
-		free_commands(cmds_root);
+		free_cmds(cmds_root);
 		shell->oom = 1;
 		return (OOM);
 	}
 	if (consumed == PR_ERR)
 	{
-		free_commands(cmds_root);
+		free_cmds(cmds_root);
 		return (FAILURE);
 	}
 	while (consumed > 0 && *tok_node)
@@ -87,6 +89,7 @@ static int	parse_token_step(t_shell *shell, t_command **cmd,
 	return (parse_token_nonpipe(shell, *cmd, tok_node, cmds_root));
 }
 
+/** Allocate first pipeline command and list head; OOM → NULL. */
 static t_list	*cmdlist_first_node(t_shell *shell, t_command **cmd_out)
 {
 	t_command	*c;
@@ -99,13 +102,12 @@ static t_list	*cmdlist_first_node(t_shell *shell, t_command **cmd_out)
 		shell->oom = 1;
 		return (NULL);
 	}
-	c->heredoc_fd = -1;
+	c->hd_fd = -1;
 	lst = ft_lstnew(c);
 	if (!lst)
 	{
 		shell->oom = 1;
-		free(c);
-		return (NULL);
+		return (free(c), NULL);
 	}
 	*cmd_out = c;
 	return (lst);

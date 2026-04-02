@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Print errno detail, exit_norl(FAILURE) — init allocation fatal path. */
 static void	init_fatal_errno(t_shell *shell, const char *detail)
 {
 	if (detail != NULL)
@@ -19,7 +20,7 @@ static void	init_fatal_errno(t_shell *shell, const char *detail)
 			SH_NAME ": %s: %s\n", detail, strerror(errno));
 	else
 		ft_dprintf(STDERR_FILENO, SH_NAME ": %s\n", strerror(errno));
-	clean_exit_before_readline(shell, FAILURE);
+	exit_norl(shell, FAILURE);
 }
 
 /** Dup envp, USER, cwd (fallback "/"); never returns on allocation failure. */
@@ -59,17 +60,17 @@ char	*get_env_value(char **envp, const char *key)
 	key_len = 0;
 	while (key[key_len])
 		key_len++;
-	i = 0;
-	while (envp[i])
+	i = -1;
+	while (envp[++i])
 	{
 		if (ft_strncmp(envp[i], key, key_len) == 0
 			&& envp[i][key_len] == '=')
 			return (envp[i] + key_len + 1);
-		i++;
 	}
 	return (NULL);
 }
 
+/** Ensure PWD, SHLVL, default _= when missing from inherited envp. */
 static void	ensure_default_envs(t_shell *shell)
 {
 	int		idx;
@@ -106,10 +107,10 @@ void	init_runtime_fields(t_shell *shell)
 	shell->last_exit = SUCCESS;
 	shell->barrier_write_fd = -1;
 	shell->tokens = NULL;
-	shell->commands = NULL;
+	shell->cmds = NULL;
 	shell->input = NULL;
 	shell->word_quoted = 0;
-	shell->heredoc_mode = 0;
+	shell->hd_mod = 0;
 	shell->oom = 0;
 	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
 }

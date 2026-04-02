@@ -69,9 +69,9 @@ typedef struct s_command
 	t_list				*args;
 	char				**argv;
 	t_list				*redirs;
-	int					heredoc_fd;
-	char				*heredoc_delim;
-	int					heredoc_quoted;
+	int					hd_fd;
+	char				*hd_delim;
+	int					hd_quoted;
 	int					stdin_last;
 	int					is_builtin;
 }	t_command;
@@ -85,10 +85,10 @@ typedef struct s_shell
 	int					had_path;
 	int					barrier_write_fd;
 	t_list				*tokens;
-	t_list				*commands;
+	t_list				*cmds;
 	char				*input;
 	int					word_quoted;
-	int					heredoc_mode;
+	int					hd_mod;
 	int					oom;
 }	t_shell;
 

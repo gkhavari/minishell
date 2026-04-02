@@ -81,7 +81,7 @@ static int	repl_after_read(t_shell *shell)
 	syntax_err = 0;
 	if (shell->input[0])
 		process_input(shell);
-	if (!shell->commands && shell->last_exit == XSYN)
+	if (!shell->cmds && shell->last_exit == XSYN)
 		syntax_err = 1;
 	reset_shell(shell);
 	if (isatty(STDIN_FILENO) != 1 && syntax_err)
@@ -89,11 +89,8 @@ static int	repl_after_read(t_shell *shell)
 	return (0);
 }
 
-/*
- * REPL: read line, process_input, reset between lines.
- * Read-path OOM (prompt / stdin line): teardown line state, exit loop — same
- * as RL_EOF toward main (free_all). Tokenize/parse OOM uses return OOM /
- * shell->oom inside process_input; reset_shell clears oom each iteration.
+/**
+ * REPL: read_input, process_input, reset until EOF/OOM or non-TTY syntax exit.
  */
 void	shell_loop(t_shell *shell)
 {

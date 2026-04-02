@@ -26,11 +26,11 @@ static int	handle_heredoc_token(t_command *cmd, t_list *tok_node)
 	new_delim = ft_strdup(next_tok->value);
 	if (!new_delim)
 		return (OOM);
-	if (cmd->heredoc_delim)
-		free(cmd->heredoc_delim);
-	cmd->heredoc_delim = new_delim;
-	cmd->heredoc_quoted = next_tok->quoted;
-	cmd->stdin_last = STDIN_LAST_HEREDOC;
+	if (cmd->hd_delim)
+		free(cmd->hd_delim);
+	cmd->hd_delim = new_delim;
+	cmd->hd_quoted = next_tok->quoted;
+	cmd->stdin_last = STDIN_LAST_HD;
 	return (SUCCESS);
 }
 
@@ -48,17 +48,10 @@ static int	add_word_to_cmd(t_shell *shell, t_command *cmd, char *word)
 		return (FAILURE);
 	new->value = ft_strdup(word);
 	if (!new->value)
-	{
-		free(new);
-		return (FAILURE);
-	}
+		return (free(new), FAILURE);
 	node = ft_lstnew(new);
 	if (!node)
-	{
-		free(new->value);
-		free(new);
-		return (FAILURE);
-	}
+		return (free(new->value), free(new), FAILURE);
 	ft_lstadd_back(&cmd->args, node);
 	return (SUCCESS);
 }

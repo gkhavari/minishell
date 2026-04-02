@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Print value with backslash escapes for \\ " $ `. */
 static void	print_escaped_value(char *value)
 {
 	int	i;
@@ -28,6 +29,7 @@ static void	print_escaped_value(char *value)
 	}
 }
 
+/** export KEY="val" line; optional SHLVL bump for display. */
 static void	print_export_value_quoted(char *key, char *val_start,
 		int bump_shlvl)
 {
@@ -49,6 +51,7 @@ static void	print_export_value_quoted(char *key, char *val_start,
 	}
 }
 
+/** One env line: export name or export KEY="escaped value". */
 static void	print_export_entry(char *entry, int bump_shlvl)
 {
 	char	*eq;
@@ -65,6 +68,7 @@ static void	print_export_entry(char *entry, int bump_shlvl)
 	free(key);
 }
 
+/** Print sorted env as export -p; OLDPWD quirks when PATH was missing. */
 static void	dump_sorted_exports(t_shell *shell, char **sorted, int count)
 {
 	int	i;
@@ -109,6 +113,5 @@ int	print_sorted_env(t_shell *shell)
 	i = 0;
 	while (sorted[i])
 		free(sorted[i++]);
-	free(sorted);
-	return (SUCCESS);
+	return (free(sorted), SUCCESS);
 }

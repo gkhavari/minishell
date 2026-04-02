@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Skip space, read optional sign, set *valid if first char is digit. */
 static void	parse_exit_init(char *str, int *i, int *sign, int *valid)
 {
 	while (str[*i] && ft_isspace((unsigned char)str[*i]))
@@ -22,6 +23,7 @@ static void	parse_exit_init(char *str, int *i, int *sign, int *valid)
 	*valid = ft_isdigit(str[*i]);
 }
 
+/** Accumulate digits into *acc with overflow check against limit. */
 static int	parse_exit_accumulate(char *str, int *i,
 		unsigned long long *acc, unsigned long long limit)
 {
@@ -35,6 +37,7 @@ static int	parse_exit_accumulate(char *str, int *i,
 	return (1);
 }
 
+/** True if only trailing whitespace remains after digit run. */
 static int	parse_exit_finalize(char *str, int i)
 {
 	while (str[i] && ft_isspace((unsigned char)str[i]))

@@ -12,16 +12,10 @@
 
 #include "minishell.h"
 
-/*
-** Teardown then exit: free heap (incl. commands → heredoc fds), close 0/1/2,
-** exit. Closing std fds is redundant with kernel close-on-exit but helps
-** Valgrind --track-fds and makes intent explicit; it does not replace closing
-** pipe/redir fds elsewhere — those must be closed before this path.
-**
-** clean_exit_before_readline: fork children + early init fatal — no rl_clear.
-** clean_exit: main shell after readline (exit builtin); clears history first.
-*/
-void	clean_exit_before_readline(t_shell *shell, int exit_status)
+/**
+ * free_all, close std fds, exit. Child/early-fatal path (no readline history).
+ */
+void	exit_norl(t_shell *shell, int exit_status)
 {
 	free_all(shell);
 	close(STDIN_FILENO);
@@ -30,6 +24,9 @@ void	clean_exit_before_readline(t_shell *shell, int exit_status)
 	exit(exit_status);
 }
 
+/**
+ * Like exit_norl but rl_clear_history first (normal exit after readline).
+ */
 void	clean_exit(t_shell *shell, int exit_status)
 {
 	free_all(shell);

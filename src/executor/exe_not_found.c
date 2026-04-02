@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** True if cmd name needs bash $'…' style display (non-printable bytes). */
 static int	needs_dollar_quotes(char *cmd_name)
 {
 	int	i;
@@ -26,6 +27,7 @@ static int	needs_dollar_quotes(char *cmd_name)
 	return (FALSE);
 }
 
+/** Append backslash escape for c into out at j; return new write index. */
 static int	append_escaped_char(char *out, int j, char c)
 {
 	out[j++] = '\\';
@@ -48,6 +50,7 @@ static int	append_escaped_char(char *out, int j, char c)
 	return (j);
 }
 
+/** Fill $'…' body escapes for cmd_name into out starting at j. */
 static int	fill_dollar_quoted_name(char *out, int j, char *cmd_name)
 {
 	int	i;
@@ -65,6 +68,7 @@ static int	fill_dollar_quoted_name(char *out, int j, char *cmd_name)
 	return (j);
 }
 
+/** malloc display string or NULL if plain cmd_name is enough. */
 static char	*format_not_found_name(char *cmd_name)
 {
 	char	*out;

@@ -13,9 +13,8 @@
 #include "minishell.h"
 
 /**
- * Non-TTY: byte-read STDIN into *line until newline or EOF (no newline in buf).
- * Starts empty; grows via append_char (ft_realloc). RL_LN / RL_EOF / OOM.
- * If set_shell_oom_on_fail and append fails, sets shell->oom.
+ * Read stdin byte-wise into *line until newline/EOF (realloc via append_char).
+ * RL_LN, RL_EOF, or OOM; optional shell->oom on append failure.
  */
 int	ft_read_stdin_line(t_shell *shell, char **line, int set_shell_oom_on_fail)
 {

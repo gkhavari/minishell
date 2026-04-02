@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Set env line by key: replace existing row or append_export_env. */
 static int	replace_or_append(t_shell *shell, char *arg, char *key)
 {
 	int		idx;
@@ -30,10 +31,7 @@ static int	replace_or_append(t_shell *shell, char *arg, char *key)
 	return (append_export_env(shell, arg));
 }
 
-/**
- * VAR+=suffix: build full KEY=value, replace/append by key name.
- * replace_or_append() matches env keys by key_name length only.
- */
+/** VAR+=value: merge with old value then replace_or_append by key_name. */
 static int	handle_append(t_shell *shell, char *key_name, char *eq)
 {
 	char	*old_val;
@@ -58,11 +56,10 @@ static int	handle_append(t_shell *shell, char *key_name, char *eq)
 	if (!full)
 		return (free(key_name), FAILURE);
 	ret = replace_or_append(shell, full, key_name);
-	free(key_name);
-	free(full);
-	return (ret);
+	return (free(key_name), free(full), ret);
 }
 
+/** KEY=value or KEY+=value after validation; frees key when done. */
 static int	export_apply_assign(t_shell *shell, char *arg, char *key,
 		char *eq)
 {
@@ -78,12 +75,12 @@ static int	export_apply_assign(t_shell *shell, char *arg, char *key,
 	if (!append_mode)
 	{
 		ret = replace_or_append(shell, arg, key);
-		free(key);
-		return (ret);
+		return (free(key), ret);
 	}
 	return (handle_append(shell, key, eq));
 }
 
+/** One export argument: name-only export or KEY=value assignment. */
 static int	set_env_var(t_shell *shell, char *arg)
 {
 	char	*eq;
@@ -118,9 +115,9 @@ int	builtin_export(char **args, t_shell *shell)
 
 	if (!args[1])
 		return (print_sorted_env(shell));
-	i = 1;
+	i = 0;
 	ret = SUCCESS;
-	while (args[i])
+	while (args[++i])
 	{
 		if (args[i][0] == '-')
 		{
@@ -133,7 +130,6 @@ int	builtin_export(char **args, t_shell *shell)
 			if (ret != XSYN)
 				ret = FAILURE;
 		}
-		i++;
 	}
 	return (ret);
 }

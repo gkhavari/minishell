@@ -22,9 +22,7 @@ int	is_op_char(char c)
 	return (FALSE);
 }
 
-/**
- * Classify operator at s; set *type and return consumed length (0 if none).
- */
+/** Operator at s → *type and byte length (0 if not an operator). */
 static size_t	get_op_len_type(const char *s, t_tokentype *type)
 {
 	if (s[0] == '|')
@@ -42,6 +40,7 @@ static size_t	get_op_len_type(const char *s, t_tokentype *type)
 	return (0);
 }
 
+/** Literal spelling for operator token value field. */
 static char	*get_op_value(t_tokentype type)
 {
 	if (type == PIPE)

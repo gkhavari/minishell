@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Open file read-only, dup2 to stdin. */
 static int	apply_input_redir(t_redir *r)
 {
 	int	fd;
@@ -27,6 +28,7 @@ static int	apply_input_redir(t_redir *r)
 	return (SUCCESS);
 }
 
+/** Open file for write (truncate/append), dup2 to r->fd. */
 static int	apply_output_redir(t_redir *r)
 {
 	int	fd;
@@ -45,6 +47,7 @@ static int	apply_output_redir(t_redir *r)
 	return (SUCCESS);
 }
 
+/** Reject ambiguous redirect; dispatch < vs >/>>. */
 static int	apply_one_redir(t_redir *r)
 {
 	size_t	prefix_len;
@@ -79,12 +82,12 @@ int	apply_redirs(t_command *cmd)
 			return (FAILURE);
 		node = node->next;
 	}
-	if (cmd->heredoc_fd != -1)
+	if (cmd->hd_fd != -1)
 	{
-		if (cmd->stdin_last == STDIN_LAST_HEREDOC)
-			dup2(cmd->heredoc_fd, STDIN_FILENO);
-		close(cmd->heredoc_fd);
-		cmd->heredoc_fd = -1;
+		if (cmd->stdin_last == STDIN_LAST_HD)
+			dup2(cmd->hd_fd, STDIN_FILENO);
+		close(cmd->hd_fd);
+		cmd->hd_fd = -1;
 	}
 	return (SUCCESS);
 }

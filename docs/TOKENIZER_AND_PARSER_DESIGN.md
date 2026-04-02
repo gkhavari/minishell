@@ -82,7 +82,7 @@ Expansion is integrated into tokenization:
 - unquoted path calls variable and tilde handlers
 - heredoc mode disables normal variable expansion in unquoted path
 
-`expand_var(...)` in `src/tokenizer/expansion.c` handles:
+`exp_var(...)` in `src/tokenizer/expansion.c` handles:
 
 - `$?` -> last exit as string
 - `$<digit>` -> empty
@@ -96,7 +96,7 @@ Expansion is integrated into tokenization:
 
 - flushes current word first
 - reads operator token length (`<`, `>`, `|`, `<<`, `>>`)
-- sets `shell->heredoc_mode = 1` when `<<` is tokenized
+- sets `shell->hd_mod = 1` when `<<` is tokenized
 
 This flag is part of expansion policy around heredoc handling.
 
@@ -154,7 +154,7 @@ the token cursor correctly and can unwind robustly.
 
 After command list build, parser finalizes each command:
 
-- `finalize_all_commands(...)` in `src/parser/argv_build.c`
+- `finalize_cmds(...)` in `src/parser/argv_build.c`
 - allocates `cmd->argv` and duplicates all `cmd->args` values
 - sets `cmd->is_builtin` via `get_builtin_type(...)`
 - special case: `env` with arguments is not treated as shell builtin here

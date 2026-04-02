@@ -21,12 +21,11 @@ static int	is_valid_unset_name(char *name)
 		return (FALSE);
 	if (!ft_isalpha(name[0]) && name[0] != '_')
 		return (FALSE);
-	i = 1;
-	while (name[i])
+	i = 0;
+	while (name[++i])
 	{
 		if (!ft_isalnum(name[i]) && name[i] != '_')
 			return (FALSE);
-		i++;
 	}
 	return (TRUE);
 }
@@ -39,8 +38,8 @@ static int	find_env_index(t_shell *shell, char *key)
 	int		env_key_len;
 
 	key_len = ft_strlen(key);
-	i = 0;
-	while (shell->envp[i])
+	i = -1;
+	while (shell->envp[++i])
 	{
 		env_key_len = 0;
 		while (shell->envp[i][env_key_len]
@@ -49,7 +48,6 @@ static int	find_env_index(t_shell *shell, char *key)
 		if (env_key_len == key_len
 			&& ft_strncmp(shell->envp[i], key, key_len) == 0)
 			return (i);
-		i++;
 	}
 	return (-1);
 }
@@ -69,6 +67,9 @@ static void	remove_env_entry(t_shell *shell, int idx)
 	shell->envp[i] = NULL;
 }
 
+/**
+ * One unset arg: bad option → error; invalid name ignored; else drop from envp.
+ */
 static int	unset_one_arg(char *arg, t_shell *shell)
 {
 	int	idx;
@@ -94,14 +95,13 @@ int	builtin_unset(char **args, t_shell *shell)
 	int	ret;
 	int	r;
 
-	i = 1;
+	i = 0;
 	ret = 0;
-	while (args[i])
+	while (args[++i])
 	{
 		r = unset_one_arg(args[i], shell);
 		if (r > ret)
 			ret = r;
-		i++;
 	}
 	return (ret);
 }

@@ -12,7 +12,9 @@
 
 #include "minishell.h"
 
-/** Bash-style EOF warning before wanted closing delimiter. */
+/**
+ * Print bash-style warning when heredoc ends on EOF before delimiter.
+ */
 void	print_heredoc_eof_warning(int line_no, char *delim)
 {
 	int	display_line;
@@ -22,18 +24,19 @@ void	print_heredoc_eof_warning(int line_no, char *delim)
 		display_line = 1;
 	ft_dprintf(STDERR_FILENO,
 		"warning: here-document at line %d delimited by end-of-file "
-		"(wanted `%s')\n",
-		display_line, delim);
+		"(wanted `%s')\n", display_line, delim);
 }
 
-/** Write line to heredoc pipe, optionally expanding variables. */
+/**
+ * Write one heredoc body line to pipe fd; if expand, use exp_hd_line first.
+ */
 void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 {
 	char	*expanded;
 
 	if (expand)
 	{
-		expanded = expand_heredoc_line(line, shell);
+		expanded = exp_hd_line(line, shell);
 		if (!expanded)
 		{
 			shell->oom = 1;
@@ -46,9 +49,10 @@ void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 		ft_dprintf(fd, "%s\n", line);
 }
 
-/*
-** TTY: readline("> "); else ft_read_stdin_line (sets shell->oom on OOM).
-*/
+/**
+ * Read one heredoc input line: readline("> ") if TTY, else ft_read_stdin_line.
+ * Returns NULL on EOF/OOM (OOM sets shell->oom when using stdin path).
+ */
 char	*heredoc_read_line(t_shell *shell)
 {
 	char	*line;

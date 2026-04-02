@@ -12,10 +12,9 @@
 
 #include "minishell.h"
 
-/*
-** One row per builtin; order matches e_builtin from B_ECHO … B_EXIT.
-** Registry lives in function-local static storage (no file-scope globals).
-*/
+/**
+ * Builtin name→fn table (static); row order matches B_ECHO … B_EXIT.
+ */
 static const t_builtin_reg	*builtin_registry(void)
 {
 	static const t_builtin_reg	tab[] = {
@@ -42,12 +41,11 @@ t_builtin	get_builtin_type(char *cmd)
 		return (B_NONE);
 	tab = builtin_registry();
 	n = (size_t)(B_COUNT - B_ECHO);
-	i = 0;
-	while (i < n)
+	i = (size_t)-1;
+	while (++i < n)
 	{
 		if (ft_strcmp(cmd, tab[i].name) == 0)
 			return ((t_builtin)(B_ECHO + i));
-		i++;
 	}
 	return (B_NONE);
 }

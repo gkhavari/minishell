@@ -12,6 +12,10 @@
 
 #include "minishell.h"
 
+/**
+ * Grow buffer: copy min(old, new_size-1) bytes, free ptr.
+ * new_size 0 frees ptr; NULL ptr uses ft_calloc.
+ */
 char	*ft_realloc(char *ptr, const size_t new_size)
 {
 	char	*res;
@@ -19,10 +23,7 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	size_t	copy_size;
 
 	if (new_size == 0)
-	{
-		free(ptr);
-		return (NULL);
-	}
+		return (free(ptr), NULL);
 	if (ptr == NULL)
 		return (ft_calloc(new_size, sizeof(char)));
 	res = ft_calloc(new_size, sizeof(char));
@@ -34,6 +35,5 @@ char	*ft_realloc(char *ptr, const size_t new_size)
 	else
 		copy_size = new_size - 1;
 	ft_memcpy(res, ptr, copy_size);
-	free(ptr);
-	return (res);
+	return (free(ptr), res);
 }

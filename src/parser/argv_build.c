@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Free argv[0..count-1] and argv array (partial build rollback). */
 static void	cleanup_partial_argv(char **argv, size_t count)
 {
 	while (count > 0)
@@ -23,9 +24,7 @@ static void	cleanup_partial_argv(char **argv, size_t count)
 	free(argv);
 }
 
-/**
- * Build cmd->argv from cmd->args (NULL-terminated). Returns 0 or OOM.
- */
+/** Dup each arg->value into cmd->argv[count+1]; 0 or OOM. */
 static int	build_argv_array(t_command *cmd, t_list *arg_node, size_t count)
 {
 	size_t	i;
@@ -49,6 +48,7 @@ static int	build_argv_array(t_command *cmd, t_list *arg_node, size_t count)
 	return (0);
 }
 
+/** calloc argv, then build_argv_array from cmd->args. */
 static int	finalize_argv(t_shell *shell, t_command *cmd)
 {
 	size_t	count;
@@ -65,7 +65,7 @@ static int	finalize_argv(t_shell *shell, t_command *cmd)
  * For each command: build argv, set is_builtin from get_builtin_type (env rule).
  * Returns 0 or OOM.
  */
-int	finalize_all_commands(t_shell *shell, t_list *cmd_list)
+int	finalize_cmds(t_shell *shell, t_list *cmd_list)
 {
 	t_list		*node;
 	t_command	*cmd;

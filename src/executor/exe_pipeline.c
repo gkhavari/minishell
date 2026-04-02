@@ -12,8 +12,8 @@
 
 #include "minishell.h"
 
-static int	update_last_status_from_wait(pid_t pid, int status,
-		pid_t last_pid, int *last_status)
+/** waitpid result: update *last_st when pid matches last pipeline child. */
+static int	upd_wait_st(pid_t pid, int status, pid_t last_pid, int *last_st)
 {
 	if (pid < 0)
 	{
@@ -26,36 +26,37 @@ static int	update_last_status_from_wait(pid_t pid, int status,
 	if (pid == last_pid)
 	{
 		if (WIFEXITED(status))
-			*last_status = WEXITSTATUS(status);
+			*last_st = WEXITSTATUS(status);
 		else if (WIFSIGNALED(status))
-			*last_status = XSIG(WTERMSIG(status));
+			*last_st = XSIG(WTERMSIG(status));
 	}
 	return (1);
 }
 
-static int	wait_for_pipeline_children(pid_t last_pid, int n)
+/** waitpid(-1) until n children; return last segment's exit status. */
+static int	wait_pipes(pid_t last_pid, int n)
 {
 	int		status;
-	int		last_status;
+	int		last_st;
 	int		i;
 	int		step;
 	pid_t	pid;
 
-	last_status = FAILURE;
+	last_st = FAILURE;
 	i = 0;
 	while (i < n)
 	{
 		pid = waitpid(-1, &status, 0);
-		step = update_last_status_from_wait(pid, status, last_pid,
-				&last_status);
+		step = upd_wait_st(pid, status, last_pid, &last_st);
 		if (step < 0)
 			break ;
 		i += step;
 	}
-	return (last_status);
+	return (last_st);
 }
 
-static int	spawn_pipeline_children(t_list *cmd_node, t_shell *shell,
+/** Fork each pipe_step; return count or break on fork/pipe error. */
+static int	spawn_pipes(t_list *cmd_node, t_shell *shell,
 		pid_t *last_pid, int sync_fd[2])
 {
 	int		prev_fd;
@@ -96,10 +97,10 @@ int	run_pipeline(t_list *cmds, t_shell *shell)
 	if (pipeline_all_nf(cmds, shell))
 		return (XNF);
 	set_signals_ignore();
-	n = spawn_pipeline_children(cmds, shell, &last_pid, sync_fd);
+	n = spawn_pipes(cmds, shell, &last_pid, sync_fd);
 	result = FAILURE;
 	if (n > 0)
-		result = wait_for_pipeline_children(last_pid, n);
+		result = wait_pipes(last_pid, n);
 	set_signals_interactive();
 	return (result);
 }

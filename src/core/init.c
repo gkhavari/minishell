@@ -12,10 +12,9 @@
 
 #include "minishell.h"
 
-/*
- * Tokenize, parse, heredocs, run_commands.
- * After tokenize_input, OOM is only via shell->oom (parse build/finalize,
- * heredoc expand/read) where the API returns NULL/void, not OOM int.
+/**
+ * Tokenize, parse, heredocs, run_commands; updates last_exit / oom.
+ * tokenizer OOM returns early; later OOM is shell->oom only.
  */
 void	process_input(t_shell *shell)
 {
@@ -24,7 +23,7 @@ void	process_input(t_shell *shell)
 	parse_input(shell);
 	if (shell->oom)
 		return ;
-	if (!shell->commands)
+	if (!shell->cmds)
 		return ;
 	if (process_heredocs(shell))
 	{
@@ -37,6 +36,7 @@ void	process_input(t_shell *shell)
 	shell->last_exit = run_commands(shell);
 }
 
+/** Replace or append SHLVL= line in envp (frees entry if appended). */
 static void	set_shlvl_entry(t_shell *shell, char *entry)
 {
 	int	idx;
@@ -54,6 +54,7 @@ static void	set_shlvl_entry(t_shell *shell, char *entry)
 	}
 }
 
+/** Bump SHLVL in env from current value (interactive shell startup). */
 static void	update_shlvl(t_shell *shell)
 {
 	char	*shlvl_val;

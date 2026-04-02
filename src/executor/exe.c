@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** dup stdin and stdout into in and out for builtin redir restore. */
 static int	backup_stdio_fds(int *in, int *out)
 {
 	*in = dup(STDIN_FILENO);
@@ -27,6 +28,7 @@ static int	backup_stdio_fds(int *in, int *out)
 	return (SUCCESS);
 }
 
+/** dup2 back from backups and close backup fds. */
 static void	restore_stdio_fds(int stdin_backup, int stdout_backup)
 {
 	dup2(stdin_backup, STDIN_FILENO);
@@ -35,11 +37,12 @@ static void	restore_stdio_fds(int stdin_backup, int stdout_backup)
 	close(stdout_backup);
 }
 
+/** No argv[0]: optional redirs/heredoc only, then restore stdio. */
 static int	run_empty_command(t_command *cmd, int *in, int *out)
 {
 	int	need_restore;
 
-	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+	need_restore = (cmd->redirs != NULL || cmd->hd_fd != -1);
 	if (need_restore && backup_stdio_fds(in, out))
 		return (FAILURE);
 	if (need_restore && apply_redirs(cmd))
@@ -52,6 +55,7 @@ static int	run_empty_command(t_command *cmd, int *in, int *out)
 	return (SUCCESS);
 }
 
+/** Builtin with redir: backup/apply/restore or delegate to run_external. */
 static int	run_single_builtin(t_command *cmd, t_shell *shell,
 		int *in, int *out)
 {
@@ -59,7 +63,7 @@ static int	run_single_builtin(t_command *cmd, t_shell *shell,
 	int	need_restore;
 
 	type = get_builtin_type(cmd->argv[0]);
-	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
+	need_restore = (cmd->redirs != NULL || cmd->hd_fd != -1);
 	if (need_restore && type != B_CD && type != B_EXPORT
 		&& type != B_UNSET && type != B_EXIT)
 		return (run_external(cmd, shell));
@@ -76,7 +80,7 @@ static int	run_single_builtin(t_command *cmd, t_shell *shell,
 }
 
 /**
- * Run parsed commands from shell->commands: empty argv, builtin or external,
+ * Run parsed commands from shell->cmds: empty argv, builtin or external,
  * or pipeline. Last exit status; SUCCESS if nothing to run.
  */
 int	run_commands(t_shell *shell)
@@ -85,11 +89,11 @@ int	run_commands(t_shell *shell)
 	int			stdin_backup;
 	int			stdout_backup;
 
-	if (!shell->commands)
+	if (!shell->cmds)
 		return (SUCCESS);
-	if (!shell->commands->next)
+	if (!shell->cmds->next)
 	{
-		cmd = shell->commands->content;
+		cmd = shell->cmds->content;
 		if (!cmd->argv || !cmd->argv[0])
 			return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
 		if (cmd->is_builtin)
@@ -97,5 +101,5 @@ int	run_commands(t_shell *shell)
 					&stdin_backup, &stdout_backup));
 		return (run_external(cmd, shell));
 	}
-	return (run_pipeline(shell->commands, shell));
+	return (run_pipeline(shell->cmds, shell));
 }

@@ -12,7 +12,11 @@
 
 #include "minishell.h"
 
-static int	is_redir_target(t_shell *shell, char *word)
+/**
+ * True when the last token is a redirect op and *word is empty (next arg).
+ * Used to detect ambiguous redirect after empty `$` expansion.
+ */
+static int	exp_redir_tok(t_shell *shell, char *word)
 {
 	t_list	*last_n;
 	t_token	*last;
@@ -29,7 +33,10 @@ static int	is_redir_target(t_shell *shell, char *word)
 	return (FALSE);
 }
 
-static int	push_ambg_redir_tok(t_shell *shell, size_t start, size_t end)
+/**
+ * Push one WORD with S_AMBIG prefix for input slice [start, end) (ambiguous).
+ */
+static int	exp_ambg_push(t_shell *shell, size_t start, size_t end)
 {
 	char	*raw;
 	char	*value;
@@ -50,10 +57,10 @@ static int	push_ambg_redir_tok(t_shell *shell, size_t start, size_t end)
 }
 
 /**
- * Empty $ expansion at word boundary: empty token or ambiguous redirect.
+ * After `$` expanded to empty: at word boundary, emit EMPTY token or ambig.
+ * Returns TOK_N if not at boundary, TOK_Y if handled, OOM on failure.
  */
-int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
-		size_t end, char **word)
+int	exp_empty(t_shell *shell, size_t start, size_t end, char **word)
 {
 	t_token	*tok;
 
@@ -61,8 +68,8 @@ int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 			&& !msh_is_blank((unsigned char)shell->input[end], 1)
 			&& !is_op_char(shell->input[end])))
 		return (TOK_N);
-	if (is_redir_target(shell, *word))
-		return (push_ambg_redir_tok(shell, start, end));
+	if (exp_redir_tok(shell, *word))
+		return (exp_ambg_push(shell, start, end));
 	tok = new_token(shell, WORD, S_EMPTY);
 	if (!tok || add_token(&shell->tokens, tok) == OOM)
 		return (OOM);
@@ -70,10 +77,10 @@ int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 }
 
 /**
- * Append exp to *word (quoted context; no whitespace split).
- * Returns OOM if ft_realloc fails (*word unchanged).
+ * Append expanded string to *word inside quotes (no blank-based splitting).
+ * Returns OOM if ft_realloc fails; else SUCCESS.
  */
-int	append_expansion_quoted(char **word, const char *exp)
+int	exp_q_cat(char **word, const char *exp)
 {
 	size_t	len_word;
 	size_t	len_exp;

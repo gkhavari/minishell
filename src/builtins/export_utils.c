@@ -27,12 +27,11 @@ int	is_valid_export_name(char *name)
 		return (FALSE);
 	if (!ft_isalpha(name[0]) && name[0] != '_')
 		return (FALSE);
-	i = 1;
-	while (name[i])
+	i = 0;
+	while (name[++i])
 	{
 		if (!ft_isalnum(name[i]) && name[i] != '_')
 			return (FALSE);
-		i++;
 	}
 	return (TRUE);
 }
@@ -43,8 +42,8 @@ int	find_export_key_index(t_shell *shell, char *key, int key_len)
 	int		i;
 	int		env_key_len;
 
-	i = 0;
-	while (shell->envp[i])
+	i = -1;
+	while (shell->envp[++i])
 	{
 		env_key_len = 0;
 		while (shell->envp[i][env_key_len]
@@ -53,7 +52,6 @@ int	find_export_key_index(t_shell *shell, char *key, int key_len)
 		if (env_key_len == key_len
 			&& ft_strncmp(shell->envp[i], key, key_len) == 0)
 			return (i);
-		i++;
 	}
 	return (-1);
 }

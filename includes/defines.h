@@ -33,10 +33,10 @@
 
 /*
 ** Last stdin redirect in source order (bash): << vs < — last token wins.
-** Stored on t_command during parse; apply_redirs uses it with heredoc_fd.
+** Stored on t_command during parse; apply_redirs uses it with hd_fd.
 */
 # define STDIN_LAST_NONE	0
-# define STDIN_LAST_HEREDOC	1
+# define STDIN_LAST_HD	1
 # define STDIN_LAST_FILE	2
 
 /*

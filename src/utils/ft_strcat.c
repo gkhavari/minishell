@@ -12,6 +12,9 @@
 
 #include "minishell.h"
 
+/**
+ * Append src to dest (NUL-terminated); dest must have room. Returns dest.
+ */
 char	*ft_strcat(char *dest, const char *src)
 {
 	size_t	i;

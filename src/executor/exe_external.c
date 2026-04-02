@@ -12,7 +12,8 @@
 
 #include "minishell.h"
 
-static int	status_from_child_wait(int status)
+/** Map wait status to shell exit (signals, exit code, or FAILURE). */
+static int	child_wait_st(int status)
 {
 	if (WIFSIGNALED(status))
 	{
@@ -44,7 +45,7 @@ int	run_external(t_command *cmd, t_shell *shell)
 	{
 		set_signals_default();
 		if (apply_redirs(cmd) != SUCCESS)
-			clean_exit_before_readline(shell, FAILURE);
+			exit_norl(shell, FAILURE);
 		run_in_child(cmd, shell);
 	}
 	set_signals_ignore();
@@ -54,11 +55,12 @@ int	run_external(t_command *cmd, t_shell *shell)
 	set_signals_interactive();
 	if (waited_pid < 0)
 		return (perror("minishell: waitpid"), FAILURE);
-	return (status_from_child_wait(status));
+	return (child_wait_st(status));
 }
 
-static int	build_path_candidate(char out[PATH_MAX], const char *dir,
-		size_t dir_len, char *cmd)
+/** One PATH component + cmd into out; 0 if would overflow PATH_MAX. */
+static int	path_cand(char out[PATH_MAX], const char *dir, size_t dir_len,
+		char *cmd)
 {
 	size_t	cmd_len;
 
@@ -78,8 +80,8 @@ static int	build_path_candidate(char out[PATH_MAX], const char *dir,
 	return (1);
 }
 
-static char	*scan_path_for_command(const char *path_env, char *cmd,
-		char resolved[PATH_MAX])
+/** Walk PATH colon list; return first regular file path in resolved. */
+static char	*scan_path(const char *path_env, char *cmd, char resolved[PATH_MAX])
 {
 	struct stat	sb;
 	char		full_path[PATH_MAX];
@@ -94,7 +96,7 @@ static char	*scan_path_for_command(const char *path_env, char *cmd,
 		while (*end && *end != ':')
 			end++;
 		len = (size_t)(end - start);
-		if (build_path_candidate(full_path, start, len, cmd)
+		if (path_cand(full_path, start, len, cmd)
 			&& stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
 		{
 			ft_strlcpy(resolved, full_path, PATH_MAX);
@@ -128,5 +130,5 @@ char	*resolve_cmd_path(char *cmd, t_shell *shell)
 		ft_strlcpy(resolved, cmd, PATH_MAX);
 		return (resolved);
 	}
-	return (scan_path_for_command(path_env, cmd, resolved));
+	return (scan_path(path_env, cmd, resolved));
 }

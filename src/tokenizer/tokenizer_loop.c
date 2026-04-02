@@ -12,9 +12,8 @@
 
 #include "minishell.h"
 
-/*
- * Call one tokenizer handler (shell, i, word). Propagate OOM; map handled
- * (non-TOK_N) to TOK_Y; else TOK_N.
+/**
+ * Run fn(shell,i,word); OOM propagates; handled → TOK_Y else TOK_N.
  */
 static int	tok_call_handler(t_shell *shell, size_t *i, char **word,
 		int (*fn)(t_shell *, size_t *, char **))
@@ -29,20 +28,26 @@ static int	tok_call_handler(t_shell *shell, size_t *i, char **word,
 	return (TOK_N);
 }
 
+/**
+ * In normal (non-heredoc) mode: try exp_dollar then exp_tilde at *i.
+ */
 static int	tok_try_expand_unquoted(t_shell *shell, size_t *i, char **word)
 {
 	int	r;
 
-	if (shell->heredoc_mode)
+	if (shell->hd_mod)
 		return (TOK_N);
-	r = tok_call_handler(shell, i, word, &handle_variable_expansion);
+	r = tok_call_handler(shell, i, word, &exp_dollar);
 	if (r == OOM)
 		return (OOM);
 	if (r != TOK_N)
 		return (TOK_Y);
-	return (tok_call_handler(shell, i, word, &handle_tilde_expansion));
+	return (tok_call_handler(shell, i, word, &exp_tilde));
 }
 
+/**
+ * Quote toggles, single/double-quote handlers, then unquoted $ / ~ expansion.
+ */
 static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 		char **word, t_state *state)
 {
@@ -72,6 +77,9 @@ static int	handle_quotes_and_expand(t_shell *shell, size_t *i,
 	return (tok_try_expand_unquoted(shell, i, word));
 }
 
+/**
+ * Backslash, operators, whitespace, or append literal char (ST_NORMAL path).
+ */
 static int	tok_run_secondary(t_shell *shell, size_t *i, t_state *state,
 		char **word)
 {
@@ -98,6 +106,9 @@ static int	tok_run_secondary(t_shell *shell, size_t *i, t_state *state,
 	return (SUCCESS);
 }
 
+/**
+ * Main per-char loop over shell->input until NUL: quotes, expand, operators.
+ */
 int	tokenizer_loop(t_shell *shell, size_t *i, t_state *state, char **word)
 {
 	int	r;

@@ -97,7 +97,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
 	if (flush_word(shell, word, &shell->tokens) == OOM)
 		return (OOM);
 	if (shell->input[*i] == '<' && shell->input[*i + 1] == '<')
-		shell->heredoc_mode = 1;
+		shell->hd_mod = 1;
 	n = read_operator(shell, &shell->input[*i], &shell->tokens);
 	if (n == OOM)
 		return (OOM);

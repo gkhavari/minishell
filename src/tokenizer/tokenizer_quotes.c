@@ -12,20 +12,19 @@
 
 #include "minishell.h"
 
+/**
+ * Inside double quotes: expand $ via exp_var and append with exp_q_cat.
+ */
 static int	handle_dollar_in_dquote(t_shell *shell, size_t *i, char **word)
 {
 	char	*expanded;
 
-	expanded = expand_var(shell, i);
+	expanded = exp_var(shell, i);
 	if (!expanded)
 		return (OOM);
-	if (append_expansion_quoted(word, expanded) == OOM)
-	{
-		free(expanded);
-		return (OOM);
-	}
-	free(expanded);
-	return (TOK_Y);
+	if (exp_q_cat(word, expanded) == OOM)
+		return (free(expanded), OOM);
+	return (free(expanded), TOK_Y);
 }
 
 /**
@@ -51,7 +50,7 @@ int	handle_double_quote(t_shell *shell, size_t *i, char **word, t_state *state)
 
 	if (*state != ST_DQUOTE)
 		return (TOK_N);
-	if (shell->input[*i] == '$' && !shell->heredoc_mode
+	if (shell->input[*i] == '$' && !shell->hd_mod
 		&& shell->input[*i + 1] != '"' && shell->input[*i + 1] != '\'')
 		return (handle_dollar_in_dquote(shell, i, word));
 	r = handle_escaped_dollar(shell, i, word);

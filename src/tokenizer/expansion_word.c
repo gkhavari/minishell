@@ -13,11 +13,10 @@
 #include "minishell.h"
 
 /**
- * Append exp to *word; flush words on spaces/tabs into tokens.
- * Returns OOM on allocation failure.
+ * Append expanded text in unquoted context: blanks split into new WORD tokens.
+ * Returns OOM on allocation failure; SUCCESS otherwise.
  */
-int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
-		t_list **tokens)
+int	exp_unq(t_shell *shell, char **word, const char *exp, t_list **tokens)
 {
 	size_t	i;
 
@@ -42,18 +41,21 @@ int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 	return (SUCCESS);
 }
 
-static int	append_expanded_unquoted(t_shell *shell, char **word, char *exp)
+/**
+ * Run exp_unq into shell->tokens, then free exp. Returns TOK_Y or OOM.
+ */
+static int	exp_unq_wrap(t_shell *shell, char **word, char *exp)
 {
-	if (append_expansion_unquoted(shell, word, exp, &shell->tokens) == OOM)
-	{
-		free(exp);
-		return (OOM);
-	}
-	free(exp);
-	return (TOK_Y);
+	if (exp_unq(shell, word, exp, &shell->tokens) == OOM)
+		return (free(exp), OOM);
+	return (free(exp), TOK_Y);
 }
 
-int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
+/**
+ * If *i is `$`, expand via exp_var; merge into word/tokens or handle empty $.
+ * Returns TOK_N if not `$`, TOK_Y if handled, OOM on failure.
+ */
+int	exp_dollar(t_shell *shell, size_t *i, char **word)
 {
 	char	*expanded;
 	size_t	start;
@@ -62,26 +64,24 @@ int	handle_variable_expansion(t_shell *shell, size_t *i, char **word)
 	if (shell->input[*i] != '$')
 		return (TOK_N);
 	start = *i;
-	expanded = expand_var(shell, i);
+	expanded = exp_var(shell, i);
 	if (!expanded)
 		return (OOM);
 	if (expanded[0] != '\0')
-		return (append_expanded_unquoted(shell, word, expanded));
-	he = handle_empty_unquoted_expansion(shell, start, *i, word);
+		return (exp_unq_wrap(shell, word, expanded));
+	he = exp_empty(shell, start, *i, word);
 	if (he == OOM)
-	{
-		free(expanded);
-		return (OOM);
-	}
+		return (free(expanded), OOM);
 	if (he != TOK_N)
-	{
-		free(expanded);
-		return (TOK_Y);
-	}
-	return (append_expanded_unquoted(shell, word, expanded));
+		return (free(expanded), TOK_Y);
+	return (exp_unq_wrap(shell, word, expanded));
 }
 
-int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
+/**
+ * If *i is `~` at word start and HOME applies, append HOME and advance *i.
+ * Returns TOK_N when not applicable, TOK_Y when expanded, OOM on failure.
+ */
+int	exp_tilde(t_shell *shell, size_t *i, char **word)
 {
 	char	next;
 	char	*home;
@@ -95,8 +95,7 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	home = get_env_value(shell->envp, "HOME");
 	if (!home)
 		home = "";
-	if (append_expansion_unquoted(shell, word, home, &shell->tokens)
-		== OOM)
+	if (exp_unq(shell, word, home, &shell->tokens) == OOM)
 		return (OOM);
 	(*i)++;
 	return (TOK_Y);

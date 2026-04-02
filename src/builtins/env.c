@@ -25,12 +25,11 @@ int	builtin_env(char **args, t_shell *shell)
 	}
 	if (!shell->envp)
 		return (FAILURE);
-	i = 0;
-	while (shell->envp[i])
+	i = -1;
+	while (shell->envp[++i])
 	{
 		if (ft_strchr(shell->envp[i], '='))
 			ft_printf("%s\n", shell->envp[i]);
-		i++;
 	}
 	return (SUCCESS);
 }

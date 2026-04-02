@@ -12,8 +12,11 @@
 
 #include "minishell.h"
 
-static char	*expand_heredoc_named(char *line, size_t start, size_t *i,
-		t_shell *shell)
+/**
+ * Expand $VAR name starting at start in line; advance *i past name.
+ * Caller frees return; NULL on OOM.
+ */
+static char	*exp_hd_name(char *line, size_t start, size_t *i, t_shell *shell)
 {
 	size_t	len;
 	char	*name;
@@ -33,7 +36,10 @@ static char	*expand_heredoc_named(char *line, size_t start, size_t *i,
 	return (out);
 }
 
-static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
+/**
+ * Expand `$` at *i in heredoc line: $? or $NAME via exp_hd_name.
+ */
+static char	*exp_hd_var(char *line, size_t *i, t_shell *shell)
 {
 	size_t	start;
 
@@ -43,25 +49,25 @@ static char	*expand_heredoc_var(char *line, size_t *i, t_shell *shell)
 		*i += 2;
 		return (ft_itoa(shell->last_exit));
 	}
-	return (expand_heredoc_named(line, start, i, shell));
+	return (exp_hd_name(line, start, i, shell));
 }
 
-static int	append_heredoc_char_or_var(char *line, size_t *i, char **result,
-		t_shell *shell)
+/**
+ * Append one char or one expanded $... from line at *i into *result.
+ * Returns 0 on success, -1 on OOM or expansion failure.
+ */
+static int	hd_cat_step(char *line, size_t *i, char **result, t_shell *shell)
 {
 	char	*val;
 
 	if (line[*i] == '$'
 		&& msh_is_dollar_var_leader((unsigned char)line[*i + 1]))
 	{
-		val = expand_heredoc_var(line, i, shell);
+		val = exp_hd_var(line, i, shell);
 		if (!val)
 			return (-1);
-		if (append_expansion_quoted(result, val) == OOM)
-		{
-			free(val);
-			return (-1);
-		}
+		if (exp_q_cat(result, val) == OOM)
+			return (free(val), -1);
 		free(val);
 	}
 	else if (append_char(shell, result, line[(*i)++]) == OOM)
@@ -69,11 +75,11 @@ static int	append_heredoc_char_or_var(char *line, size_t *i, char **result,
 	return (0);
 }
 
-/*
- * Expand $var and $? inside one heredoc line; NULL on OOM.
- * Caller still owns line.
+/**
+ * Build a new string with $VAR and $? expanded (unquoted heredoc body).
+ * Caller frees return; NULL on OOM. Input line is not consumed.
  */
-char	*expand_heredoc_line(char *line, t_shell *shell)
+char	*exp_hd_line(char *line, t_shell *shell)
 {
 	char	*result;
 	size_t	i;
@@ -84,16 +90,15 @@ char	*expand_heredoc_line(char *line, t_shell *shell)
 	i = 0;
 	while (line[i])
 	{
-		if (append_heredoc_char_or_var(line, &i, &result, shell) < 0)
-		{
-			free(result);
-			return (NULL);
-		}
+		if (hd_cat_step(line, &i, &result, shell) < 0)
+			return (free(result), NULL);
 	}
 	return (result);
 }
 
-/** True if delim is wrapped in matching single or double quotes. */
+/**
+ * True if delimiter string is wrapped in matching '...' or "..." (no expand).
+ */
 int	is_quoted_delimiter(char *delim)
 {
 	size_t	len;

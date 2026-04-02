@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** ft_lstclear hook: free t_token value and node. */
 static void	del_token_content(void *content)
 {
 	t_token	*t;
@@ -22,6 +23,7 @@ static void	del_token_content(void *content)
 	free(t);
 }
 
+/** ft_lstclear hook: free t_arg value and node. */
 static void	del_arg_content(void *content)
 {
 	t_arg	*a;

@@ -12,9 +12,8 @@
 
 #include "minishell.h"
 
-/*
- * Subject (minishell v10): at most one global for the received signal number.
- * Async-safe: only SIGINT is stored; readline hook and main loop consume it.
+/**
+ * Last signal (SIGINT only); async-safe; consumed by readline hook / main loop.
  */
 volatile sig_atomic_t	g_signum = 0;
 
@@ -26,6 +25,7 @@ static void	interactive_sigint_handler(int signum)
 	(void)write(STDOUT_FILENO, "\n", 1);
 }
 
+/** sigaction(2) wrapper with optional SA_* flags and signal mask. */
 static int	install_sig(int signum, void (*handler)(int), int flags,
 		const sigset_t *mask)
 {

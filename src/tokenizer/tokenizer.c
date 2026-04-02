@@ -12,6 +12,9 @@
 
 #include "minishell.h"
 
+/**
+ * Finish tokenize: flush or discard word/tokens; always free shell->input.
+ */
 static int	tokenizer_end(t_shell *shell, t_state state, char **word)
 {
 	if (state == ST_NORMAL)
@@ -31,9 +34,7 @@ static int	tokenizer_end(t_shell *shell, t_state state, char **word)
 			shell->tokens = NULL;
 		}
 	}
-	free(shell->input);
-	shell->input = NULL;
-	return (SUCCESS);
+	return (free(shell->input), (shell->input = NULL), SUCCESS);
 }
 
 /**

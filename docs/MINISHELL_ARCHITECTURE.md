@@ -180,14 +180,14 @@ flowchart LR
 
 - **`shell_repl.c`** (src/core/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls `init_shell`, `shell_loop`, and teardown.
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
-- **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
+- **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_cmds()` in `argv_build.c` builds `argv` and sets `is_builtin`.
 - **Executor** (src/executor/): **`run_commands()`** in **`exe.c`** — empty
   argv, **`run_empty_command`**; else single command:
   **`run_single_builtin`** (parent with optional `dup`/`apply_redirs`/
   `restore_stdio_fds`, or **`run_external`** if builtin has redirs and type is
   not cd/export/unset/exit) or **`run_external`**; pipeline ->
   **`run_pipeline()`** -> **`pipe_step`** /
-  **`wait_for_pipeline_children`**; child path -> **`run_in_child()`** in
+  **`wait_pipes`**; child path -> **`run_in_child()`** in
   **`exe_child.c`**.
 
 ---
@@ -264,7 +264,7 @@ sequenceDiagram
 | After wait returns | **`set_signals_interactive`** | Restore §1.3 |
 
 **Pipeline:** **`run_pipeline`** calls **`set_signals_ignore`**, runs
-**`spawn_pipeline_children`**, **`wait_for_pipeline_children`**, then
+**`spawn_pipes`**, **`wait_pipes`**, then
 **`set_signals_interactive`**. **Single external:** same pattern inside
 **`run_external`** around **`waitpid`**.
 
@@ -274,7 +274,7 @@ All other state is in **`t_shell`** (`includes/structs.h`). **Env, cwd, tokens, 
 
 - **`had_path`:** PATH was present when the shell started (PATH resolution).
 - **`barrier_write_fd`:** optional pipeline sync write FD, or **`-1`**.
-- **`word_quoted` / `heredoc_mode`:** tokenizer flags (quoted WORD; no `$` in `<<` delimiter).
+- **`word_quoted` / `hd_mod`:** tokenizer flags (quoted WORD; no `$` in `<<` delimiter).
 
 Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
@@ -297,11 +297,11 @@ Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
 **Inside `read_input()`** (after a line pointer is obtained): **`check_signal_received(shell)`** runs for **every** non-**NULL** line (**empty** `""` included) before returning **`RL_LN`**—same mechanism as Ctrl+C at the prompt (§1.4). **`build_prompt()`** failure returns **`OOM`** (not EOF).
 
-**After `process_input()`** (when it was called): **`repl_after_read`** sets **`syntax_err`** if **`!shell->commands && shell->last_exit == XSYN`** (`EXIT_SYNTAX_ERROR`, e.g. unclosed quote). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
+**After `process_input()`** (when it was called): **`repl_after_read`** sets **`syntax_err`** if **`!shell->cmds && shell->last_exit == XSYN`** (`EXIT_SYNTAX_ERROR`, e.g. unclosed quote). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
 
-> **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->commands && shell->last_exit == XSYN`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
+> **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->cmds && shell->last_exit == XSYN`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
 
-**`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->commands`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = EXIT_SIGINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
+**`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->cmds`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = EXIT_SIGINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
 
 **Program exit:** **`main()`** returns **`shell.last_exit`** after **`rl_clear_history()`**, **`free_all()`**, and closing std fds.
 
@@ -513,8 +513,8 @@ See [BEHAVIOR.md](BEHAVIOR.md) §1 for the full input-resilience table.
 ┌──────────────────────────────────────────────────────────────┐
 │  STEP 3: Word splitting (unquoted expansion only)           │
 │  ─────────────────────────────────────────────────────────── │
-│  • `append_expansion_unquoted()` splits on spaces/tabs        │
-│  • Quoted segments use `append_expansion_quoted()` (no split) │
+│  • `exp_unq()` splits on spaces/tabs        │
+│  • Quoted segments use `exp_q_cat()` (no split) │
 │  • Bash IFS is not implemented; split is whitespace-only    │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -523,7 +523,7 @@ See [BEHAVIOR.md](BEHAVIOR.md) §1 for the full input-resilience table.
 flowchart LR
     subgraph tok["During tokenization"]
         A[$VAR / $? / ~] --> B[Quoted vs unquoted paths]
-        B --> C[append_expansion_quoted / unquoted]
+        B --> C[exp_q_cat / unquoted]
         C --> D[Word boundary → flush token]
     end
     subgraph hd["Heredoc body parser/heredoc_utils"]
@@ -531,7 +531,7 @@ flowchart LR
     end
 ```
 
-**Tilde `~`:** handled in **`handle_tilde_expansion()`** when not in heredoc mode (same tokenizer pass as **`$`**).
+**Tilde `~`:** handled in **`exp_tilde()`** when not in heredoc mode (same tokenizer pass as **`$`**).
 
 ### 4.2 Variable Expansion Rules
 
@@ -625,15 +625,15 @@ typedef struct s_command
     t_arg               *args;          /* Linked list of args; finalize_argv → argv */
     char                **argv;         /* ["ls", "-la", NULL] for execve */
     t_redir             *redirs;        /* All redirections: < > >> << 2> (file, fd, append) */
-    int                 heredoc_fd;     /* FD for heredoc input (or -1) */
-    char                *heredoc_delim; /* Delimiter for heredoc */
-    int                 heredoc_quoted; /* Flag if delimiter was quoted */
-    int                 is_builtin;     /* Set in finalize_all_commands via get_builtin_type(argv[0]) */
+    int                 hd_fd;     /* FD for heredoc input (or -1) */
+    char                *hd_delim; /* Delimiter for heredoc */
+    int                 hd_quoted; /* Flag if delimiter was quoted */
+    int                 is_builtin;     /* Set in finalize_cmds via get_builtin_type(argv[0]) */
     struct s_command    *next;          /* Next command in pipeline */
 }   t_command;
 ```
 
-- **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_argv()` builds `argv`, then `finalize_all_commands()` sets `is_builtin`.
+- **Parser** fills `args` and `redirs`; **argv_build.c** `finalize_argv()` builds `argv`, then `finalize_cmds()` sets `is_builtin`.
 
 ### 5.2 Parsing Flow (actual: `parser/parser.c`, `parser/add_token_to_cmd.c`)
 
@@ -645,12 +645,12 @@ flowchart TD
     SY -->|ERR| E2[last_exit = EXIT_SYNTAX_ERROR, free tokens, return]
     SY -->|OK| PT[parse_tokens → t_command list]
     PT -->|NULL| E1[last_exit = FAILURE]
-    PT -->|ok| FIN[finalize_all_commands]
+    PT -->|ok| FIN[finalize_cmds]
     FIN --> ARGV[finalize_argv + is_builtin per cmd]
 ```
 
 - **parser/parser.c**: **`parse_input()`** — **`syntax_check`** first; on success **`parse_tokens()`** walks tokens; each **`parse_token_step()`**: on **`PIPE`** append new **`t_command`**, else **`add_token_to_command()`** (WORD → **`add_word_to_cmd`**, redirs → **`append_redir`** / **`handle_heredoc_token`**).
-- **parser/argv_build.c**: **`finalize_all_commands()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`get_builtin_type(cmd->argv[0]) != B_NONE`** → **`cmd->is_builtin`**.
+- **parser/argv_build.c**: **`finalize_cmds()`** → **`finalize_argv()`** (args list → **`argv[]`**), then **`get_builtin_type(cmd->argv[0]) != B_NONE`** → **`cmd->is_builtin`**.
 
 ```mermaid
 flowchart LR
@@ -725,7 +725,7 @@ Command: cat << EOF << END
 │  2. For each heredoc (left to right):                        │
 │     a. pipe(); write lines to write end                      │
 │     b. Read lines until delimiter                            │
-│     c. Store read end in cmd->heredoc_fd                     │
+│     c. Store read end in cmd->hd_fd                     │
 └──────────────────────────────────────────────────────────────┘
                 │
                 ▼
@@ -738,10 +738,10 @@ Command: cat << EOF << END
 flowchart LR
     PH[process_heredocs] --> E[each << : pipe in parent]
     E --> L[read_heredoc_line loop]
-    L -->|delimiter| F[cmd->heredoc_fd]
+    L -->|delimiter| F[cmd->hd_fd]
     L -->|SIGINT| X[FAILURE → last_exit 130 in init.c]
     L -->|EOF| W[print_heredoc_eof_warning → continue]
-    F --> EX[execute: dup2 heredoc_fd → stdin]
+    F --> EX[execute: dup2 hd_fd → stdin]
 ```
 
 ### 6.3 Heredoc + Signals
@@ -786,7 +786,7 @@ EOF
 ```mermaid
 flowchart TD
     EC[run_commands]
-    EC --> NO_CMD{shell->commands?}
+    EC --> NO_CMD{shell->cmds?}
     NO_CMD -->|NULL| R0[return SUCCESS]
     NO_CMD -->|non-NULL| ONE{commands->next?}
     ONE -->|NULL| EMP{argv missing or argv0 empty?}
@@ -801,7 +801,7 @@ flowchart TD
     ONE -->|non-NULL| PIPE[run_pipeline]
     PIPE --> NF{all stages not-found?}
     NF -->|yes| R127[return EXIT_CMD_NOT_FOUND]
-    NF -->|no| FORK[pipe_step loop + wait_for_pipeline_children]
+    NF -->|no| FORK[pipe_step loop + wait_pipes]
 ```
 
 ### 7.2 Single Command Execution
@@ -846,7 +846,7 @@ flowchart TD
 flowchart TD
     SC[Single command] --> MT{parent-only builtin?}
     MT -->|cd export unset exit| PAR[run_builtin in parent]
-    MT -->|no| RD{redirs or heredoc_fd?}
+    MT -->|no| RD{redirs or hd_fd?}
     RD -->|yes| FK[fork via run_external]
     RD -->|no| PAR2[run_builtin in parent]
     FK --> CH[child: apply_redirs, run_builtin_in_child or execve]
@@ -855,7 +855,7 @@ flowchart TD
 ### 7.3 Single command (actual: `executor/exe.c`)
 
 Redirections use static `backup_stdio_fds` / `restore_stdio_fds` only when
-`cmd->redirs` or `heredoc_fd` is set. Empty argv -> `run_empty_command`.
+`cmd->redirs` or `hd_fd` is set. Empty argv -> `run_empty_command`.
 Builtin path -> `run_single_builtin` (may delegate to `run_external` if redirs
 and not cd/export/unset/exit). Else -> `run_external` -> fork -> child
 `apply_redirs` + `run_in_child`.
@@ -904,16 +904,16 @@ Command: ls -la | grep ".c" | wc -l
 flowchart LR
     EP[run_pipeline] --> NF[pipeline_all_nf]
     NF --> IGN[set_signals_ignore]
-    IGN --> LOOP[spawn_pipeline_children]
+    IGN --> LOOP[spawn_pipes]
     LOOP --> RPS[pipe_step per cmd]
     RPS --> FORK[fork_pipeline_child]
     FORK --> CHILD[child: setup_pipeline_child_fds, apply_redirs, run_in_child]
-    LOOP --> WAIT[wait_for_pipeline_children]
+    LOOP --> WAIT[wait_pipes]
     WAIT --> INT[set_signals_interactive]
 ```
 
 No `pids[]` array: parent tracks only `prev_fd` between steps;
-`waitpid(-1, ...)` in `wait_for_pipeline_children` reaps `n` children and
+`waitpid(-1, ...)` in `wait_pipes` reaps `n` children and
 returns the **last** segment's status.
 
 **Algorithm choice (why this is good):**
@@ -1002,13 +1002,13 @@ flowchart LR
 - **`FAILURE` (1)** – Builtin failure (e.g. `exit` too many args **returns** `FAILURE`), redirection failure, or generic error.
 - **`EXIT_SYNTAX_ERROR` (2)** – Syntax error (`syntax_check`, tokenizer unclosed quote); also **`exit` with non-numeric arg** (bash uses **255**).
 - **`EXIT_CMD_CANNOT_EXECUTE` (126)** – Path is directory or permission denied
-  around `execve` (`exe_child.c` **`child_abort_with_message`**).
+  around `execve` (`exe_child.c` **`child_abort_msg`**).
 - **`EXIT_CMD_NOT_FOUND` (127)** – Command not found
   (**`child_exit_not_found`**; pipeline fast path **`pipeline_all_nf`** in
   parent).
 - **`EXIT_STATUS_FROM_SIGNAL(sig)`** – Child terminated by signal; e.g.
-  **`EXIT_SIGINT`** (`exe_external.c` **`status_from_child_wait`**, pipeline
-  **`wait_for_pipeline_children`**).
+  **`EXIT_SIGINT`** (`exe_external.c` **`child_wait_st`**, pipeline
+  **`wait_pipes`**).
 
 ### 8.3 exit Builtin (Bash Reference)
 
@@ -1151,11 +1151,11 @@ ft_putstr_fd("\n", 2);
 void	reset_shell(t_shell *shell)
 {
 	if (shell->tokens)
-		free_tokens(shell->tokens);
+		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
-	if (shell->commands)
-		free_commands(shell->commands);
-	shell->commands = NULL;
+	if (shell->cmds)
+		free_cmds(&shell->cmds);
+	shell->cmds = NULL;
 	if (shell->input)
 		free(shell->input);
 	shell->input = NULL;
@@ -1170,11 +1170,11 @@ void	reset_shell(t_shell *shell)
 void	free_all(t_shell *shell)
 {
 	if (shell->tokens)
-		free_tokens(shell->tokens);
+		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
-	if (shell->commands)
-		free_commands(shell->commands);
-	shell->commands = NULL;
+	if (shell->cmds)
+		free_cmds(&shell->cmds);
+	shell->cmds = NULL;
 	if (shell->envp)
 		free_envp(shell->envp);
 	shell->envp = NULL;
@@ -1286,13 +1286,13 @@ Phase 4: Executor (Simple)
 ├── [x] Single external command execution (executor/exe_external.c)
 ├── [x] Path resolution (resolve_cmd_path in exe_external.c)
 ├── [x] Single builtin with redirections (run_single_builtin / run_external)
-└── [x] File redirections (executor/exe_redir.c, rdr_one, heredoc_fd)
+└── [x] File redirections (executor/exe_redir.c, rdr_one, hd_fd)
 
 Phase 5: Pipes & Heredoc
 ├── [x] Pipeline execution (executor/exe_pipeline.c)
 ├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
-└── [x] Signal handling in children (wait_for_pipeline_children, XSIG)
+└── [x] Signal handling in children (wait_pipes, XSIG)
 
 Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)

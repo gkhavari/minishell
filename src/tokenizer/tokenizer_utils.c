@@ -28,11 +28,7 @@ int	append_char(t_shell *shell, char **dst, char c)
 		len = ft_strlen(*dst);
 	new = ft_realloc(*dst, len + 2);
 	if (!new)
-	{
-		free(*dst);
-		*dst = NULL;
-		return (OOM);
-	}
+		return (free(*dst), (*dst = NULL), OOM);
 	*dst = new;
 	new[len] = c;
 	new[len + 1] = '\0';
@@ -51,22 +47,14 @@ int	flush_word(t_shell *shell, char **word, t_list **tokens)
 	{
 		tok = new_token(shell, WORD, *word);
 		if (!tok)
-		{
-			free(*word);
-			*word = NULL;
-			return (OOM);
-		}
+			return (free(*word), (*word = NULL), OOM);
 		tok->quoted = shell->word_quoted;
 		if (add_token(tokens, tok) == OOM)
-		{
-			free(*word);
-			*word = NULL;
-			return (OOM);
-		}
+			return (free(*word), (*word = NULL), OOM);
 		free(*word);
 		*word = NULL;
 		shell->word_quoted = 0;
-		shell->heredoc_mode = 0;
+		shell->hd_mod = 0;
 	}
 	return (SUCCESS);
 }
@@ -85,29 +73,21 @@ t_token	*new_token(t_shell *shell, t_tokentype type, char *value)
 	token->type = type;
 	token->value = ft_strdup(value);
 	if (!token->value)
-	{
-		free(token);
-		return (NULL);
-	}
+		return (free(token), NULL);
 	token->quoted = 0;
 	return (token);
 }
 
-/*
-** Append t_token * in a new list node at end of *head.
-** Returns SUCCESS or OOM.
-*/
+/**
+ * Append new_tok to *head; on list node OOM frees new_tok. SUCCESS or OOM.
+ */
 int	add_token(t_list **head, t_token *new_tok)
 {
 	t_list	*node;
 
 	node = ft_lstnew(new_tok);
 	if (!node)
-	{
-		free(new_tok->value);
-		free(new_tok);
-		return (OOM);
-	}
+		return (free(new_tok->value), free(new_tok), OOM);
 	ft_lstadd_back(head, node);
 	return (SUCCESS);
 }

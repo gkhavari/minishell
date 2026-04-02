@@ -24,9 +24,9 @@ int	readline_event_hook(void)
 	return (0);
 }
 
-/*
-** After readline: SIGINT -> last_exit XSINT, clear flag.
-*/
+/**
+ * If SIGINT pending: last_exit XSINT, clear g_signum; return non-zero.
+ */
 int	check_signal_received(t_shell *shell)
 {
 	if (g_signum == SIGINT)

@@ -12,25 +12,24 @@
 
 #include "minishell.h"
 
+/** Free each env string and the envp pointer array. */
 static void	free_envp(char **envp)
 {
 	int	i;
 
 	if (!envp)
 		return ;
-	i = 0;
-	while (envp[i])
+	i = -1;
+	while (envp[++i])
 	{
 		free(envp[i]);
 		envp[i] = NULL;
-		i++;
 	}
 	free(envp);
 }
 
-/*
- * Unwind tokenizer after allocation failure. Caller returns OOM; do not set
- * shell->oom (process_input gates on tokenize_input == OOM).
+/**
+ * After tokenizer OOM: free word, tokens, input; last_exit FAILURE (not oom).
  */
 void	free_tokenize(t_shell *shell, char **word)
 {
@@ -56,9 +55,9 @@ void	reset_shell(t_shell *shell)
 	if (shell->tokens)
 		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
-	if (shell->commands)
-		free_commands(&shell->commands);
-	shell->commands = NULL;
+	if (shell->cmds)
+		free_cmds(&shell->cmds);
+	shell->cmds = NULL;
 	if (shell->input)
 		free(shell->input);
 	shell->input = NULL;
@@ -72,9 +71,9 @@ void	free_all(t_shell *shell)
 	if (shell->tokens)
 		free_tokens(&shell->tokens);
 	shell->tokens = NULL;
-	if (shell->commands)
-		free_commands(&shell->commands);
-	shell->commands = NULL;
+	if (shell->cmds)
+		free_cmds(&shell->cmds);
+	shell->cmds = NULL;
 	if (shell->envp)
 		free_envp(shell->envp);
 	shell->envp = NULL;

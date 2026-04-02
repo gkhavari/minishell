@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Push t_redir onto cmd->redirs; updates stdin_last for <. */
 static int	append_redir(t_command *cmd, char *file, int fd, int append)
 {
 	t_redir	*r;
@@ -29,15 +30,12 @@ static int	append_redir(t_command *cmd, char *file, int fd, int append)
 		cmd->stdin_last = STDIN_LAST_FILE;
 	node = ft_lstnew(r);
 	if (!node)
-	{
-		free(r->file);
-		free(r);
-		return (FAILURE);
-	}
+		return (free(r->file), free(r), FAILURE);
 	ft_lstadd_back(&cmd->redirs, node);
 	return (SUCCESS);
 }
 
+/** append_redir; returns PR_2 or OOM from append_redir failure. */
 static int	redir_pair(t_command *cmd, char *file, int fd, int append)
 {
 	if (append_redir(cmd, file, fd, append) == FAILURE)

@@ -43,8 +43,8 @@ int			msh_is_dollar_var_leader(int c);
 int			ft_read_stdin_line(t_shell *shell, char **line,
 				int set_shell_oom_on_fail);
 
-/* free_exit.c — before_readline: fork children / init fatal; clean_exit: exit */
-void		clean_exit_before_readline(t_shell *shell, int exit_status);
+/* exit_norl: fork/init (no rl_clear); clean_exit: exit builtin */
+void		exit_norl(t_shell *shell, int exit_status);
 void		clean_exit(t_shell *shell, int exit_status);
 
 /* tokenizer_loop.c */
@@ -81,19 +81,18 @@ int			is_op_char(char c);
 int			read_operator(t_shell *shell, const char *s, t_list **list);
 
 /* expansion.c */
-char		*expand_var(t_shell *shell, size_t *i);
+char		*exp_var(t_shell *shell, size_t *i);
 
 /* expansion_word.c */
-int			handle_variable_expansion(t_shell *shell, size_t *i,
-				char **word);
-int			handle_tilde_expansion(t_shell *shell, size_t *i, char **word);
-int			append_expansion_unquoted(t_shell *shell, char **word,
-				const char *exp, t_list **tokens);
+int			exp_dollar(t_shell *shell, size_t *i, char **word);
+int			exp_tilde(t_shell *shell, size_t *i, char **word);
+int			exp_unq(t_shell *shell, char **word, const char *exp,
+				t_list **tokens);
 
 /* expansion_utils.c */
-int			append_expansion_quoted(char **word, const char *exp);
-int			handle_empty_unquoted_expansion(t_shell *shell, size_t start,
-				size_t end, char **word);
+int			exp_q_cat(char **word, const char *exp);
+int			exp_empty(t_shell *shell, size_t start, size_t end,
+				char **word);
 
 /* parser.c */
 void		parse_input(t_shell *shell);
@@ -110,7 +109,7 @@ int			add_token_to_command(t_shell *shell, t_command *cmd,
 int			parse_redir_token_pair(t_command *cmd, t_list *tok_node);
 
 /* argv_build.c */
-int			finalize_all_commands(t_shell *shell, t_list *cmd_list);
+int			finalize_cmds(t_shell *shell, t_list *cmd_list);
 
 /* parser_syntax_check.c */
 int			syntax_check(t_list *lst);
@@ -126,10 +125,10 @@ int			read_heredoc(t_command *cmd, t_shell *shell, int *line_no);
 
 /* heredoc_utils.c */
 int			is_quoted_delimiter(char *delim);
-char		*expand_heredoc_line(char *line, t_shell *shell);
+char		*exp_hd_line(char *line, t_shell *shell);
 
 /* free_runtime.c */
-void		free_commands(t_list **cmds);
+void		free_cmds(t_list **lst);
 
 /* free_utils.c */
 void		msh_strptr_free(char **p);

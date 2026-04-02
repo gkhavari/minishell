@@ -98,7 +98,7 @@ docker compose run --rm run-container norminette -R CheckForbiddenSourceHeader -
 
 Functions whose **primary result** is a pointer (`char *`, `void *`, etc.) must **not** call **`clean_exit()`** on allocation failure. Return **`NULL`** (and free any strictly local partial buffers per contract) so the **caller** can propagate, unwind, or decide to exit.
 
-Examples in this repo: **`ft_strdup`** / **`ft_calloc`** at call sites, **`ft_arrdup`**, **`expand_heredoc_line`**. Callers (e.g. **`init_shell`**, **`parse_input`** / **`finalize_all_commands`**, heredoc write path via **`shell->oom`**) handle failure explicitly.
+Examples in this repo: **`ft_strdup`** / **`ft_calloc`** at call sites, **`ft_arrdup`**, **`exp_hd_line`**. Callers (e.g. **`init_shell`**, **`parse_input`** / **`finalize_cmds`**, heredoc write path via **`shell->oom`**) handle failure explicitly.
 
 **Where `clean_exit` from “parent” code is still OK:** **`init_shell`** after **`ft_arrdup`** failure; **`exit` builtin**; any code that runs only **after `fork()`** in the child ( **`run_in_child`**, pipeline child) where the process must terminate and must not return to the main REPL.
 

@@ -14,17 +14,15 @@
 
 static void	run_parse_core(t_shell *shell);
 
-/*
- * Parse shell->tokens (from tokenize_input) into shell->commands.
- * Empty token list: leaves commands NULL and returns.
- * syntax_check ERR: XSYN, frees tokens, no commands.
- * Success path: tokens freed inside run_parse_core; commands set or cleared.
+/**
+ * Parse shell->tokens into shell->cmds. Empty list: cmds NULL.
+ * Syntax error: XSYN, free tokens. Success: tokens freed in run_parse_core.
  */
 void	parse_input(t_shell *shell)
 {
 	if (!shell->tokens)
 	{
-		shell->commands = NULL;
+		shell->cmds = NULL;
 		return ;
 	}
 	if (syntax_check(shell->tokens) == ERR)
@@ -37,10 +35,9 @@ void	parse_input(t_shell *shell)
 	run_parse_core(shell);
 }
 
-/*
- * After parse_input: for each command with heredoc_delim, read body into
- * cmd->heredoc_fd. line_no tracks here-doc depth for EOF warnings.
- * Returns FAILURE if read_heredoc fails (SIGINT, OOM, write error, etc.).
+/**
+ * Read each heredoc body into cmd->hd_fd; *line_no tracks EOF warnings.
+ * FAILURE on read_heredoc error (SIGINT, OOM, write, etc.).
  */
 int	process_heredocs(t_shell *shell)
 {
@@ -48,38 +45,36 @@ int	process_heredocs(t_shell *shell)
 	t_command	*cmd;
 	int			line_no;
 
-	node = shell->commands;
+	node = shell->cmds;
 	line_no = 1;
 	while (node)
 	{
 		cmd = node->content;
-		if (cmd->heredoc_delim && read_heredoc(cmd, shell, &line_no))
+		if (cmd->hd_delim && read_heredoc(cmd, shell, &line_no))
 			return (FAILURE);
 		node = node->next;
 	}
 	return (SUCCESS);
 }
 
-/*
- * Turn token list into shell->commands; always consumes shell->tokens.
- * On build failure: last_exit FAILURE, commands NULL.
- * On finalize OOM: oom flag, free_commands, last_exit FAILURE.
+/**
+ * build_command_list, free tokens; FAILURE/oom clears cmds and sets flags.
  */
 static void	run_parse_core(t_shell *shell)
 {
-	shell->commands = build_command_list(shell, shell->tokens);
+	shell->cmds = build_command_list(shell, shell->tokens);
 	free_tokens(&shell->tokens);
 	shell->tokens = NULL;
-	if (!shell->commands)
+	if (!shell->cmds)
 	{
 		shell->last_exit = FAILURE;
 		return ;
 	}
-	if (finalize_all_commands(shell, shell->commands) == OOM)
+	if (finalize_cmds(shell, shell->cmds) == OOM)
 	{
 		shell->last_exit = FAILURE;
 		shell->oom = 1;
-		free_commands(&shell->commands);
-		shell->commands = NULL;
+		free_cmds(&shell->cmds);
+		shell->cmds = NULL;
 	}
 }

@@ -41,6 +41,7 @@ static int	check_redir_syntax(t_list *node)
 	return (OK);
 }
 
+/** True if type is any redirection or heredoc token. */
 static int	is_redirection(t_tokentype type)
 {
 	return (type == REDIR_IN || type == REDIR_OUT

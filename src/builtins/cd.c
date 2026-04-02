@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Resolve cd operand: HOME, OLDPWD (-), or args[1]; sets *print for '-'. */
 static char	*get_cd_target(char **args, t_shell *shell, int *print)
 {
 	char	*target;
@@ -35,6 +36,7 @@ static char	*get_cd_target(char **args, t_shell *shell, int *print)
 	return (args[1]);
 }
 
+/** Replace or append KEY=value in envp. */
 static int	set_env_entry(t_shell *shell, char *key, char *value)
 {
 	char	*entry;
@@ -59,10 +61,11 @@ static int	set_env_entry(t_shell *shell, char *key, char *value)
 	else if (append_export_env(shell, entry))
 		return (free(entry), FAILURE);
 	else
-		free(entry);
+		return (free(entry), SUCCESS);
 	return (SUCCESS);
 }
 
+/** getcwd, update PWD/OLDPWD env and shell->cwd. */
 static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 {
 	char	*cwd;
@@ -79,14 +82,14 @@ static int	update_shell_cwd(t_shell *shell, char *old_pwd)
 	return (SUCCESS);
 }
 
+/** chdir(target); perror and free old_pwd on failure. */
 static int	do_chdir(char *target, char *old_pwd)
 {
 	if (chdir(target) == -1)
 	{
 		ft_dprintf(STDERR_FILENO, "minishell: cd: %s: %s\n",
 			target, strerror(errno));
-		free(old_pwd);
-		return (FAILURE);
+		return (free(old_pwd), FAILURE);
 	}
 	return (SUCCESS);
 }
@@ -110,6 +113,5 @@ int	builtin_cd(char **args, t_shell *shell)
 	update_shell_cwd(shell, old_pwd);
 	if (print)
 		ft_printf("%s\n", shell->cwd);
-	free(old_pwd);
-	return (SUCCESS);
+	return (free(old_pwd), SUCCESS);
 }

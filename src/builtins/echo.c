@@ -19,9 +19,9 @@ static int	check_n_flag(char *arg)
 
 	if (!arg || arg[0] != '-')
 		return (0);
-	i = 1;
-	while (arg[i] == 'n')
-		i++;
+	i = 0;
+	while (arg[++i] == 'n')
+		;
 	if (arg[i] == '\0' && i > 1)
 		return (1);
 	return (0);
@@ -50,12 +50,9 @@ int	builtin_echo(char **args, t_shell *shell)
 
 	(void)shell;
 	newline = 1;
-	i = 1;
-	while (args[i] && check_n_flag(args[i]))
-	{
+	i = 0;
+	while (args[++i] && check_n_flag(args[i]))
 		newline = 0;
-		i++;
-	}
 	print_args(args, i);
 	if (newline)
 		ft_printf("\n");

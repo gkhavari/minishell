@@ -12,13 +12,16 @@
 
 #include "minishell.h"
 
+/**
+ * PATH miss, no redir/heredoc, no slash: safe to not fork in parent.
+ */
 static int	is_simple_not_found_command(t_command *cmd, t_shell *shell)
 {
 	char	*path;
 
 	if (!cmd->argv || !cmd->argv[0] || cmd->is_builtin)
 		return (FALSE);
-	if (cmd->redirs || cmd->heredoc_delim || cmd->heredoc_fd != -1)
+	if (cmd->redirs || cmd->hd_delim || cmd->hd_fd != -1)
 		return (FALSE);
 	if (ft_strchr(cmd->argv[0], '/'))
 		return (FALSE);

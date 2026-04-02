@@ -12,6 +12,7 @@
 
 #include "minishell.h"
 
+/** Free copy[0..i-1] and copy (strdup failure rollback). */
 static void	ft_arrdup_cleanup(char **copy, size_t i)
 {
 	while (i > 0)
