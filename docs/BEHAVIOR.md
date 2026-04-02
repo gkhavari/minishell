@@ -40,6 +40,25 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 
 For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md).
 
+### 0.1 Design rationale (defense quick view)
+
+Why behavior matches this shape:
+
+- **Tokenizer-first design:** quote and expansion policy is decided while
+  tokenizing, so parser logic stays simple and deterministic.
+- **Syntax gate before build:** `syntax_check` rejects invalid token
+  structure early (pipe adjacency, redir without WORD), preventing partial
+  command graphs.
+- **Per-command execution model:** parser emits one `t_command` per pipeline
+  stage; executor can apply redirs and builtin rules stage-by-stage.
+- **Last-status rule in pipelines:** parent tracks last child PID and reports
+  that status, matching bash pipeline exit semantics.
+- **Parent-only stateful builtins:** `cd`, `export`, `unset`, `exit` stay in
+  parent for single commands so shell state changes persist.
+- **Subject scope discipline:** unsupported grammar (`&&`, `||`, `;`,
+  advanced FD operators) is intentionally excluded to keep mandatory behavior
+  stable and testable.
+
 ### How the 42_minishell_tester works
 
 - Reads test **blocks** from scripts under `cmds/mand/` (LeaYeh splits builtins into `1_builtins_echo.sh`, `1_builtins_cd.sh`, …; plus `8_syntax_errors.sh`, `1_redirs.sh`, etc.). Each block is one or more lines of input; empty lines and `#` comments separate blocks.

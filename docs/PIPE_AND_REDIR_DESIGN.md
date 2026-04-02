@@ -96,7 +96,8 @@ This matches the usual expectation: **explicit `< file` overrides heredoc as std
 
 Pipeline execution is in:
 
-- `src/executor/exe_pipeline.c` (`run_pipeline`, `wait_nlast`)
+- `src/executor/exe_pipeline.c` (`run_pipeline`,
+  `wait_for_pipeline_children`)
 - `src/executor/exe_pipe_step.c` (`pipe_step`)
 
 For each segment:
@@ -127,7 +128,8 @@ We **reap** children via `waitpid`:
 
 - **Single external**: `src/executor/exe_external.c` (`run_external`) forks once and `waitpid(pid, ...)` for that pid.
   - We also handle `EINTR` by retrying `waitpid` (theoretical correctness).
-- **Pipeline**: `src/executor/exe_pipeline.c` (`wait_nlast`) loops until it has reaped **N** children.
+- **Pipeline**: `src/executor/exe_pipeline.c`
+  (`wait_for_pipeline_children`) loops until it has reaped **N** children.
   - It calls `waitpid(-1, ...)` and on `EINTR` it retries without counting progress.
 
 This means: the parent shell does not leave unreaped children behind (no zombies).
@@ -153,7 +155,8 @@ Stateful builtins must run in the **parent process** to affect the shell:
 - `export`/`unset` mutate the environment
 - `exit` terminates the shell
 
-In `src/executor/exe.c` (`run_bi`), we run these in parent and apply/restore redirections by backing up stdio (`dup`) and restoring (`dup2`).
+In `src/executor/exe.c` (`run_single_builtin`), we run these in parent and
+apply/restore redirections by backing up stdio (`dup`) and restoring (`dup2`).
 
 For other builtins, if the command has redirections, we may run them via the **external path** (`fork`) to avoid parent stdio side-effects.
 
@@ -210,4 +213,39 @@ If you need these, it requires extending tokenization/parsing to carry the numer
 4. **Process safety rules**:
    - parent always `waitpid`/reaps children
    - parent ignores interactive SIGINT/SIGQUIT during wait, children default
+
+---
+
+## 10. Executor naming map (readability refactor)
+
+Some executor-internal static helpers were renamed to be clearer for teammates.
+Behavior is unchanged.
+
+- `bk_fd` -> `backup_stdio_fds` (`src/executor/exe.c`)
+- `rs_fd` -> `restore_stdio_fds` (`src/executor/exe.c`)
+- `run_empty` -> `run_empty_command` (`src/executor/exe.c`)
+- `run_bi` -> `run_single_builtin` (`src/executor/exe.c`)
+- `ch_fds` -> `setup_pipeline_child_fds` (`src/executor/exe_pipe_step.c`)
+- `fork_pl` -> `fork_pipeline_child` (`src/executor/exe_pipe_step.c`)
+- `adv_prev` -> `advance_prev_pipe_fd` (`src/executor/exe_pipe_step.c`)
+- `wait_one` -> `update_last_status_from_wait`
+  (`src/executor/exe_pipeline.c`)
+- `wait_nlast` -> `wait_for_pipeline_children`
+  (`src/executor/exe_pipeline.c`)
+- `pl_loop` -> `spawn_pipeline_children` (`src/executor/exe_pipeline.c`)
+- `need_dq` -> `needs_dollar_quotes` (`src/executor/exe_not_found.c`)
+- `esc_c` -> `append_escaped_char` (`src/executor/exe_not_found.c`)
+- `fill_dq` -> `fill_dollar_quoted_name` (`src/executor/exe_not_found.c`)
+- `fmt_nf` -> `format_not_found_name` (`src/executor/exe_not_found.c`)
+- `rdr_in` -> `apply_input_redir` (`src/executor/exe_redir.c`)
+- `rdr_out` -> `apply_output_redir` (`src/executor/exe_redir.c`)
+- `rdr_one` -> `apply_one_redir` (`src/executor/exe_redir.c`)
+- `is_nf_cmd` -> `is_simple_not_found_command`
+  (`src/executor/exe_pipeline_nf.c`)
+- `bi_child` -> `run_builtin_in_child` (`src/executor/exe_child.c`)
+- `ch_abort` -> `child_abort_with_message` (`src/executor/exe_child.c`)
+- `ch_nf` -> `child_exit_not_found` (`src/executor/exe_child.c`)
+- `ch_stat` -> `status_from_child_wait` (`src/executor/exe_external.c`)
+- `mk_path` -> `build_path_candidate` (`src/executor/exe_external.c`)
+- `path_scan` -> `scan_path_for_command` (`src/executor/exe_external.c`)
 

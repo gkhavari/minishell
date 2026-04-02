@@ -181,7 +181,14 @@ flowchart LR
 - **`shell_repl.c`** (src/core/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls `init_shell`, `shell_loop`, and teardown.
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parser.c`; `syntax_check()` in `parser_syntax_check.c`; `finalize_all_commands()` in `argv_build.c` builds `argv` and sets `is_builtin`.
-- **Executor** (src/executor/): **`run_commands()`** in **`exe.c`** — empty argv, **`run_empty`**; else single command: **`run_bi`** (parent with optional `dup`/`apply_redirs`/`rs_fd`, or **`run_external`** if builtin has redirs and type is not cd/export/unset/exit) or **`run_external`**; pipeline → **`run_pipeline()`** → **`pipe_step`** / **`wait_nlast`**; child path → **`run_in_child()`** in **`exe_child.c`**.
+- **Executor** (src/executor/): **`run_commands()`** in **`exe.c`** — empty
+  argv, **`run_empty_command`**; else single command:
+  **`run_single_builtin`** (parent with optional `dup`/`apply_redirs`/
+  `restore_stdio_fds`, or **`run_external`** if builtin has redirs and type is
+  not cd/export/unset/exit) or **`run_external`**; pipeline ->
+  **`run_pipeline()`** -> **`pipe_step`** /
+  **`wait_for_pipeline_children`**; child path -> **`run_in_child()`** in
+  **`exe_child.c`**.
 
 ---
 
@@ -256,7 +263,10 @@ sequenceDiagram
 | Parent while waiting | **`set_signals_ignore`** | SIGINT, SIGQUIT → **ignore** so the waiting parent is not torn down by the same keystroke |
 | After wait returns | **`set_signals_interactive`** | Restore §1.3 |
 
-**Pipeline:** **`run_pipeline`** calls **`set_signals_ignore`**, runs **`pl_loop`**, **`wait_nlast`**, then **`set_signals_interactive`**. **Single external:** same pattern inside **`run_external`** around **`waitpid`**.
+**Pipeline:** **`run_pipeline`** calls **`set_signals_ignore`**, runs
+**`spawn_pipeline_children`**, **`wait_for_pipeline_children`**, then
+**`set_signals_interactive`**. **Single external:** same pattern inside
+**`run_external`** around **`waitpid`**.
 
 ### 1.6 `t_shell` (no further globals)
 
@@ -762,7 +772,13 @@ EOF
 
 ## 7. Executor (The Core Engine)
 
-**Implementation:** `executor/exe.c` (`run_commands`, static `run_empty` / `run_bi`), `executor/exe_redir.c` (`apply_redirs`), `executor/exe_external.c` (`run_external`, `resolve_cmd_path`), `executor/exe_pipeline_nf.c` (`pipeline_all_nf`), `executor/exe_pipeline.c` + `executor/exe_pipe_step.c` (`run_pipeline`, `pipe_step`; **`sync_fd` inactive**), `executor/exe_child.c` (`run_in_child`), `executor/exe_not_found.c` (`put_cmd_not_found`).
+**Implementation:** `executor/exe.c` (`run_commands`, static
+`run_empty_command` / `run_single_builtin`), `executor/exe_redir.c`
+(`apply_redirs`), `executor/exe_external.c` (`run_external`,
+`resolve_cmd_path`), `executor/exe_pipeline_nf.c` (`pipeline_all_nf`),
+`executor/exe_pipeline.c` + `executor/exe_pipe_step.c` (`run_pipeline`,
+`pipe_step`; **`sync_fd` inactive**), `executor/exe_child.c`
+(`run_in_child`), `executor/exe_not_found.c` (`put_cmd_not_found`).
 
 ### 7.1 Decision Tree (real code path)
 
@@ -773,9 +789,9 @@ flowchart TD
     NO_CMD -->|NULL| R0[return SUCCESS]
     NO_CMD -->|non-NULL| ONE{commands->next?}
     ONE -->|NULL| EMP{argv missing or argv0 empty?}
-    EMP -->|yes| EMPTY[run_empty redir only]
+    EMP -->|yes| EMPTY[run_empty_command redir only]
     EMP -->|no| BUILTIN{cmd->is_builtin?}
-    BUILTIN -->|yes| RB[run_bi]
+    BUILTIN -->|yes| RB[run_single_builtin]
     BUILTIN -->|no| EXT[run_external]
     RB --> RBX{redirs and not parent-only builtin?}
     RBX -->|yes| EXT
@@ -784,7 +800,7 @@ flowchart TD
     ONE -->|non-NULL| PIPE[run_pipeline]
     PIPE --> NF{all stages not-found?}
     NF -->|yes| R127[return EXIT_CMD_NOT_FOUND]
-    NF -->|no| FORK[pipe_step loop + wait_nlast]
+    NF -->|no| FORK[pipe_step loop + wait_for_pipeline_children]
 ```
 
 ### 7.2 Single Command Execution
@@ -832,12 +848,25 @@ flowchart TD
     MT -->|no| RD{redirs or heredoc_fd?}
     RD -->|yes| FK[fork via run_external]
     RD -->|no| PAR2[run_builtin in parent]
-    FK --> CH[child: apply_redirs, bi_child or execve]
+    FK --> CH[child: apply_redirs, run_builtin_in_child or execve]
 ```
 
 ### 7.3 Single command (actual: `executor/exe.c`)
 
-Redirections use static `bk_fd` / `rs_fd` only when `cmd->redirs` or `heredoc_fd` is set. Empty argv → `run_empty`. Builtin path → `run_bi` (may delegate to `run_external` if redirs + not cd/export/unset/exit). Else → `run_external` → fork → child `apply_redirs` + `run_in_child`.
+Redirections use static `backup_stdio_fds` / `restore_stdio_fds` only when
+`cmd->redirs` or `heredoc_fd` is set. Empty argv -> `run_empty_command`.
+Builtin path -> `run_single_builtin` (may delegate to `run_external` if redirs
+and not cd/export/unset/exit). Else -> `run_external` -> fork -> child
+`apply_redirs` + `run_in_child`.
+
+**Algorithm choice (why this is good):**
+
+- **Decision tree first, syscalls second:** we decide parent vs child execution
+  before touching FDs, which keeps stateful builtins safe.
+- **Copy-apply-restore for parent builtins:** use `dup` + `dup2` to prevent
+  parent stdio corruption when builtins have redirections.
+- **Fail-fast strategy:** any redirection failure returns quickly with a clear
+  status instead of continuing with partially modified FDs.
 
 ### 7.4 Pipeline Execution
 
@@ -874,15 +903,26 @@ Command: ls -la | grep ".c" | wc -l
 flowchart LR
     EP[run_pipeline] --> NF[pipeline_all_nf]
     NF --> IGN[set_signals_ignore]
-    IGN --> LOOP[pl_loop]
+    IGN --> LOOP[spawn_pipeline_children]
     LOOP --> RPS[pipe_step per cmd]
-    RPS --> FORK[fork_pl]
-    FORK --> CHILD[child: ch_fds, apply_redirs, run_in_child]
-    LOOP --> WAIT[wait_nlast]
+    RPS --> FORK[fork_pipeline_child]
+    FORK --> CHILD[child: setup_pipeline_child_fds, apply_redirs, run_in_child]
+    LOOP --> WAIT[wait_for_pipeline_children]
     WAIT --> INT[set_signals_interactive]
 ```
 
-No `pids[]` array: parent tracks only `prev_fd` between steps; `waitpid(-1, …)` in `wait_nlast` reaps `n` children and returns the **last** segment’s status.
+No `pids[]` array: parent tracks only `prev_fd` between steps;
+`waitpid(-1, ...)` in `wait_for_pipeline_children` reaps `n` children and
+returns the **last** segment's status.
+
+**Algorithm choice (why this is good):**
+
+- **Streaming pipeline construction:** `pipe_step` creates one stage at a time.
+  This avoids preallocating a pid/fd matrix and keeps code Norm-friendly.
+- **Last-command status policy:** explicitly tracks `last_pid`, matching bash
+  rule for pipeline exit status.
+- **EINTR-aware wait loop:** interrupted waits retry instead of miscounting
+  children, improving robustness under signal load.
 
 ### 7.6 Command Execution (In Child) — actual: `exe_child.c` `run_in_child()`
 
@@ -891,12 +931,12 @@ No `pids[]` array: parent tracks only `prev_fd` between steps; `waitpid(-1, …)
 void	run_in_child(t_command *cmd, t_shell *shell)
 {
 	if (cmd->is_builtin)
-		bi_child(cmd, shell);
+		run_builtin_in_child(cmd, shell);
 	if (!cmd->argv || !cmd->argv[0])
 		clean_exit(shell, SUCCESS);
 	path = resolve_cmd_path(cmd->argv[0], shell);
 	if (!path)
-		ch_nf(shell, cmd->argv[0]); /* EXIT_CMD_NOT_FOUND */
+		child_exit_not_found(shell, cmd->argv[0]); /* EXIT_CMD_NOT_FOUND */
 	/* stat: is directory → EXIT_CMD_CANNOT_EXECUTE */
 	execve(path, cmd->argv, shell->envp);
 	/* ENOENT → EXIT_CMD_NOT_FOUND; else → EXIT_CMD_CANNOT_EXECUTE */
@@ -904,7 +944,8 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 ```
 
 **Supporting files:**
-- **`exe_not_found.c`**: **`put_cmd_not_found`** — not-found line to stderr (`$'…'` when name has control bytes).
+- **`exe_not_found.c`**: **`put_cmd_not_found`** — not-found line to stderr
+  (`$'…'` when name has control bytes).
 - **`exe_pipeline_nf.c`**: **`pipeline_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent; **`run_pipeline`** returns **`EXIT_CMD_NOT_FOUND`** without forking that pipeline.
 
 ### 7.7 Path Resolution (actual: `exe_external.c`)
@@ -959,9 +1000,14 @@ flowchart LR
 - **`SUCCESS` (0)** – Successful builtin or external command.
 - **`FAILURE` (1)** – Builtin failure (e.g. `exit` too many args **returns** `FAILURE`), redirection failure, or generic error.
 - **`EXIT_SYNTAX_ERROR` (2)** – Syntax error (`syntax_check`, tokenizer unclosed quote); also **`exit` with non-numeric arg** (bash uses **255**).
-- **`EXIT_CMD_CANNOT_EXECUTE` (126)** – Path is directory or permission denied around `execve` (`exe_child.c` **`ch_abort`**).
-- **`EXIT_CMD_NOT_FOUND` (127)** – Command not found (**`ch_nf`**; pipeline fast path **`pipeline_all_nf`** in parent).
-- **`EXIT_STATUS_FROM_SIGNAL(sig)`** – Child terminated by signal; e.g. **`EXIT_SIGINT`** (`exe_external.c` **`ch_stat`**, pipeline **`wait_nlast`**).
+- **`EXIT_CMD_CANNOT_EXECUTE` (126)** – Path is directory or permission denied
+  around `execve` (`exe_child.c` **`child_abort_with_message`**).
+- **`EXIT_CMD_NOT_FOUND` (127)** – Command not found
+  (**`child_exit_not_found`**; pipeline fast path **`pipeline_all_nf`** in
+  parent).
+- **`EXIT_STATUS_FROM_SIGNAL(sig)`** – Child terminated by signal; e.g.
+  **`EXIT_SIGINT`** (`exe_external.c` **`status_from_child_wait`**, pipeline
+  **`wait_for_pipeline_children`**).
 
 ### 8.3 exit Builtin (Bash Reference)
 
@@ -1238,14 +1284,14 @@ Phase 3: Expander
 Phase 4: Executor (Simple)
 ├── [x] Single external command execution (executor/exe_external.c)
 ├── [x] Path resolution (resolve_cmd_path in exe_external.c)
-├── [x] Single builtin with redirections (run_bi / run_external, apply_redirs)
+├── [x] Single builtin with redirections (run_single_builtin / run_external)
 └── [x] File redirections (executor/exe_redir.c, rdr_one, heredoc_fd)
 
 Phase 5: Pipes & Heredoc
 ├── [x] Pipeline execution (executor/exe_pipeline.c)
 ├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
-└── [x] Signal handling in children (wait_nlast, `EXIT_STATUS_FROM_SIGNAL`)
+└── [x] Signal handling in children (wait_for_pipeline_children, XSIG)
 
 Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)

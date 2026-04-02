@@ -93,7 +93,7 @@ typedef struct s_command {
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
-| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. In **`exe.c`**, **`run_bi`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`run_external`** (fork) like an external command. |
+| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. In **`exe.c`**, **`run_single_builtin`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`run_external`** (fork) like an external command. |
 
 **Pipeline:** **`t_shell.commands`** is **`t_list *`** (`content` → **`t_command *`**).
 
@@ -299,25 +299,25 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 | File | Function | Description |
 |------|----------|-------------|
-| **executor/exe.c** | `run_commands(shell)` | No commands → success; single cmd → `run_empty` / `run_bi` / `run_external`; else `run_pipeline`. Returns last status. |
-| **executor/exe.c** | *(static)* `run_empty` | Redirs/heredoc only: `bk_fd`, `apply_redirs`, `rs_fd`. |
-| **executor/exe.c** | *(static)* `run_bi` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
-| **executor/exe.c** | *(static)* `bk_fd` / `rs_fd` | Dup stdin/stdout for builtin redir in parent. |
-| **executor/exe_redir.c** | `apply_redirs(cmd)` | Walk `redirs` via `rdr_one` (`rdr_in` / `rdr_out`); then dup `heredoc_fd` to stdin if ≥ 0. |
-| **executor/exe_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `ch_stat`. |
-| **executor/exe_external.c** | *(static)* `ch_stat` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `EXIT_STATUS_FROM_SIGNAL(WTERMSIG)`; SIGQUIT prints “Quit (core dumped)”. |
-| **executor/exe_external.c** | *(static)* `path_scan` / `mk_path` | Colon-scan PATH with `stat` (regular file). |
+| **executor/exe.c** | `run_commands(shell)` | No commands → success; single cmd → `run_empty_command` / `run_single_builtin` / `run_external`; else `run_pipeline`. Returns last status. |
+| **executor/exe.c** | *(static)* `run_empty_command` | Redirs/heredoc only: `backup_stdio_fds`, `apply_redirs`, `restore_stdio_fds`. |
+| **executor/exe.c** | *(static)* `run_single_builtin` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
+| **executor/exe.c** | *(static)* `backup_stdio_fds` / `restore_stdio_fds` | Dup stdin/stdout for builtin redir in parent. |
+| **executor/exe_redir.c** | `apply_redirs(cmd)` | Walk `redirs` via `apply_one_redir` (`apply_input_redir` / `apply_output_redir`); then dup `heredoc_fd` to stdin if ≥ 0. |
+| **executor/exe_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `status_from_child_wait`. |
+| **executor/exe_external.c** | *(static)* `status_from_child_wait` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `EXIT_STATUS_FROM_SIGNAL(WTERMSIG)`; SIGQUIT prints “Quit (core dumped)”. |
+| **executor/exe_external.c** | *(static)* `scan_path_for_command` / `build_path_candidate` | Colon-scan PATH with `stat` (regular file). |
 | **executor/exe_external.c** | `resolve_cmd_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
-| **executor/exe_child.c** | *(static)* `bi_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
-| **executor/exe_child.c** | *(static)* `ch_nf` / `ch_abort` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
+| **executor/exe_child.c** | *(static)* `run_builtin_in_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
+| **executor/exe_child.c** | *(static)* `child_exit_not_found` / `child_abort_with_message` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
 | **executor/exe_child.c** | `run_in_child(cmd, shell)` | Builtin branch, empty argv, `resolve_cmd_path`, `execve` or errors. |
-| **executor/exe_pipeline_nf.c** | *(static)* `is_nf_cmd` | Predicate: simple missing-PATH external, no redir/heredoc, no `/` in argv0. |
-| **executor/exe_pipeline_nf.c** | `pipeline_all_nf(cmds, shell)` | If every stage matches **`is_nf_cmd`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pipeline`** returns **`EXIT_CMD_NOT_FOUND`**. |
-| **executor/exe_not_found.c** | `put_cmd_not_found` (+ static `fmt_nf`, `need_dq`, `esc_c`, `fill_dq`) | One stderr line for not-found (`$'…'` when name has control bytes). |
-| **executor/exe_pipeline.c** | *(static)* `wait_nlast` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`wait_one`). |
-| **executor/exe_pipeline.c** | *(static)* `pl_loop` | Chains `pipe_step`, closes trailing `prev_fd`. |
+| **executor/exe_pipeline_nf.c** | *(static)* `is_simple_not_found_command` | Predicate: simple missing-PATH external, no redir/heredoc, no `/` in argv0. |
+| **executor/exe_pipeline_nf.c** | `pipeline_all_nf(cmds, shell)` | If every stage matches **`is_simple_not_found_command`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pipeline`** returns **`EXIT_CMD_NOT_FOUND`**. |
+| **executor/exe_not_found.c** | `put_cmd_not_found` (+ static `format_not_found_name`, `needs_dollar_quotes`, `append_escaped_char`, `fill_dollar_quoted_name`) | One stderr line for not-found (`$'…'` when name has control bytes). |
+| **executor/exe_pipeline.c** | *(static)* `wait_for_pipeline_children` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`update_last_status_from_wait`). |
+| **executor/exe_pipeline.c** | *(static)* `spawn_pipeline_children` | Chains `pipe_step`, closes trailing `prev_fd`. |
 | **executor/exe_pipeline.c** | `run_pipeline(cmds, shell)` | `sync_fd` inactive (-1); `pipeline_all_nf` → **`EXIT_CMD_NOT_FOUND`**; ignore signals, loop, wait, restore interactive. |
-| **executor/exe_pipe_step.c** | *(static)* `ch_fds` / `fork_pl` / `adv_prev` | Pipe wiring between stages. |
+| **executor/exe_pipe_step.c** | *(static)* `setup_pipeline_child_fds` / `fork_pipeline_child` / `advance_prev_pipe_fd` | Pipe wiring between stages. |
 | **executor/exe_pipe_step.c** | `pipe_step(cmd, shell, prev_fd, sync_fd)` | One pipeline segment; used by `exe_pipeline.c`. |
 
 ---
@@ -379,13 +379,29 @@ flowchart TB
     par --> hd[process_heredocs]
     hd --> ex[run_commands]
     ex --> br{single vs pipeline}
-    br --> emp[run_empty / run_bi / run_external]
+    br --> emp[run_empty_command / run_single_builtin / run_external]
     br --> pl[run_pipeline → pipe_step]
     emp --> ich[run_in_child / clean_exit in child]
     pl --> ich
     proc --> rs
     rs --> loop
 ```
+
+### 3.1 Algorithm choices (defense notes)
+
+- **Single-pass tokenizer loop:** character-by-character state machine with
+  explicit quote states (`ST_NORMAL`, `ST_SQUOTE`, `ST_DQUOTE`) keeps logic
+  deterministic and easy to debug.
+- **Token-first parser:** syntax validation happens on token stream before
+  command build, so executor never receives structurally invalid pipelines.
+- **Linked-list command model:** variable pipeline length and redirection count
+  are handled without fixed-size arrays, which fits shell input naturally.
+- **Two-phase command finalize:** parse collects `args`; finalize builds
+  `argv[]`. This clean boundary keeps parse logic and exec formatting separate.
+- **Streaming pipeline spawn + wait:** parent builds one stage at a time and
+  reaps with `waitpid(-1, ...)`, tracking last command status for bash parity.
+- **Parent-only stateful builtins:** preserves shell state consistency while
+  still allowing non-stateful builtins to run through external path when needed.
 
 ---
 
