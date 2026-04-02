@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_pip_steps.c                               :+:      :+:    :+:   */
+/*   exe_pipe_step.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static void	setup_child_fds(int prev_fd, int pipe_fd[3], int has_next,
+static void	ch_fds(int prev_fd, int pipe_fd[3], int has_next,
 		int barrier_write_fd)
 {
 	char	sync;
@@ -37,7 +37,7 @@ static void	setup_child_fds(int prev_fd, int pipe_fd[3], int has_next,
 	}
 }
 
-static pid_t	fork_pipeline_cmd(t_list *cmd_node, t_shell *shell,
+static pid_t	fork_pl(t_list *cmd_node, t_shell *shell,
 		int prev_fd, int pipe_fd[3])
 {
 	t_command	*cmd;
@@ -54,16 +54,16 @@ static pid_t	fork_pipeline_cmd(t_list *cmd_node, t_shell *shell,
 		set_signals_default();
 		if (shell->barrier_write_fd != -1)
 			close(shell->barrier_write_fd);
-		setup_child_fds(prev_fd, pipe_fd, has_next,
+		ch_fds(prev_fd, pipe_fd, has_next,
 			shell->barrier_write_fd);
-		if (apply_redirections(cmd) != 0)
+		if (apply_redirs(cmd) != 0)
 			clean_exit(shell, FAILURE);
-		execute_in_child(cmd, shell);
+		run_in_child(cmd, shell);
 	}
 	return (pid);
 }
 
-static void	pipeline_advance_prev(int *prev_fd, int has_next, int p0, int p1)
+static void	adv_prev(int *prev_fd, int has_next, int p0, int p1)
 {
 	if (*prev_fd != -1)
 		close(*prev_fd);
@@ -76,8 +76,11 @@ static void	pipeline_advance_prev(int *prev_fd, int has_next, int p0, int p1)
 		*prev_fd = -1;
 }
 
-/** Fork one pipeline segment; set up stdin/stdout pipes and sync barrier. */
-pid_t	run_pipe_step(t_list *cmd_node, t_shell *shell,
+/**
+ * Fork one pipeline command: connect stdin from the previous pipe (if any),
+ * stdout to the next segment (if any), optional sync_fd barrier read.
+ */
+pid_t	pipe_step(t_list *cmd_node, t_shell *shell,
 		int *prev_fd, int sync_fd[2])
 {
 	int			pipe_fd[3];
@@ -90,13 +93,13 @@ pid_t	run_pipe_step(t_list *cmd_node, t_shell *shell,
 	pipe_fd[2] = sync_fd[0];
 	if (has_next && pipe(pipe_fd) == -1)
 		return (-1);
-	pid = fork_pipeline_cmd(cmd_node, shell, *prev_fd, pipe_fd);
+	pid = fork_pl(cmd_node, shell, *prev_fd, pipe_fd);
 	if (pid < 0)
 	{
 		if (has_next)
 			(close(pipe_fd[0]), close(pipe_fd[1]));
 		return (-1);
 	}
-	pipeline_advance_prev(prev_fd, has_next, pipe_fd[0], pipe_fd[1]);
+	adv_prev(prev_fd, has_next, pipe_fd[0], pipe_fd[1]);
 	return (pid);
 }

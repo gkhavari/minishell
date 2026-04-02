@@ -98,7 +98,7 @@ Functions whose **primary result** is a pointer (`char *`, `void *`, etc.) must 
 
 Examples in this repo: **`ft_strdup`** / **`ft_calloc`** at call sites, **`ft_arrdup`**, **`expand_heredoc_line`**. Callers (e.g. **`init_shell`**, **`parse_input`** / **`finalize_all_commands`**, heredoc write path via **`shell->oom`**) handle failure explicitly.
 
-**Where `clean_exit` from “parent” code is still OK:** **`init_shell`** after **`ft_arrdup`** failure; **`exit` builtin**; any code that runs only **after `fork()`** in the child ( **`execute_in_child`**, pipeline child) where the process must terminate and must not return to the main REPL.
+**Where `clean_exit` from “parent” code is still OK:** **`init_shell`** after **`ft_arrdup`** failure; **`exit` builtin**; any code that runs only **after `fork()`** in the child ( **`run_in_child`**, pipeline child) where the process must terminate and must not return to the main REPL.
 
 **Principle:** every allocation has a **clear owner**; on failure, ownership is either **transferred** to a success path or **freed** on the error path — **no orphan buffers**.
 

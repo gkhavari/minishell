@@ -110,7 +110,7 @@ int	handle_operator(t_shell *shell, size_t *i, char **word)
  */
 int	handle_whitespace(t_shell *shell, size_t *i, char **word)
 {
-	if (msh_is_lexer_blank((unsigned char)shell->input[*i]))
+	if (msh_is_blank((unsigned char)shell->input[*i], 0))
 	{
 		if (flush_word(shell, word, &shell->tokens) == OOM)
 			return (OOM);

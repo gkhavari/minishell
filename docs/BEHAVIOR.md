@@ -34,8 +34,8 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 | Tokenizer loop, operators, heredoc delimiter mode | §3 (e.g. §3.2.1) |
 | Expansion vs heredoc body, **`~`** | §4 |
 | **`parse_input`**: **`syntax_check`** then **`parse_tokens`** → **`finalize`** | §5 |
-| Heredoc pipes, SIGINT during heredoc → **`last_exit = EXIT_SIGINT`** (130), no **`execute_commands`** | §6 |
-| **`execute_commands`**, single vs pipeline, parent-only builtins (cd/export/unset/exit), not-found fast path | §7 |
+| Heredoc pipes, SIGINT during heredoc → **`last_exit = EXIT_SIGINT`** (130), no **`run_commands`** | §6 |
+| **`run_commands`**, single vs pipeline, parent-only builtins (cd/export/unset/exit), not-found fast path | §7 |
 | Exit codes, who sets **`last_exit`**, **`reset_shell` does not clear `last_exit`** | §8, §11 |
 
 For **structs and every function by file**, see [DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md).
@@ -180,7 +180,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Test-design note:** Quoted delimiter → no expansion in body. Unquoted → expand variables. See `1_redirs.sh`, `10_parsing_hell.sh`.
 
-**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = EXIT_SIGINT`**, and **does not** run **`execute_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
+**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = EXIT_SIGINT`**, and **does not** run **`run_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
 
 ---
 
@@ -204,8 +204,8 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
 barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
-`sync_fd[1] = -1` in `execute_pipeline`). The all-not-found fast path
-(`executor_pip_not_found.c`) handles the ordering problem for that case
+`sync_fd[1] = -1` in `run_pipeline`). The all-not-found fast path
+(`pipeline_all_nf` in `exe_child.c`) handles the ordering problem for that case
 by printing errors in the parent before forking — no barrier needed.
 Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 

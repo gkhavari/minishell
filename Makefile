@@ -27,7 +27,6 @@ SRCS		=	$(SRC_DIR)/main.c
 
 # core
 SRCS		+=	$(SRC_DIR)/core/init.c
-SRCS		+=	$(SRC_DIR)/core/init_runtime.c
 SRCS		+=	$(SRC_DIR)/core/init_utils.c
 
 # utils
@@ -70,15 +69,14 @@ SRCS		+=	$(SRC_DIR)/parser/parser.c \
 				$(SRC_DIR)/parser/heredoc_warning.c \
 				$(SRC_DIR)/parser/heredoc_utils.c
 
-# executor
-SRCS        += $(SRC_DIR)/executor/executor.c \
-			   $(SRC_DIR)/executor/executor_redir_apply.c \
-			   $(SRC_DIR)/executor/executor_external.c \
-			   $(SRC_DIR)/executor/executor_pip.c \
-			   $(SRC_DIR)/executor/executor_pip_not_found.c \
-			   $(SRC_DIR)/executor/executor_pip_steps.c \
-			   $(SRC_DIR)/executor/executor_child_format.c \
-			   $(SRC_DIR)/executor/executor_child_exec.c \
+# executor (exe_* — parser-style names; public API without exe_ prefix)
+SRCS        += $(SRC_DIR)/executor/exe.c \
+			   $(SRC_DIR)/executor/exe_redir.c \
+			   $(SRC_DIR)/executor/exe_external.c \
+			   $(SRC_DIR)/executor/exe_not_found.c \
+			   $(SRC_DIR)/executor/exe_child.c \
+			   $(SRC_DIR)/executor/exe_pipeline.c \
+			   $(SRC_DIR)/executor/exe_pipe_step.c \
 
 # builtins
 SRCS        += $(SRC_DIR)/builtins/cd.c \

@@ -13,41 +13,26 @@
 #include "minishell.h"
 
 /*
-** Space or tab: readline line lexer uses only these as word breaks.
+** ifs_mode 0: space/tab (lexer word breaks).
+** ifs_mode 1: space/tab/newline (default IFS; not full ft_isspace).
 */
-int	msh_is_lexer_blank(int c)
+int	msh_is_blank(int c, int ifs_mode)
 {
 	if (c == ' ' || c == '\t')
 		return (TRUE);
-	return (FALSE);
-}
-
-/*
-** Default IFS blanks (space, tab, newline) for unquoted expansion split.
-** Not ft_isspace: excludes \\v \\f \\r (bash default IFS).
-*/
-int	msh_is_ifs_blank(int c)
-{
-	if (c == ' ' || c == '\t' || c == '\n')
+	if (ifs_mode && c == '\n')
 		return (TRUE);
 	return (FALSE);
 }
 
-/** Alnum or '_' after first char of $NAME (expansion / heredoc). */
-int	msh_is_env_var_body(int c)
-{
-	if (ft_isalnum((unsigned char)c) || c == '_')
-		return (TRUE);
-	return (FALSE);
-}
-
-/* Length of env var body run from s[start] (may be 0). */
+/* Length of $NAME body from s[start]: alnum and '_' (may be 0). */
 size_t	msh_env_var_body_span(const char *s, size_t start)
 {
 	size_t	len;
 
 	len = 0;
-	while (s[start + len] && msh_is_env_var_body((unsigned char)s[start + len]))
+	while (s[start + len] && (ft_isalnum((unsigned char)s[start + len])
+			|| s[start + len] == '_'))
 		len++;
 	return (len);
 }

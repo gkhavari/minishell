@@ -26,11 +26,11 @@ int	append_expansion_unquoted(t_shell *shell, char **word, const char *exp,
 		return (SUCCESS);
 	while (exp[i])
 	{
-		if (msh_is_ifs_blank((unsigned char)exp[i]))
+		if (msh_is_blank((unsigned char)exp[i], 1))
 		{
 			if (*word && flush_word(shell, word, tokens) == OOM)
 				return (OOM);
-			while (exp[i] && msh_is_ifs_blank((unsigned char)exp[i]))
+			while (exp[i] && msh_is_blank((unsigned char)exp[i], 1))
 				i++;
 		}
 		else
@@ -89,7 +89,7 @@ int	handle_tilde_expansion(t_shell *shell, size_t *i, char **word)
 	if (shell->input[*i] != '~' || *word)
 		return (LEX_NO);
 	next = shell->input[*i + 1];
-	if (next && next != '/' && !msh_is_lexer_blank((unsigned char)next)
+	if (next && next != '/' && !msh_is_blank((unsigned char)next, 0)
 		&& !is_op_char(next))
 		return (LEX_NO);
 	home = get_env_value(shell->envp, "HOME");

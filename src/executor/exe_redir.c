@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_redir_apply.c                             :+:      :+:    :+:   */
+/*   exe_redir.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-static int	apply_input_redir(t_redir *r, int *had_input)
+static int	rdr_in(t_redir *r, int *had_input)
 {
 	int	fd;
 
@@ -28,7 +28,7 @@ static int	apply_input_redir(t_redir *r, int *had_input)
 	return (SUCCESS);
 }
 
-static int	apply_output_redir(t_redir *r)
+static int	rdr_out(t_redir *r)
 {
 	int	fd;
 
@@ -46,8 +46,7 @@ static int	apply_output_redir(t_redir *r)
 	return (SUCCESS);
 }
 
-/** Open r, dup2 to stdin/out; set *had_input for input redir. */
-static int	apply_one_redir(t_redir *r, int *had_input)
+static int	rdr_one(t_redir *r, int *had_input)
 {
 	size_t	prefix_len;
 
@@ -60,12 +59,15 @@ static int	apply_one_redir(t_redir *r, int *had_input)
 		return (FAILURE);
 	}
 	if (r->fd == STDIN_FILENO)
-		return (apply_input_redir(r, had_input));
-	return (apply_output_redir(r));
+		return (rdr_in(r, had_input));
+	return (rdr_out(r));
 }
 
-/** Walk cmd->redirs; wire heredoc fd to stdin if no input redir. */
-int	apply_redirections(t_command *cmd)
+/**
+ * Walk cmd->redirs (open + dup2); if no input redirect, dup heredoc read fd to stdin.
+ * Returns SUCCESS or FAILURE.
+ */
+int	apply_redirs(t_command *cmd)
 {
 	t_list	*node;
 	t_redir	*r;
@@ -76,7 +78,7 @@ int	apply_redirections(t_command *cmd)
 	while (node)
 	{
 		r = node->content;
-		if (apply_one_redir(r, &had_input))
+		if (rdr_one(r, &had_input))
 			return (FAILURE);
 		node = node->next;
 	}

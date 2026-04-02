@@ -19,11 +19,8 @@ void		process_input(t_shell *shell);
 
 /* init_utils.c */
 void		init_shell_identity(t_shell *shell, char **envp);
-char		*build_prompt(t_shell *shell);
-char		*get_env_value(char **envp, const char *key);
-
-/* init_runtime.c */
 void		init_runtime_fields(t_shell *shell);
+char		*get_env_value(char **envp, const char *key);
 
 /* ft_strcat.c */
 char		*ft_strcat(char *dest, const char *src);
@@ -35,9 +32,7 @@ char		**ft_arrdup(char **envp);
 char		*ft_realloc(char *ptr, const size_t new_size);
 
 /* msh_string.c */
-int			msh_is_lexer_blank(int c);
-int			msh_is_ifs_blank(int c);
-int			msh_is_env_var_body(int c);
+int			msh_is_blank(int c, int ifs_mode);
 size_t		msh_env_var_body_span(const char *s, size_t start);
 int			msh_is_dollar_var_leader(int c);
 
@@ -145,30 +140,37 @@ void		free_lex(t_shell *shell, char **word);
 void		reset_shell(t_shell *shell);
 void		free_all(t_shell *shell);
 
-/* executor.c */
-int			execute_commands(t_shell *shell);
+/* exe.c — entry */
+/** Run parsed commands (single or pipeline); see exe.c */
+int			run_commands(t_shell *shell);
 
-/* executor_redir_apply.c */
-int			apply_redirections(t_command *cmd);
+/* exe_redir.c */
+/** Apply cmd redirs + heredoc stdin; see exe_redir.c */
+int			apply_redirs(t_command *cmd);
 
-/* executor_external.c */
-int			execute_external(t_command *cmd, t_shell *shell);
-char		*find_command_path(char *cmd, t_shell *shell);
+/* exe_external.c */
+/** Fork + wait for one external; see exe_external.c */
+int			run_external(t_command *cmd, t_shell *shell);
+/** PATH / literal resolve for argv[0]; static buffer; see exe_external.c */
+char		*resolve_cmd_path(char *cmd, t_shell *shell);
 
-/* executor_child_exec.c */
-void		execute_in_child(t_command *cmd, t_shell *shell);
+/* exe_not_found.c */
+/** Stderr "command not found" line; see exe_not_found.c */
+void		put_cmd_not_found(char *cmd_name);
 
-/* executor_child_format.c */
-void		dprintf_cmd_not_found(char *cmd_name);
+/* exe_child.c */
+/** Post-fork child: builtin, execve, or errors; see exe_child.c */
+void		run_in_child(t_command *cmd, t_shell *shell);
+/** Pipeline all-stages not-found fast path; see exe_child.c */
+int			pipeline_all_nf(t_list *cmds, t_shell *shell);
 
-/* executor_pip.c */
-int			execute_pipeline(t_list *cmds, t_shell *shell);
+/* exe_pipeline.c */
+/** Run command list as a pipeline; see exe_pipeline.c */
+int			run_pipeline(t_list *cmds, t_shell *shell);
 
-/* executor_pip_not_found.c */
-int			handle_all_not_found_pipeline(t_list *cmds, t_shell *shell);
-
-/* executor_pip_steps.c */
-pid_t		run_pipe_step(t_list *cmd_node, t_shell *shell,
+/* exe_pipe_step.c */
+/** One pipeline fork + pipe wiring; see exe_pipe_step.c */
+pid_t		pipe_step(t_list *cmd_node, t_shell *shell,
 				int *prev_fd, int sync_fd[2]);
 
 /* builtins */

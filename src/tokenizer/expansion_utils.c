@@ -58,7 +58,7 @@ int	handle_empty_unquoted_expansion(t_shell *shell, size_t start,
 	t_token	*tok;
 
 	if (*word || (shell->input[end] != '\0'
-			&& !msh_is_ifs_blank((unsigned char)shell->input[end])
+			&& !msh_is_blank((unsigned char)shell->input[end], 1)
 			&& !is_op_char(shell->input[end])))
 		return (LEX_NO);
 	if (is_redir_target(shell, *word))

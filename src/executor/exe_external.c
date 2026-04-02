@@ -1,18 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor_external.c                                :+:      :+:    :+:   */
+/*   exe_external.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 17:21:28 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static int	get_child_status(int status)
+static int	ch_stat(int status)
 {
 	if (WIFSIGNALED(status))
 	{
@@ -25,8 +25,11 @@ static int	get_child_status(int status)
 	return (FAILURE);
 }
 
-/** Fork child: redirs + execve PATH lookup; parent waits, restores signals. */
-int	execute_external(t_command *cmd, t_shell *shell)
+/**
+ * Fork once for a simple external: child applies redirs then run_in_child; parent
+ * waitpid, maps status to exit code, restores interactive signal mask.
+ */
+int	run_external(t_command *cmd, t_shell *shell)
 {
 	pid_t	pid;
 	int		status;
@@ -39,17 +42,17 @@ int	execute_external(t_command *cmd, t_shell *shell)
 	if (pid == 0)
 	{
 		set_signals_default();
-		if (apply_redirections(cmd) != 0)
+		if (apply_redirs(cmd) != 0)
 			clean_exit(shell, FAILURE);
-		execute_in_child(cmd, shell);
+		run_in_child(cmd, shell);
 	}
 	set_signals_ignore();
 	waitpid(pid, &status, 0);
 	set_signals_interactive();
-	return (get_child_status(status));
+	return (ch_stat(status));
 }
 
-static int	build_candidate(char out[PATH_MAX], const char *dir,
+static int	mk_path(char out[PATH_MAX], const char *dir,
 		size_t dir_len, char *cmd)
 {
 	size_t	cmd_len;
@@ -70,7 +73,7 @@ static int	build_candidate(char out[PATH_MAX], const char *dir,
 	return (1);
 }
 
-static char	*search_in_path(const char *path_env, char *cmd,
+static char	*path_scan(const char *path_env, char *cmd,
 		char resolved[PATH_MAX])
 {
 	struct stat	sb;
@@ -86,7 +89,7 @@ static char	*search_in_path(const char *path_env, char *cmd,
 		while (*end && *end != ':')
 			end++;
 		len = (size_t)(end - start);
-		if (build_candidate(full_path, start, len, cmd)
+		if (mk_path(full_path, start, len, cmd)
 			&& stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
 		{
 			ft_strlcpy(resolved, full_path, PATH_MAX);
@@ -99,8 +102,12 @@ static char	*search_in_path(const char *path_env, char *cmd,
 	return (NULL);
 }
 
-/** Resolve argv[0] to executable path; static buffer, NULL if not found. */
-char	*find_command_path(char *cmd, t_shell *shell)
+/**
+ * Resolve argv[0] for execve (PATH search or literal path). Uses one static buffer
+ * of PATH_MAX bytes; copy the result before calling again if you need to keep it.
+ * Returns NULL if the command cannot be resolved.
+ */
+char	*resolve_cmd_path(char *cmd, t_shell *shell)
 {
 	static char	resolved[PATH_MAX];
 	char		*path_env;
@@ -117,5 +124,5 @@ char	*find_command_path(char *cmd, t_shell *shell)
 		ft_strlcpy(resolved, cmd, PATH_MAX);
 		return (resolved);
 	}
-	return (search_in_path(path_env, cmd, resolved));
+	return (path_scan(path_env, cmd, resolved));
 }

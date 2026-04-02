@@ -12,7 +12,7 @@
 
 #include "minishell.h"
 
-/** Tokenize, parse, heredocs, then execute_commands. */
+/** Tokenize, parse, heredocs, then run_commands. */
 void	process_input(t_shell *shell)
 {
 	if (tokenize_input(shell) == OOM)
@@ -30,7 +30,7 @@ void	process_input(t_shell *shell)
 			shell->last_exit = FAILURE;
 		return ;
 	}
-	shell->last_exit = execute_commands(shell);
+	shell->last_exit = run_commands(shell);
 }
 
 static void	set_shlvl_entry(t_shell *shell, char *entry)

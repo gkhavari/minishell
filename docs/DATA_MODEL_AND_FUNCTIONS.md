@@ -60,7 +60,7 @@ typedef struct s_redir {
 | Field | Purpose |
 |-------|--------|
 | **file** | Target filename for `<` `>` `>>`; heredoc body uses `t_command.heredoc_delim` / pipe. |
-| **fd** | Which standard stream this redir replaces (`apply_one_redir` in `executor_redir_apply.c` opens `file` and `dup2`s to `fd`). |
+| **fd** | Which standard stream this redir replaces (`rdr_one` in `executor/exe_redir.c` opens `file` and `dup2`s to `fd`). |
 | **append** | For stdout: `>>` uses O_APPEND; otherwise O_TRUNC. |
 
 **Chain:** **`t_command.redirs`** is **`t_list *`** (`content` → **`t_redir *`**).
@@ -93,13 +93,13 @@ typedef struct s_command {
 | **heredoc_fd** | After `process_heredocs()`, read-end of the pipe that feeds heredoc content; -1 if no heredoc. |
 | **heredoc_delim** | Delimiter for `<<`; stored here so we can read the body in `process_heredocs()`. |
 | **heredoc_quoted** | If delimiter was quoted, we don’t expand variables in the heredoc body. |
-| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. In `executor.c`, **`run_builtin_command`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`execute_external`** (fork) like an external command. |
+| **is_builtin** | Set in `finalize_all_commands()` from `(get_builtin_type(argv[0]) != NOT_BUILTIN)`. In **`exe.c`**, **`run_bi`** treats **`cd` / `export` / `unset` / `exit`** as parent-only; **`echo` / `pwd` / `env`** run in the parent **unless** the command has redirections or a heredoc fd—in that case the builtin path goes through **`run_external`** (fork) like an external command. |
 
 **Pipeline:** **`t_shell.commands`** is **`t_list *`** (`content` → **`t_command *`**).
 
 **Why both `args` and `argv`:** Parsing produces `args` incrementally; execution (and `execve`) need `argv`. One conversion step keeps parsing and execution clearly separated.
 
-**Why heredoc in `t_command`:** Heredoc is per-command and read before execution; storing delimiter and fd on the command keeps `process_heredocs()` and `apply_redirections()` simple.
+**Why heredoc in `t_command`:** Heredoc is per-command and read before execution; storing delimiter and fd on the command keeps `process_heredocs()` and `apply_redirs()` simple.
 
 **Why `is_builtin` on the command:** So the executor can branch once (single command vs pipeline, then builtin vs external) without re-resolving the name.
 
@@ -128,8 +128,8 @@ typedef struct s_shell {
 | **envp** | We own it so `export`/`unset`/`cd` can change it; passed to `execve`. |
 | **user, cwd** | Prompt construction; updated by `cd`. |
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
-| **had_path** | Set in **`init_runtime_fields()`**: whether **`PATH`** was present in the environment **after** dup (used by **`find_command_path()`** and edge cases when **`PATH`** is unset later). |
-| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`execute_pipeline()`** currently sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`**. The all-not-found fast path (**`executor_pip_not_found.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
+| **had_path** | Set in **`init_runtime_fields()`**: whether **`PATH`** was present in the environment **after** dup (used by **`resolve_cmd_path()`** and edge cases when **`PATH`** is unset later). |
+| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pipeline()`** currently sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`**. The all-not-found fast path (**`pipeline_all_nf()`** in **`exe_child.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **commands** | Output of parser; input to heredoc + executor; freed after execution or on error. |
 | **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via `read_line_stdin` in `main.c` (non-TTY); freed in tokenizer or in `reset_shell()`. |
@@ -211,14 +211,14 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, `shell_loop()`, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
 | **utils/read_stdin_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; `READ_LINE` / `READ_EOF` / `OOM`; optional `shell->oom` on append failure. |
 | **main.c** (src/) | `read_line_stdin(shell)` | Wrapper: `ft_read_stdin_line(..., 0)` into `*out` (static). |
+| **main.c** (src/) | `build_prompt(shell)` | Prompt string for TTY `readline`; caller frees. (static) |
 | **main.c** (src/) | `read_input(shell)` | TTY: `build_prompt` + `readline`; else `read_line_stdin`. EOF → 0 (prints `exit` on TTY). After non-NULL line: `check_signal_received` may return -1 (SIGINT). Else 1. (static) |
 | **main.c** (src/) | `shell_loop(shell)` | Loop: `check_signal_received`, `read_input`; on 0 break; on -1 continue; if `input[0]` then `process_input`; detect syntax_err (`!commands && last_exit==EXIT_SYNTAX_ERROR`); `reset_shell`; non-TTY + syntax_err → break. (static) |
-| **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `EXIT_SIGINT`, else `FAILURE`) → `execute_commands` → assigns `last_exit`. |
+| **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `EXIT_SIGINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
 | **core/init.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
 | **core/init_utils.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc/OOM path `ft_dprintf` + `FAILURE` via `clean_exit`. |
+| **core/init_utils.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=SUCCESS`, `barrier_write_fd=-1`, null `tokens/commands/input`, `word_quoted`/`heredoc_mode` 0, **`had_path`** from **`PATH`**. |
 | **core/init_utils.c** | `get_env_value(envp, key)` | Returns pointer into `envp[i]` at value after `=`, or NULL. |
-| **core/init_utils.c** | `build_prompt(shell)` | Builds prompt string for `readline`; caller frees. |
-| **core/init_runtime.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=SUCCESS`, `barrier_write_fd=-1`, null `tokens/commands/input`, `word_quoted`/`heredoc_mode` 0, **`had_path`** from **`PATH`**. |
 
 ---
 
@@ -229,7 +229,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **utils/ft_strcat.c** | `ft_strcat(dest, src)` | Appends `src` to `dest` in place. |
 | **utils/ft_realloc.c** | `ft_realloc(ptr, new_size)` | Reallocates buffer; copies min(old_len, new_size-1); frees old. |
 | **utils/ft_arrdup.c** | `ft_arrdup(envp)` | Duplicates `char**` array (for envp). |
-| **utils/msh_string.c** | `msh_is_lexer_blank` / `msh_is_ifs_blank` | Space+tab for readline-line lexer; space+tab+newline for default-IFS-style unquoted expansion (not full `ft_isspace`). |
+| **utils/msh_string.c** | `msh_is_blank(c, ifs_mode)` | `ifs_mode` 0: space+tab (lexer); 1: space+tab+newline (default IFS; not full `ft_isspace`). |
 | **utils/msh_string.c** | `msh_env_var_body_span`, `msh_is_dollar_var_leader`, … | Shared `$NAME` tail and heredoc `$` leader checks (uses `ft_isalnum` / `ft_isalpha`). |
 | **free/free_exit.c** | `clean_exit_before_readline(shell, status)` | `free_all`, close std fds, `exit` — init OOM before any `readline()` (no `rl_clear_history`). |
 | **free/free_exit.c** | `clean_exit(shell, status)` | `free_all`, `rl_clear_history`, close std fds, `exit` — child / post-readline fatal paths. |
@@ -249,7 +249,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **tokenizer/tokenizer_handlers.c** | `handle_end_of_string(shell, state, &word)` | At end of input: add history in normal state; on unclosed quote set syntax error and discard partial word. |
 | **tokenizer/tokenizer_handlers.c** | `process_quote(shell, c, state)` | Updates quote state for `'` and `"`; returns 1 if char was quote. |
 | **tokenizer/tokenizer_handlers.c** | `handle_operator(shell, i, word)` | If input at *i is operator (| < > << >>), flushes word and calls read_operator. |
-| **tokenizer/tokenizer_handlers.c** | `handle_whitespace(shell, i, word)` | If `msh_is_lexer_blank`, flushes word and advances `*i`. |
+| **tokenizer/tokenizer_handlers.c** | `handle_whitespace(shell, i, word)` | If `msh_is_blank(..., 0)`, flushes word and advances `*i`. |
 | **tokenizer/tokenizer_handlers.c** | `handle_backslash(shell, i, word, state)` | Handles backslash escape sequences. |
 | **tokenizer/tokenizer_quotes.c** | `handle_single_quote(shell, i, word, state)` | Reads single-quoted span (no expansion); appends to word. |
 | **tokenizer/tokenizer_quotes.c** | `handle_double_quote(shell, i, word, state)` | Reads double-quoted span; expands `$VAR` and `$?`. |
@@ -294,29 +294,30 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 ---
 
-### 2.6 Executor (src/executor/)
+### 2.6 Executor (src/executor/, `exe_*` files; public API unprefixed)
 
 | File | Function | Description |
 |------|----------|-------------|
-| **executor/executor.c** | `execute_commands(shell)` | No commands → success; single cmd → empty / `run_builtin_command` / `execute_external`; else `execute_pipeline`. Returns last status. |
-| **executor/executor.c** | *(static)* `run_empty_command` | Redirs/heredoc only: backup fds, `apply_redirections`, restore. |
-| **executor/executor.c** | *(static)* `run_builtin_command` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `execute_external`; else dup/apply/restore and `run_builtin`. |
-| **executor/executor.c** | *(static)* `backup_fds` / `restore_fds` | Dup stdin/stdout for builtin redir in parent. |
-| **executor/executor_redir_apply.c** | `apply_redirections(cmd)` | Walk `redirs`, open/dup2; then dup `heredoc_fd` to stdin if ≥ 0. |
-| **executor/executor_external.c** | `execute_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirections`, `execute_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `get_child_status`. |
-| **executor/executor_external.c** | *(static)* `get_child_status` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `EXIT_STATUS_FROM_SIGNAL(WTERMSIG)`; SIGQUIT prints “Quit (core dumped)”. |
-| **executor/executor_external.c** | *(static)* `search_in_path` / `build_candidate` | Colon-scan PATH with `stat` (regular file). |
-| **executor/executor_external.c** | `find_command_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
-| **executor/executor_child_exec.c** | *(static)* `run_builtin_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
-| **executor/executor_child_exec.c** | *(static)* `child_exit_not_found` / `child_abort_cmd_error` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
-| **executor/executor_child_exec.c** | `execute_in_child(cmd, shell)` | Builtin branch, empty argv, `find_command_path`, `execve` or errors. |
-| **executor/executor_child_format.c** | `dprintf_cmd_not_found` (static `$'…'` helper) | one stderr line for not-found, incl. special bytes. |
-| **executor/executor_pip.c** | *(static)* `wait_children_last` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins. |
-| **executor/executor_pip.c** | *(static)* `run_pipeline_loop` | Chains `run_pipe_step`, closes trailing `prev_fd`. |
-| **executor/executor_pip.c** | `execute_pipeline(cmds, shell)` | `sync_fd` inactive (-1); `handle_all_not_found_pipeline` → **`EXIT_CMD_NOT_FOUND`**; ignore signals, loop, wait, restore interactive. |
-| **executor/executor_pip_steps.c** | *(static)* `setup_child_fds` / `fork_pipeline_cmd` | Pipe wiring between stages. |
-| **executor/executor_pip_steps.c** | `run_pipe_step(cmd, shell, prev_fd, sync_fd)` | Used by `executor/executor_pip.c`; prototype in `prototypes.h`. |
-| **executor/executor_pip_not_found.c** | `handle_all_not_found_pipeline(cmds, shell)` | If every stage is simple missing-PATH external (no redir/heredoc), print all “not found” in parent; returns **non-zero** so caller returns **`EXIT_CMD_NOT_FOUND`**. |
+| **executor/exe.c** | `run_commands(shell)` | No commands → success; single cmd → `run_empty` / `run_bi` / `run_external`; else `run_pipeline`. Returns last status. |
+| **executor/exe.c** | *(static)* `run_empty` | Redirs/heredoc only: `bk_fd`, `apply_redirs`, `rs_fd`. |
+| **executor/exe.c** | *(static)* `run_bi` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
+| **executor/exe.c** | *(static)* `bk_fd` / `rs_fd` | Dup stdin/stdout for builtin redir in parent. |
+| **executor/exe_redir.c** | `apply_redirs(cmd)` | Walk `redirs` via `rdr_one` (`rdr_in` / `rdr_out`); then dup `heredoc_fd` to stdin if ≥ 0. |
+| **executor/exe_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `ch_stat`. |
+| **executor/exe_external.c** | *(static)* `ch_stat` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `EXIT_STATUS_FROM_SIGNAL(WTERMSIG)`; SIGQUIT prints “Quit (core dumped)”. |
+| **executor/exe_external.c** | *(static)* `path_scan` / `mk_path` | Colon-scan PATH with `stat` (regular file). |
+| **executor/exe_external.c** | `resolve_cmd_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
+| **executor/exe_child.c** | *(static)* `bi_child` | SIGPIPE ignore, `clean_exit(run_builtin(...))`. |
+| **executor/exe_child.c** | *(static)* `ch_nf` / `ch_abort` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
+| **executor/exe_child.c** | `run_in_child(cmd, shell)` | Builtin branch, empty argv, `resolve_cmd_path`, `execve` or errors. |
+| **executor/exe_child.c** | `pipeline_all_nf(cmds, shell)` | If every stage is simple missing-PATH external (no redir/heredoc), print all “not found” via `put_cmd_not_found` in parent; returns **TRUE** so caller returns **`EXIT_CMD_NOT_FOUND`**. |
+| **executor/exe_child.c** | *(static)* `is_nf_cmd` | Predicate for `pipeline_all_nf`. |
+| **executor/exe_not_found.c** | `put_cmd_not_found` (+ static `fmt_nf`, `need_dq`, `esc_c`, `fill_dq`) | One stderr line for not-found (`$'…'` when name has control bytes). |
+| **executor/exe_pipeline.c** | *(static)* `wait_nlast` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`wait_one`). |
+| **executor/exe_pipeline.c** | *(static)* `pl_loop` | Chains `pipe_step`, closes trailing `prev_fd`. |
+| **executor/exe_pipeline.c** | `run_pipeline(cmds, shell)` | `sync_fd` inactive (-1); `pipeline_all_nf` → **`EXIT_CMD_NOT_FOUND`**; ignore signals, loop, wait, restore interactive. |
+| **executor/exe_pipe_step.c** | *(static)* `ch_fds` / `fork_pl` / `adv_prev` | Pipe wiring between stages. |
+| **executor/exe_pipe_step.c** | `pipe_step(cmd, shell, prev_fd, sync_fd)` | One pipeline segment; used by `exe_pipeline.c`. |
 
 ---
 
@@ -375,11 +376,11 @@ flowchart TB
     proc --> tok[tokenize_input]
     tok --> par[parse_input]
     par --> hd[process_heredocs]
-    hd --> ex[execute_commands]
+    hd --> ex[run_commands]
     ex --> br{single vs pipeline}
-    br --> emp[run_empty / run_builtin_command / execute_external]
-    br --> pl[execute_pipeline → run_pipe_step]
-    emp --> ich[execute_in_child / clean_exit in child]
+    br --> emp[run_empty / run_bi / run_external]
+    br --> pl[run_pipeline → pipe_step]
+    emp --> ich[run_in_child / clean_exit in child]
     pl --> ich
     proc --> rs
     rs --> loop

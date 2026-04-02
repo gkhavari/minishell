@@ -1,18 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   executor.c                                         :+:      :+:    :+:   */
+/*   exe.c                                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 18:44:54 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/31 20:42:27 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static int	backup_fds(int *in, int *out)
+static int	bk_fd(int *in, int *out)
 {
 	*in = dup(STDIN_FILENO);
 	*out = dup(STDOUT_FILENO);
@@ -27,7 +27,7 @@ static int	backup_fds(int *in, int *out)
 	return (SUCCESS);
 }
 
-static void	restore_fds(int stdin_backup, int stdout_backup)
+static void	rs_fd(int stdin_backup, int stdout_backup)
 {
 	dup2(stdin_backup, STDIN_FILENO);
 	dup2(stdout_backup, STDOUT_FILENO);
@@ -35,25 +35,24 @@ static void	restore_fds(int stdin_backup, int stdout_backup)
 	close(stdout_backup);
 }
 
-static int	run_empty_command(t_command *cmd, int *in, int *out)
+static int	run_empty(t_command *cmd, int *in, int *out)
 {
 	int	need_restore;
 
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-	if (need_restore && backup_fds(in, out))
+	if (need_restore && bk_fd(in, out))
 		return (FAILURE);
-	if (need_restore && apply_redirections(cmd))
+	if (need_restore && apply_redirs(cmd))
 	{
-		restore_fds(*in, *out);
+		rs_fd(*in, *out);
 		return (FAILURE);
 	}
 	if (need_restore)
-		restore_fds(*in, *out);
+		rs_fd(*in, *out);
 	return (SUCCESS);
 }
 
-static int	run_builtin_command(t_command *cmd, t_shell *shell,
-		int *in, int *out)
+static int	run_bi(t_command *cmd, t_shell *shell, int *in, int *out)
 {
 	int	type;
 	int	need_restore;
@@ -63,21 +62,24 @@ static int	run_builtin_command(t_command *cmd, t_shell *shell,
 	if ((type != BUILTIN_CD && type != BUILTIN_EXPORT
 			&& type != BUILTIN_UNSET && type != BUILTIN_EXIT)
 		&& need_restore)
-		return (execute_external(cmd, shell));
-	if (need_restore && backup_fds(in, out))
+		return (run_external(cmd, shell));
+	if (need_restore && bk_fd(in, out))
 		return (FAILURE);
-	if (need_restore && apply_redirections(cmd))
+	if (need_restore && apply_redirs(cmd))
 	{
-		restore_fds(*in, *out);
+		rs_fd(*in, *out);
 		return (FAILURE);
 	}
 	if (need_restore)
-		restore_fds(*in, *out);
+		rs_fd(*in, *out);
 	return (run_builtin(cmd->argv, shell));
 }
 
-/** Run one command or a pipeline; return last exit status. */
-int	execute_commands(t_shell *shell)
+/**
+ * Run parsed commands from shell->commands: empty argv, single builtin or external,
+ * or a pipeline. Returns the last exit status (SUCCESS if there is nothing to run).
+ */
+int	run_commands(t_shell *shell)
 {
 	t_command	*cmd;
 	int			stdin_backup;
@@ -90,12 +92,11 @@ int	execute_commands(t_shell *shell)
 	{
 		cmd = shell->commands->content;
 		if (!cmd->argv || !cmd->argv[0])
-			return (run_empty_command(cmd, &stdin_backup, &stdout_backup));
+			return (run_empty(cmd, &stdin_backup, &stdout_backup));
 		if (cmd->is_builtin)
-			return (run_builtin_command(cmd, shell,
-					&stdin_backup, &stdout_backup));
-		status = execute_external(cmd, shell);
+			return (run_bi(cmd, shell, &stdin_backup, &stdout_backup));
+		status = run_external(cmd, shell);
 		return (status);
 	}
-	return (execute_pipeline(shell->commands, shell));
+	return (run_pipeline(shell->commands, shell));
 }

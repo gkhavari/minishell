@@ -18,6 +18,34 @@ static int	read_line_stdin(t_shell *shell, char **out)
 	return (ft_read_stdin_line(shell, out, 0));
 }
 
+/** user + cwd prompt string; caller frees (readline). */
+static char	*build_prompt(t_shell *shell)
+{
+	char		*prompt;
+	size_t		total_len;
+	const char	*user;
+	const char	*cwd;
+
+	if (shell->user != NULL)
+		user = shell->user;
+	else
+		user = PROMPT_DEFAULT_USER;
+	if (shell->cwd != NULL)
+		cwd = shell->cwd;
+	else
+		cwd = PROMPT_DEFAULT_CWD;
+	total_len = ft_strlen(user) + ft_strlen(cwd)
+		+ ft_strlen(PROMPT_PREFIX) + ft_strlen(PROMPT_SUFFIX);
+	prompt = ft_calloc(total_len + 1, sizeof(char));
+	if (!prompt)
+		return (NULL);
+	ft_strcat(prompt, user);
+	ft_strcat(prompt, PROMPT_PREFIX);
+	ft_strcat(prompt, cwd);
+	ft_strcat(prompt, PROMPT_SUFFIX);
+	return (prompt);
+}
+
 /**
  * TTY: readline; else read_line_stdin.
  * Returns READ_LINE, READ_EOF, READ_SIG, or OOM.
