@@ -52,16 +52,16 @@ static int	run_empty_command(t_command *cmd, int *in, int *out)
 	return (SUCCESS);
 }
 
-static int	run_single_builtin(t_command *cmd, t_shell *shell, int *in,
-		int *out)
+static int	run_single_builtin(t_command *cmd, t_shell *shell,
+		int *in, int *out)
 {
 	int	type;
 	int	need_restore;
 
 	type = get_builtin_type(cmd->argv[0]);
 	need_restore = (cmd->redirs != NULL || cmd->heredoc_fd != -1);
-	if ((type != B_CD && type != B_EXPORT
-			&& type != B_UNSET && type != B_EXIT) && need_restore)
+	if (need_restore && type != B_CD && type != B_EXPORT
+		&& type != B_UNSET && type != B_EXIT)
 		return (run_external(cmd, shell));
 	if (need_restore && backup_stdio_fds(in, out))
 		return (FAILURE);
@@ -84,7 +84,6 @@ int	run_commands(t_shell *shell)
 	t_command	*cmd;
 	int			stdin_backup;
 	int			stdout_backup;
-	int			status;
 
 	if (!shell->commands)
 		return (SUCCESS);
@@ -96,8 +95,7 @@ int	run_commands(t_shell *shell)
 		if (cmd->is_builtin)
 			return (run_single_builtin(cmd, shell,
 					&stdin_backup, &stdout_backup));
-		status = run_external(cmd, shell);
-		return (status);
+		return (run_external(cmd, shell));
 	}
 	return (run_pipeline(shell->commands, shell));
 }

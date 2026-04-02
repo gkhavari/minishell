@@ -12,29 +12,7 @@
 
 #include "minishell.h"
 
-/*
- * Turn token list into shell->commands; always consumes shell->tokens.
- * On build failure: last_exit FAILURE, commands NULL.
- * On finalize OOM: oom flag, free_commands, last_exit FAILURE.
- */
-static void	run_parse_core(t_shell *shell)
-{
-	shell->commands = build_command_list(shell, shell->tokens);
-	free_tokens(&shell->tokens);
-	shell->tokens = NULL;
-	if (!shell->commands)
-	{
-		shell->last_exit = FAILURE;
-		return ;
-	}
-	if (finalize_all_commands(shell, shell->commands) == OOM)
-	{
-		shell->last_exit = FAILURE;
-		shell->oom = 1;
-		free_commands(&shell->commands);
-		shell->commands = NULL;
-	}
-}
+static void	run_parse_core(t_shell *shell);
 
 /*
  * Parse shell->tokens (from tokenize_input) into shell->commands.
@@ -75,12 +53,33 @@ int	process_heredocs(t_shell *shell)
 	while (node)
 	{
 		cmd = node->content;
-		if (cmd->heredoc_delim)
-		{
-			if (read_heredoc(cmd, shell, &line_no))
-				return (FAILURE);
-		}
+		if (cmd->heredoc_delim && read_heredoc(cmd, shell, &line_no))
+			return (FAILURE);
 		node = node->next;
 	}
 	return (SUCCESS);
+}
+
+/*
+ * Turn token list into shell->commands; always consumes shell->tokens.
+ * On build failure: last_exit FAILURE, commands NULL.
+ * On finalize OOM: oom flag, free_commands, last_exit FAILURE.
+ */
+static void	run_parse_core(t_shell *shell)
+{
+	shell->commands = build_command_list(shell, shell->tokens);
+	free_tokens(&shell->tokens);
+	shell->tokens = NULL;
+	if (!shell->commands)
+	{
+		shell->last_exit = FAILURE;
+		return ;
+	}
+	if (finalize_all_commands(shell, shell->commands) == OOM)
+	{
+		shell->last_exit = FAILURE;
+		shell->oom = 1;
+		free_commands(&shell->commands);
+		shell->commands = NULL;
+	}
 }
