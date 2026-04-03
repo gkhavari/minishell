@@ -1,0 +1,91 @@
+# .github/workflows/funcheck.yaml
+#
+# Two-pass funcheck analysis:
+#   Pass 1 (-jc)   — malloc site coverage: every allocation must NULL-check.
+#   Pass 2 (-jac)  — allocation tracking: record what is not freed before exec/exit.
+#
+# Input is generated from the tester's mandatory test cases so the same
+# commands that fail regression tests also exercise funcheck.
+# Full JSON logs are uploaded as artifacts for offline inspection.
+
+name: Funcheck
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - evaluation
+      - fixvm
+
+env:
+  HOME: /home/runner
+  TESTER_DIR: /home/runner/42_minishell_tester
+  FC_DIR: /home/runner/funcheck
+
+jobs:
+  funcheck:
+    name: Funcheck (malloc coverage + leak detection)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up environment (funcheck, clang-12, tester)
+        uses: ./.github/actions/setup
+        with:
+          tester_dir: ${{ env.TESTER_DIR }}
+
+      - name: Build with clang-12
+        run: make re CC=clang-12
+
+      - name: Generate test input from tester mandatory cases
+        run: |
+          mkdir -p $FC_DIR
+          sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' \
+            $TESTER_DIR/cmds/mand/*.sh | tr -d '\r' > $FC_DIR/input.txt
+          echo exit >> $FC_DIR/input.txt
+          echo "Input: $(wc -l < $FC_DIR/input.txt) lines from tester mandatory cases"
+
+      - name: Collect readline ignore flags
+        run: |
+          args=$(grep -v '^[[:space:]]*#' readline_ignore.txt \
+                 | grep -v '^[[:space:]]*$' \
+                 | awk '{print "-i " $1}' | tr '\n' ' ')
+          echo "IGNORE_ARGS=$args" >> "$GITHUB_ENV"
+
+      - name: "Pass 1: malloc site coverage (-jc)"
+        run: |
+          funcheck -jc $IGNORE_ARGS ./minishell \
+            < $FC_DIR/input.txt \
+            > $FC_DIR/pass1.json 2> $FC_DIR/pass1.err || true
+          echo "funcheck pass 1 done (exit captured in JSON)"
+
+      - name: "Pass 2: allocation tracking (-jac)"
+        run: |
+          funcheck -jac $IGNORE_ARGS ./minishell \
+            < $FC_DIR/input.txt \
+            > $FC_DIR/pass2.json 2> $FC_DIR/pass2.err || true
+          echo "funcheck pass 2 done (exit captured in JSON)"
+
+      - name: Summarize results
+        run: |
+          chmod +x .github/scripts/funcheck_summary.py
+          python3 .github/scripts/funcheck_summary.py \
+            $FC_DIR/pass1.json $FC_DIR/pass2.json
+
+      - name: Upload funcheck artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funcheck-${{ github.run_id }}-${{ github.sha }}
+          path: |
+            ${{ env.FC_DIR }}/pass1.json
+            ${{ env.FC_DIR }}/pass2.json
+            ${{ env.FC_DIR }}/pass1.err
+            ${{ env.FC_DIR }}/pass2.err
+            ${{ env.FC_DIR }}/input.txt
+          retention-days: 30
