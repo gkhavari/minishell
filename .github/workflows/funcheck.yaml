@@ -19,6 +19,12 @@ on:
       - evaluation
       - fixvm
 
+# Cancel any in-progress funcheck run for the same branch or PR when a new
+# commit is pushed, so stale runs don't occupy runners unnecessarily.
+concurrency:
+  group: funcheck-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   HOME: /home/runner
   TESTER_DIR: /home/runner/42_minishell_tester
