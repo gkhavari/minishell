@@ -1,12 +1,11 @@
 # .github/workflows/funcheck.yaml
 #
-# Two-pass funcheck analysis:
+# Per-test-script funcheck analysis with fail-fast:
 #   Pass 1 (-jc)   — malloc site coverage: every allocation must NULL-check.
 #   Pass 2 (-jac)  — allocation tracking: record what is not freed before exec/exit.
 #
-# Input is generated from the tester's mandatory test cases so the same
-# commands that fail regression tests also exercise funcheck.
-# Full JSON logs are uploaded as artifacts for offline inspection.
+# Runs one matrix job per mandatory test script. fail-fast: true cancels all
+# remaining queued jobs as soon as any single script reports an error.
 
 name: Funcheck
 
@@ -27,14 +26,38 @@ concurrency:
 
 env:
   HOME: /home/runner
+  TESTER_REPO: https://github.com/LeaYeh/42_minishell_tester.git
   TESTER_DIR: /home/runner/42_minishell_tester
   FC_DIR: /home/runner/funcheck
 
 jobs:
-  funcheck:
-    name: Funcheck (malloc coverage + leak detection)
+  prepare_matrix:
+    name: Prepare Test Matrix
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    outputs:
+      test_matrix: ${{ steps.prep_matrix.outputs.TEST_MATRIX }}
+    steps:
+      - name: Clone tester repository
+        run: |
+          git clone \
+            "${{ secrets.TESTER_REPO != '' && secrets.TESTER_REPO || env.TESTER_REPO }}" \
+            "${{ env.TESTER_DIR }}"
+      - name: Prepare matrix
+        id: prep_matrix
+        run: |
+          FILES=$(find ${{ env.TESTER_DIR }}/cmds/mand -name '*.sh' \
+            -exec basename {} \; | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "TEST_MATRIX=${FILES}" >> "$GITHUB_OUTPUT"
+
+  funcheck:
+    name: Funcheck (${{ matrix.test_script }})
+    needs: prepare_matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: true
+      matrix:
+        test_script: ${{ fromJson(needs.prepare_matrix.outputs.test_matrix) }}
 
     steps:
       - name: Checkout
@@ -51,13 +74,13 @@ jobs:
       - name: Build with clang-12
         run: make re CC=clang-12
 
-      - name: Generate test input from tester mandatory cases
+      - name: Generate test input for ${{ matrix.test_script }}
         run: |
           mkdir -p $FC_DIR
           sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' \
-            $TESTER_DIR/cmds/mand/*.sh | tr -d '\r' > $FC_DIR/input.txt
+            $TESTER_DIR/cmds/mand/${{ matrix.test_script }} | tr -d '\r' > $FC_DIR/input.txt
           echo exit >> $FC_DIR/input.txt
-          echo "Input: $(wc -l < $FC_DIR/input.txt) lines from tester mandatory cases"
+          echo "Input: $(wc -l < $FC_DIR/input.txt) lines from ${{ matrix.test_script }}"
 
       - name: Collect readline ignore flags
         run: |
@@ -71,14 +94,12 @@ jobs:
           funcheck -jc $IGNORE_ARGS ./minishell \
             < $FC_DIR/input.txt \
             > $FC_DIR/pass1.json 2> $FC_DIR/pass1.err || true
-          echo "funcheck pass 1 done (exit captured in JSON)"
 
       - name: "Pass 2: allocation tracking (-jac)"
         run: |
           funcheck -jac $IGNORE_ARGS ./minishell \
             < $FC_DIR/input.txt \
             > $FC_DIR/pass2.json 2> $FC_DIR/pass2.err || true
-          echo "funcheck pass 2 done (exit captured in JSON)"
 
       - name: Summarize results
         run: |
@@ -90,7 +111,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: funcheck-${{ github.run_id }}-${{ github.sha }}
+          name: funcheck-${{ matrix.test_script }}-${{ github.run_id }}
           path: |
             ${{ env.FC_DIR }}/pass1.json
             ${{ env.FC_DIR }}/pass2.json
