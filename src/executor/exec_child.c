@@ -36,12 +36,15 @@ static void	child_exit_not_found(t_shell *shell, char *argv0)
 
 /**
  * Free child heap before execve: save argv/envp, null them on shell/cmd so
- * free_all skips them, free everything else, then execve. Does not return.
+ * free_all skips them, free everything else, then execve.
+ * On execve failure: print error, free argv/envp, then exit. Does not return.
  */
 static void	child_exec(t_shell *shell, t_command *cmd, char *path)
 {
 	char	**argv;
 	char	**envp;
+	int		sv_err;
+	char	*msg;
 
 	argv = cmd->argv;
 	envp = shell->envp;
@@ -49,9 +52,17 @@ static void	child_exec(t_shell *shell, t_command *cmd, char *path)
 	shell->envp = NULL;
 	free_all(shell);
 	execve(path, argv, envp);
-	if (errno == ENOENT)
-		child_abort_msg(shell, argv[0], XNF, ": No such file or directory\n");
-	child_abort_msg(shell, argv[0], XNX, ": Permission denied\n");
+	sv_err = errno;
+	msg = ": No such file or directory\n";
+	if (sv_err != ENOENT)
+		msg = ": Permission denied\n";
+	ft_dprintf(STDERR_FILENO, "%s%s", argv[0], msg);
+	free_argv(argv);
+	free_argv(envp);
+	if (sv_err == ENOENT)
+		exit_norl(shell, XNF);
+	else
+		exit_norl(shell, XNX);
 }
 
 /**

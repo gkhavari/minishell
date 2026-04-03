@@ -181,6 +181,8 @@ int			is_quoted_delimiter(char *delim);
 char		*exp_hd_line(char *line, t_shell *shell);
 
 /* --- free_runtime.c --- */
+/** Free a NULL-terminated string array and each element (argv, envp). */
+void		free_argv(char **argv);
 /** Free pipeline command list and nested data. */
 void		free_cmds(t_list **lst);
 

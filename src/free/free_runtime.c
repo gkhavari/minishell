@@ -12,8 +12,8 @@
 
 #include "minishell.h"
 
-/** Free a NULL-terminated `argv` array and each string. */
-static void	free_argv(char **argv)
+/** Free a NULL-terminated string array and each element. */
+void	free_argv(char **argv)
 {
 	int	i;
 
