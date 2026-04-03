@@ -12,32 +12,32 @@
 
 #include "ft_printf.h"
 
-static int	try_basic(int fd, char f, va_list ap)
+static int	try_basic(int fd, char f, va_list *ap)
 {
 	if (f == '%')
 		return (print_chr_fd(fd, '%'));
 	if (f == 'c')
-		return (print_chr_fd(fd, (char)va_arg(ap, int)));
+		return (print_chr_fd(fd, (char)va_arg(*ap, int)));
 	if (f == 's')
-		return (print_str_fd(fd, va_arg(ap, char *)));
+		return (print_str_fd(fd, va_arg(*ap, char *)));
 	return (PF_CONV_UNHANDLED);
 }
 
-static int	try_nums(int fd, char f, va_list ap)
+static int	try_nums(int fd, char f, va_list *ap)
 {
 	if (f == 'd' || f == 'i')
-		return (print_nbr_fd(fd, va_arg(ap, int)));
+		return (print_nbr_fd(fd, va_arg(*ap, int)));
 	if (f == 'x' || f == 'X')
-		return (print_hex_fd(fd, va_arg(ap, unsigned int), f));
+		return (print_hex_fd(fd, va_arg(*ap, unsigned int), f));
 	if (f == 'u')
-		return (print_unsigned_fd(fd, va_arg(ap, unsigned int)));
+		return (print_unsigned_fd(fd, va_arg(*ap, unsigned int)));
 	if (f == 'p')
 		return (print_pointer_fd(fd,
-				(unsigned long long)va_arg(ap, void *)));
+				(unsigned long long)va_arg(*ap, void *)));
 	return (PF_CONV_UNHANDLED);
 }
 
-int	dispatch_printf_conv(int fd, char format, va_list ap)
+int	dispatch_printf_conv(int fd, char format, va_list *ap)
 {
 	int	wr1;
 	int	wr2;

@@ -12,7 +12,7 @@
 
 #include "ft_printf.h"
 
-static int	handle_fmt_char(int fd, const char *f, int *i, va_list ap)
+static int	handle_fmt_char(int fd, const char *f, int *i, va_list *ap)
 {
 	int	ret;
 
@@ -38,7 +38,7 @@ static int	ft_vdprintf(int fd, const char *format, va_list ap)
 	i = 0;
 	while (format[i])
 	{
-		ret = handle_fmt_char(fd, format, &i, ap);
+		ret = handle_fmt_char(fd, format, &i, &ap);
 		if (ret < 0)
 			return (-1);
 		count += ret;
