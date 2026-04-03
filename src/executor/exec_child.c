@@ -35,6 +35,26 @@ static void	child_exit_not_found(t_shell *shell, char *argv0)
 }
 
 /**
+ * Free child heap before execve: save argv/envp, null them on shell/cmd so
+ * free_all skips them, free everything else, then execve. Does not return.
+ */
+static void	child_exec(t_shell *shell, t_command *cmd, char *path)
+{
+	char	**argv;
+	char	**envp;
+
+	argv = cmd->argv;
+	envp = shell->envp;
+	cmd->argv = NULL;
+	shell->envp = NULL;
+	free_all(shell);
+	execve(path, argv, envp);
+	if (errno == ENOENT)
+		child_abort_msg(shell, argv[0], XNF, ": No such file or directory\n");
+	child_abort_msg(shell, argv[0], XNX, ": Permission denied\n");
+}
+
+/**
  * Child after fork: run builtin in child, `execve` external, or print error
  * and `exit_norl`. Does not return.
  */
@@ -56,9 +76,5 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 		child_exit_not_found(shell, cmd->argv[0]);
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
 		child_abort_msg(shell, cmd->argv[0], XNX, ": Is a directory\n");
-	execve(path, cmd->argv, shell->envp);
-	if (errno == ENOENT)
-		child_abort_msg(shell, cmd->argv[0], XNF,
-			": No such file or directory\n");
-	child_abort_msg(shell, cmd->argv[0], XNX, ": Permission denied\n");
+	child_exec(shell, cmd, path);
 }

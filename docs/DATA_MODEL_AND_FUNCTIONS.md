@@ -135,7 +135,7 @@ typedef struct s_shell {
 | **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pip()`** sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`** (inactive). The all-not-found fast path (**`pip_all_nf()`** in **`exec_pipeline_nf.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **cmds** | Output of parser; input to heredoc + executor; freed after execution or on error. |
-| **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via **`shell_repl.c`** (non-TTY); freed in tokenizer or in `reset_shell()`. |
+| **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via **`repl_loop.c`** (non-TTY); freed in tokenizer or in `reset_shell()`. |
 | **word_quoted** | Internal flag set by `mark_word_quoted()` during tokenization; tells `flush_word()` whether the current token came from a quoted span. |
 | **hd_mod** | Set when `<<` is tokenized (`handle_operator`); when active, the tokenizer does not expand `$` in the heredoc delimiter string. |
 | **oom** | Set to 1 by any tokenizer or parser helper when `malloc`/`ft_calloc` fails mid-parse; callers check this flag to propagate OOM without passing extra parameters. |
@@ -209,22 +209,24 @@ erDiagram
 
 Functions are grouped by **source file**. Each row: function name, return type / signature summary, and a short description.
 
-### 2.1 Main, REPL & init
+### 2.1 Main, REPL & shell startup (`src/init/`)
+
+**Read order:** **`init_env.c`** (`get_env_value`, identity, runtime fields) → **`init_shell.c`** (`init_shell`, SHLVL) → **`repl_process.c`** (`process_input`, one-line pipeline) → **`repl_loop.c`** (`shell_loop`, readline / stdin).
 
 | File | Function | Description |
 |------|----------|-------------|
 | **main.c** (src/) | `main(argc, argv, envp)` | Zeros `t_shell`, `init_shell()`, `set_signals_interactive()`, sets `rl_event_hook` on TTY, **`shell_loop()`**, `rl_clear_history()`, `free_all()`, closes std fds, returns `shell.last_exit`. |
-| **core/shell_repl.c** | `shell_loop(shell)` | REPL: `check_signal_received`, `read_input`; **`RL_EOF`** break; **`RL_SIG`** continue; read-path **`OOM`**: **`last_exit` FAILURE, `reset_shell`, break** (exit toward **`main`**); else **`repl_after_read`** (`process_input` if `input[0]`, syntax_err / `reset_shell`, non-TTY break on **`XSYN`**). |
-| **core/shell_repl.c** | *(static)* `read_input(shell)` | TTY: `build_prompt` + `readline`; else **`read_line_stdin`** → **`ft_read_stdin_line(..., 0)`**. Returns **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**, or **`OOM`**. |
-| **core/shell_repl.c** | *(static)* `build_prompt(shell)` | Allocates exact length, builds prompt with **`ft_strlcat`** (libft); caller frees after `readline`. |
-| **core/shell_repl.c** | *(static)* `read_line_stdin(shell, out)` | Wrapper: `ft_read_stdin_line(shell, out, 0)`. |
-| **core/shell_repl.c** | *(static)* `repl_after_read(shell)` | If `input[0]` → `process_input`; syntax_err when `!shell->cmds && last_exit == XSYN`; `reset_shell`; returns 1 to break on non-TTY + syntax_err. |
+| **init/repl_loop.c** | `shell_loop(shell)` | REPL: `check_signal_received`, `read_input`; **`RL_EOF`** break; **`RL_SIG`** continue; read-path **`OOM`**: **`last_exit` FAILURE, `reset_shell`, break** (exit toward **`main`**); else **`repl_after_read`** (`process_input` if `input[0]`, syntax_err / `reset_shell`, non-TTY break on **`XSYN`**). |
+| **init/repl_loop.c** | *(static)* `read_input(shell)` | TTY: `build_prompt` + `readline`; else **`read_line_stdin`** → **`ft_read_stdin_line(..., 0)`**. Returns **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**, or **`OOM`**. |
+| **init/repl_loop.c** | *(static)* `build_prompt(shell)` | Allocates exact length, builds prompt with **`ft_strlcat`** (libft); caller frees after `readline`. |
+| **init/repl_loop.c** | *(static)* `read_line_stdin(shell, out)` | Wrapper: `ft_read_stdin_line(shell, out, 0)`. |
+| **init/repl_loop.c** | *(static)* `repl_after_read(shell)` | If `input[0]` → `process_input`; syntax_err when `!shell->cmds && last_exit == XSYN`; `reset_shell`; returns 1 to break on non-TTY + syntax_err. |
 | **utils/msh_stdin_read_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; **`RL_LN`** / **`RL_EOF`** / **`OOM`**; optional `shell->oom` on append failure. |
-| **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `XSINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
-| **core/init.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
-| **core/init_utils.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc path `ft_dprintf` + `exit_norl(shell, FAILURE)`. |
-| **core/init_utils.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=SUCCESS`, `barrier_write_fd=-1`, null `tokens`/`cmds`/`input`, `word_quoted`/`hd_mod` 0, **`had_path`** from **`PATH`**. |
-| **core/init_utils.c** | `get_env_value(envp, key)` | Returns pointer into `envp[i]` at value after `=`, or NULL. |
+| **init/repl_process.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `XSINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
+| **init/init_shell.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
+| **init/init_env.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc path `ft_dprintf` + `exit_norl(shell, FAILURE)`. |
+| **init/init_env.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=SUCCESS`, `barrier_write_fd=-1`, null `tokens`/`cmds`/`input`, `word_quoted`/`hd_mod` 0, **`had_path`** from **`PATH`**. |
+| **init/init_env.c** | `get_env_value(envp, key)` | Returns pointer into `envp[i]` at value after `=`, or NULL. |
 
 ---
 

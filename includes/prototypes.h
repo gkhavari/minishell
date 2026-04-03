@@ -13,21 +13,23 @@
 #ifndef PROTOTYPES_H
 # define PROTOTYPES_H
 
-/* --- init.c --- */
-/** Allocate env copy, user, cwd; bump SHLVL on TTY. */
-void		init_shell(t_shell *shell, char **envp);
-/** Tokenize, parse, heredocs, then run commands for one line. */
-void		process_input(t_shell *shell);
-
-/* --- init_utils.c --- */
+/* --- init_env.c --- */
+/** Return value for KEY in envp (KEY=value), or NULL. */
+char		*get_env_value(char **envp, const char *key);
 /** Dup envp, USER, PWD into shell; fatal on allocation failure. */
 void		init_shell_identity(t_shell *shell, char **envp);
 /** Default env keys, last_exit, null tokens/cmds/input, runtime flags. */
 void		init_runtime_fields(t_shell *shell);
-/** Return value for KEY in envp (KEY=value), or NULL. */
-char		*get_env_value(char **envp, const char *key);
 
-/* --- shell_repl.c --- */
+/* --- init_shell.c --- */
+/** Allocate env copy, user, cwd; bump SHLVL on TTY. */
+void		init_shell(t_shell *shell, char **envp);
+
+/* --- repl_process.c --- */
+/** Tokenize, parse, heredocs, then run commands for one line. */
+void		process_input(t_shell *shell);
+
+/* --- repl_loop.c --- */
 /** Interactive or non-interactive read-eval loop until EOF. */
 void		shell_loop(t_shell *shell);
 

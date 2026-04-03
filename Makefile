@@ -27,10 +27,11 @@ LIBFT_DIR	= libft
 # main (only file in src/ root)
 SRCS		=	$(SRC_DIR)/main.c
 
-# core
-SRCS		+=	$(SRC_DIR)/core/init.c
-SRCS		+=	$(SRC_DIR)/core/init_utils.c
-SRCS		+=	$(SRC_DIR)/core/shell_repl.c
+# init / REPL (init_* startup; repl_* one line + loop)
+SRCS		+=	$(SRC_DIR)/init/init_env.c \
+				$(SRC_DIR)/init/init_shell.c \
+				$(SRC_DIR)/init/repl_process.c \
+				$(SRC_DIR)/init/repl_loop.c
 
 # utils (shared across modules)
 SRCS		+=	$(SRC_DIR)/utils/msh_string_append_char.c \
@@ -119,7 +120,7 @@ $(LIBFT):
 # Create obj/ and subdirectories manually
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
-	@mkdir -p $(OBJ_DIR)/core
+	@mkdir -p $(OBJ_DIR)/init
 	@mkdir -p $(OBJ_DIR)/utils
 	@mkdir -p $(OBJ_DIR)/free
 	@mkdir -p $(OBJ_DIR)/signals
@@ -128,8 +129,9 @@ $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)/executor
 	@mkdir -p $(OBJ_DIR)/builtins
 
-# Compile .c -> .o
+# Compile .c -> .o (mkdir subdir e.g. obj/init when layout changes)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HDRS)
+	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Compiling $<"
 

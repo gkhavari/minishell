@@ -46,7 +46,7 @@
 # define TOK_N		0	/* TOK No  — handler did not consume this char */
 # define TOK_Y		1	/* TOK Yes — handler consumed and advanced *i  */
 
-/* Prompt pieces assembled by build_prompt() in shell_repl.c. */
+/* Prompt pieces assembled by build_prompt() in repl_loop.c. */
 # define PM_PFX		"@minishell:"	/* prefix between user and cwd  */
 # define PM_SFX		"$ "		/* suffix shown after cwd        */
 # define PM_USR		"user"		/* fallback when $USER is unset  */

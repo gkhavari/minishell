@@ -114,8 +114,8 @@ flowchart TD
 |------|--------|
 | Handlers and `sigaction` | `src/signals/signal_handler.c` |
 | Readline hook and `check_signal_received` | `src/signals/signal_utils.c` |
-| REPL loop | `src/core/shell_repl.c` |
-| Heredoc interrupt | `src/parser/heredoc_collect.c`, `process_input` in `src/core/init.c` |
+| REPL loop | `src/init/repl_loop.c` |
+| Heredoc interrupt | `src/parser/heredoc_collect.c`, `process_input` in `src/init/repl_process.c` |
 | External wait + `child_wait_st` | `src/executor/exec_external.c` |
 | Pipeline wait | `src/executor/exec_pipeline.c` |
 

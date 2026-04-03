@@ -62,7 +62,7 @@ Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYe
 | Directory | Purpose |
 |-----------|---------|
 | `src/` | `main.c` only — `main`: `init_shell`, `shell_loop`, teardown (`rl_clear_history`, `free_all`, close std fds, return `last_exit`). |
-| `src/core/` | `init.c` (`init_shell`, `process_input`), `init_utils.c` (`init_shell_identity`, `init_runtime_fields`, `get_env_value`), `shell_repl.c` (`shell_loop`; static `read_input`, `build_prompt`, `read_line_stdin`, `repl_after_read`) |
+| `src/init/` | **`init_env.c`** (`get_env_value`, `init_shell_identity`, `init_runtime_fields`), **`init_shell.c`** (`init_shell`, SHLVL bump), **`repl_process.c`** (`process_input`), **`repl_loop.c`** (`shell_loop`; static `read_input`, `build_prompt`, `read_line_stdin`, `repl_after_read`) |
 | `src/utils/` | `msh_string_append_char`, `msh_word_append_expanded`, `msh_strarray_dup`, `msh_char_buffer_realloc`, `msh_string_expand_scan`, `msh_stdin_read_line` (shared string/buffer/line helpers) |
 | `src/free/` | Memory cleanup: `free_utils.c`, `free_runtime.c`, `free_shell.c` |
 | `src/signals/` | Signal handlers and readline hook |
@@ -76,10 +76,11 @@ graph TB
     subgraph Entry
         main[main.c]
     end
-    subgraph core
-        init[core/init.c]
-        init_u[core/init_utils.c]
-        repl[core/shell_repl.c]
+    subgraph init
+        init_sh[init/init_shell.c]
+        init_u[init/init_env.c]
+        repl[init/repl_loop.c]
+        repl_p[init/repl_process.c]
     end
     subgraph free
         free_utils[free/free_utils.c]
@@ -133,11 +134,11 @@ graph TB
         exit[exit.c]
         exit_utils[exit_utils.c]
     end
-    main --> init
+    main --> init_sh
     main --> repl
-    repl --> init
-    init --> init_u
-    init --> tok
+    init_sh --> init_u
+    repl --> repl_p
+    repl_p --> tok
     tok --> parser
     parser --> exe_m
     exe_m --> dispatcher
@@ -178,7 +179,7 @@ flowchart LR
     E -.-> I["empty / builtin / external / pipeline (child or parent)"]
 ```
 
-- **`shell_repl.c`** (src/core/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls `init_shell`, `shell_loop`, and teardown.
+- **`repl_loop.c`** (src/init/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then **`process_input`** in **`repl_process.c`** (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls **`init_shell`**, **`shell_loop`**, and teardown.
 - **Tokenizer** (src/tokenizer/): `tokenize_input()` in `tokenizer.c`; uses `tokenizer_handlers.c`, `tokenizer_quotes.c`, `expansion.c`, and `tokenizer_ops.c`.
 - **Parser** (src/parser/): `parse_input()` in `parse_input.c`; `syntax_check()` in `parse_syntax.c`; `finalize_cmds()` in `parse_finalize.c` builds `argv` and sets `is_builtin`.
 - **Executor** (src/executor/): **`run_commands()`** in **`exec_dispatch.c`** — empty
@@ -282,7 +283,7 @@ Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
 ## 2. Main Loop (REPL Cycle)
 
-**Implementation:** `src/core/shell_repl.c` → **`shell_loop()`** → **`read_input()`** → (optional) **`process_input()`** in `src/core/init.c`. Entry point from **`main.c`** is **`shell_loop(&shell)`** after **`init_shell`**.
+**Implementation:** `src/init/repl_loop.c` → **`shell_loop()`** → **`read_input()`** → (optional) **`process_input()`** in **`src/init/repl_process.c`**. Entry point from **`main.c`** is **`shell_loop(&shell)`** after **`init_shell`** (`init/init_shell.c`).
 
 **Input source:** When stdin is a **TTY**, `read_input()` uses **`readline(prompt)`** after **`build_prompt(shell)`** (history, line editing). When stdin is **not** a TTY (e.g. **42_minishell_tester**), it uses **`read_line_stdin()`** (static wrapper → **`ft_read_stdin_line`** in `utils/msh_stdin_read_line.c`): byte **`read(STDIN_FILENO, &c, 1)`** until **`'\n'`** or **EOF**—no prompt, no readline. The stored string **does not** include the newline. If **EOF** is read after at least one character without a newline, that partial line is still returned; the next read may see empty buffer → **EOF** path.
 
@@ -301,7 +302,7 @@ Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
 > **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->cmds && shell->last_exit == XSYN`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
 
-**`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->cmds`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = XSINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
+**`process_input()`** (`repl_process.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->cmds`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = XSINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
 
 **Program exit:** **`main()`** returns **`shell.last_exit`** after **`rl_clear_history()`**, **`free_all()`**, and closing std fds.
 
@@ -741,7 +742,7 @@ flowchart LR
     PH[process_heredocs] --> E[each << : pipe in parent]
     E --> L[read_heredoc_line loop]
     L -->|delimiter| F["hd_fd on command"]
-    L -->|SIGINT| X[FAILURE → last_exit 130 in init.c]
+    L -->|SIGINT| X[FAILURE → last_exit 130 in repl_process.c]
     L -->|EOF| W[print_heredoc_eof_warning → continue]
     F --> EX[execute: dup2 hd_fd → stdin]
 ```
@@ -1013,7 +1014,7 @@ flowchart LR
 ### 8.3 exit Builtin (Bash Reference)
 
 - **Builtin `exit` (interactive):** Bash prints `"exit\n"` to **stderr** before exiting. We match with **`ft_dprintf(STDERR_FILENO, "exit\n")`** in **`builtin_exit`** when **`isatty(STDIN_FILENO)`** (`exit.c`).
-- **Readline EOF (Ctrl+D):** When **`readline`** returns **`NULL`**, **`read_input`** prints **`exit\n`** via **`ft_printf`** (stdout) then leaves the REPL (`shell_repl.c`) — differs from bash’s stream choice but matches current code.
+- **Readline EOF (Ctrl+D):** When **`readline`** returns **`NULL`**, **`read_input`** prints **`exit\n`** via **`ft_printf`** (stdout) then leaves the REPL (`repl_loop.c`) — differs from bash’s stream choice but matches current code.
 - **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. **We exit `XSYN` (2)** (same message; exit code differs — see `exit.c`).
 - **Too many arguments:** Bash does not exit; it prints an error and returns 1. We match this (**`FAILURE`**).
 
@@ -1264,8 +1265,8 @@ Covered by **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell
 
 ```
 Phase 1: Foundation
-├── [x] Shell struct and initialization (core/init.c, structs.h)
-├── [x] Main loop with readline (TTY) / ft_read_stdin_line (non-TTY) (`shell_repl.c`, `msh_stdin_read_line.c`)
+├── [x] Shell struct and initialization (`init/init_shell.c`, `init/init_env.c`, structs.h)
+├── [x] Main loop with readline (TTY) / ft_read_stdin_line (non-TTY) (`repl_loop.c`, `msh_stdin_read_line.c`)
 ├── [x] Basic signal handling (signals/signal_handler.c, signal_utils.c)
 └── [x] Builtins (echo, cd, pwd, export, unset, env, exit)
 
