@@ -256,6 +256,12 @@ See `1_pipelines.sh`.
 
 **Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. Resolution uses startup **`had_path`** and runtime **`path_unset`** with fallback search paths — see **§7.7** in [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md). See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
 
+**Current no-env policy (intentional):**
+- Fallback search is internal command resolution only; it does not create/export `PATH` in `env`.
+- Fallback list is `/usr/local/bin:/usr/bin:/bin:.` (no `sbin` directories).
+- In no-env style starts, `echo $PATH` can be empty while some commands still resolve through fallback.
+- Bootstrap defaults are `SHLVL=1` and `_=/usr/bin/env` when `PATH` is absent at startup.
+
 **No-env residual note (`10_no_env.sh`, cases 2 and 3):** bash/minishell can differ only in the ordering of environment lines (`LD_PRELOAD`, `PWD`, `SHLVL`, `_`) while values and command semantics match.
 
 ---

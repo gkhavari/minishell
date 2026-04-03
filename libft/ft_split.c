@@ -46,9 +46,9 @@ static int	write_split(char ***dest, const char *str, const char c)
 	size_t	j;
 
 	j = 0;
-	while (*str)
+	while (str && *str)
 	{
-		while (str && *str == c)
+		while (*str == c)
 			str++;
 		if (*str)
 		{

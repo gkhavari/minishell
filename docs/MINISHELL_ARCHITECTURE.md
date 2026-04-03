@@ -956,6 +956,8 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 
 `resolve_cmd_path` uses a **static** buffer (`PATH_MAX`): copy the return value before the next call if you need to keep it. If `cmd` contains `/`, the path is copied as-is (resolution happens at `execve`). Otherwise scan `PATH` colon-separated segments with `stat` (regular file), not `ft_split` + `access` as in older sketches. If `PATH` is missing and (`had_path == 1` or `path_unset == 0`), a default list is used (`/usr/local/bin:/usr/bin:/bin:.`).
 
+No-env policy detail: this fallback list is for resolution only (it does not inject/export `PATH` into `envp`), and it intentionally excludes `sbin` directories. Startup env bootstrap with missing `PATH` sets `SHLVL=1` and `_=/usr/bin/env`.
+
 ---
 
 ## 8. Exit Status Reference (Bash-Aligned)
