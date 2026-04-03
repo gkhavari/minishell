@@ -27,7 +27,7 @@ void	print_heredoc_eof_warning(int line_no, char *delim)
 
 /**
  * Write one heredoc body line to pipe fd; if expand, build line with
- * `exp_hd_line` first.
+ * `expand_heredoc_line` first.
  */
 void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 {
@@ -35,7 +35,7 @@ void	write_heredoc_line(char *line, int fd, int expand, t_shell *shell)
 
 	if (expand)
 	{
-		expanded = exp_hd_line(line, shell);
+		expanded = expand_heredoc_line(line, shell);
 		if (!expanded)
 		{
 			shell->oom = 1;

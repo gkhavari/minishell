@@ -178,7 +178,7 @@ void		write_heredoc_line(char *line, int fd, int expand, t_shell *shell);
 /** True if delimiter token had quotes (suppress expansion). */
 int			is_quoted_delimiter(char *delim);
 /** Parameter-expand one heredoc line when allowed. */
-char		*exp_hd_line(char *line, t_shell *shell);
+char		*expand_heredoc_line(char *line, t_shell *shell);
 
 /* --- free_runtime.c --- */
 /** Free a NULL-terminated string array and each element (argv, envp). */

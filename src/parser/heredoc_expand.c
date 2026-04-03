@@ -79,7 +79,7 @@ static int	hd_cat_step(char *line, size_t *i, char **result, t_shell *shell)
  * Build a new string with $VAR and $? expanded (unquoted heredoc body).
  * Caller frees return; NULL on OOM. Input line is not consumed.
  */
-char	*exp_hd_line(char *line, t_shell *shell)
+char	*expand_heredoc_line(char *line, t_shell *shell)
 {
 	char	*result;
 	size_t	i;
