@@ -20,7 +20,7 @@
 # define HEXBASE "0123456789abcdef"
 # define DECBASE "0123456789"
 /* dispatch: try_* return this when spec is not handled */
-# define PF_CONV_UNHANDLED (-1000)
+# define PF_CONV_UNHANDLED -1000
 
 int	ft_printf(const char *format, ...);
 int	ft_dprintf(int fd, const char *format, ...);

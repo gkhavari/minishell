@@ -10,7 +10,7 @@ This repository implements the **mandatory** scope: prompt and **readline** hist
 
 The subject does **not** require `\`, `;`, **`&&` / `||`**, or wildcard `*` in the mandatory part; this project follows that scope. **Bonus** (logical operators with parentheses and `*` wildcards) is only evaluated if the mandatory part is perfect.
 
-Shell and wait exit conventions (syntax error **2**, not found **127**, signal exits **128+n**, etc.) are reflected in **`includes/defines.h`** (macros such as **`XSYN`**, **`XNF`**, **`XSIG`** and their longer **`EXIT_*`** names).
+Shell and wait exit conventions (syntax error **2**, not found **127**, signal exits **128+n**, Ctrl+C **130**, etc.) are reflected in **`includes/defines.h`** (macros such as **`XSYN`**, **`XNF`**, **`XNX`**, **`XSB`**, **`XSINT`**).
 
 ---
 

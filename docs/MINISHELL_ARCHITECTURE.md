@@ -4,7 +4,7 @@
 >
 > **Test-backed behavior:** Primary harness is **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** (`tester.sh`, mandatory mode `m`). For expected I/O and exit codes, see **[BEHAVIOR.md](BEHAVIOR.md)**.
 >
-> **Figures (Mermaid):** §0.1 (harness), §0.3 (source graph), §0.4 (input→execute gate), §1.4 (Ctrl+C sequence), §2 (REPL), §3.2.1 (tokenizer loop), §4.1 (expansion vs heredoc), §5.2 (`parse_input` + token walk), §6.2 (heredoc), §7.1 / §7.2 / §7.5 (executor), §8.2 (`last_exit` writers).
+> **Figures (Mermaid):** §0.1 (harness), §0.3 (source graph), §0.4 (input→execute gate), §1.4 (Ctrl+C sequence), §2 (REPL), §3.2.1 (tokenizer loop), §4.1 (expansion vs heredoc), §5.2 (`parse_input` + token walk), §6.2 (heredoc), §7.1 / §7.2 / §7.5 (executor), §8.2 (`last_exit` writers). For dedicated signal flowcharts and tables, see **[SIGNAL.md](SIGNAL.md)**.
 
 ---
 
@@ -166,7 +166,7 @@ graph TB
 
 ```mermaid
 flowchart LR
-    A[readline / read_line_stdin] --> Q{input[0]?}
+    A[readline / read_line_stdin] --> Q{"input[0] non-zero?"}
     Q -->|no| R[reset_shell]
     Q -->|yes| B[tokenize_input]
     B --> C[parse_input]
@@ -175,7 +175,7 @@ flowchart LR
     E --> R
     B -.-> T[(tokens)]
     C -.-> H[(commands)]
-    E -.-> I[empty / builtin / external / pipeline → child or parent]
+    E -.-> I["empty / builtin / external / pipeline (child or parent)"]
 ```
 
 - **`shell_repl.c`** (src/core/): `shell_loop` → `check_signal_received` → `read_input` → if **`shell->input[0]`** then `process_input` (tokenize → parse → heredocs → execute) → `reset_shell`; non-TTY may **`break`** on syntax error (see **§2**). **`main.c`** only calls `init_shell`, `shell_loop`, and teardown.
@@ -206,7 +206,7 @@ volatile sig_atomic_t	g_signum = 0;
 | `0` | No signal pending |
 | `SIGINT` | Ctrl+C seen by handler; cleared after `check_signal_received()` or when the readline hook consumes it |
 
-**`last_exit = EXIT_SIGINT`:** Set in **`check_signal_received()`** (`signal_utils.c`). **`EXIT_SIGINT`** is **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`** in **`includes/defines.h`** (typically **130**). The async handler does **not** set `t_shell->last_exit`.
+**`last_exit = XSINT`:** Set in **`check_signal_received()`** (`signal_utils.c`). **`XSINT`** is **`128 + SIGINT`** (**130**) in **`includes/defines.h`**. The async handler does **not** set `t_shell->last_exit`.
 
 **Rules:** No structs/pointers in globals; **never** use `t_shell` inside a handler. The SIGINT handler only sets **`g_signum`** and **`write(STDOUT_FILENO, "\n", 1)`** (async-signal-safe).
 
@@ -216,7 +216,7 @@ volatile sig_atomic_t	g_signum = 0;
 
 | Signal / input | At prompt (interactive) | While external/pipeline child runs | During heredoc input |
 | -------------- | ------------------------ | ----------------------------------- | -------------------- |
-| **SIGINT** (Ctrl+C) | New line, `$? = EXIT_SIGINT` (usually 130), new prompt | Child receives default SIGINT; parent ignores while in **`waitpid`** | Loop stops, `process_input` sets **`EXIT_SIGINT`** (see §6) |
+| **SIGINT** (Ctrl+C) | New line, `$? = XSINT` (130), new prompt | Child receives default SIGINT; parent ignores while in **`waitpid`** | Loop stops, `process_input` sets **`XSINT`** (see §6; detail in [SIGNAL.md](SIGNAL.md)) |
 | **SIGQUIT** (Ctrl+\) | Ignored (`SIG_IGN`) | Child: default → may print “Quit (core dumped)” | Ignored |
 | **EOF** (Ctrl+D) | `readline` returns NULL → exit shell | N/A | Line ends / EOF handling in **`read_heredoc_line`** |
 
@@ -239,7 +239,7 @@ See **[BEHAVIOR.md](BEHAVIOR.md)** for tables and tester-oriented notes (e.g. SI
 
 1. Handler: **`g_signum = SIGINT`**, **`write(1, "\n", 1)`**.
 2. **`readline_event_hook`**: discard buffer, end readline.
-3. **`read_input()`** calls **`check_signal_received(shell)`**: **`last_exit = EXIT_SIGINT`**, **`g_signum = 0`**, return **`-1`** → **`shell_loop`** **`continue`** (no `process_input` on that line).
+3. **`read_input()`** calls **`check_signal_received(shell)`**: **`last_exit = XSINT`**, **`g_signum = 0`**, return **`RL_SIG`** → **`shell_loop`** **`continue`** (no `process_input` on that line).
 4. **`shell_loop`** also calls **`check_signal_received`** at the **start** of each iteration.
 
 ```mermaid
@@ -252,7 +252,7 @@ sequenceDiagram
     RL->>RL: hook clears line, rl_done
     RL->>RI: readline returns
     RI->>CS: after line read
-    CS->>CS: last_exit=EXIT_SIGINT, g_signum=0
+    CS->>CS: last_exit=XSINT, g_signum=0
 ```
 
 ### 1.5 Dispositions around `fork` / `wait`
@@ -290,18 +290,18 @@ Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
 
 | Return | Macro | Meaning | `shell_loop` action |
 |--------|-------|---------|---------------------|
-| **0** | **`RL_EOF`** | **EOF** (`NULL` from readline / stdin path) | **TTY:** prints **`exit\n`** then **`break`**. **Non-TTY:** **`break`** without printing. |
+| **0** | **`RL_EOF`** | **EOF** (`NULL` from readline / stdin path) | **TTY:** **`ft_printf("exit\n")`** (stdout) then **`break`**. **Non-TTY:** **`break`** without printing. |
 | **-1** | **`RL_SIG`** | **`check_signal_received()`** inside `read_input` fired; **`shell->input`** freed and cleared | **`continue`** (no `process_input`, no `reset_shell` for that iteration). |
 | **`OOM`** | **`OOM`** | e.g. **`build_prompt`** / stdin line allocation failure | **`last_exit = FAILURE`**, **`reset_shell`**, **`break`** (leave REPL toward **`free_all`**). |
 | **1** | **`RL_LN`** | A non-**NULL** line was read | **`repl_after_read`**: if **`shell->input[0] != '\0'`** → **`process_input`**, else skip it; then **`reset_shell`**; non-TTY + syntax error may **`break`**. |
 
 **Inside `read_input()`** (after a line pointer is obtained): **`check_signal_received(shell)`** runs for **every** non-**NULL** line (**empty** `""` included) before returning **`RL_LN`**—same mechanism as Ctrl+C at the prompt (§1.4). **`build_prompt()`** failure returns **`OOM`** (not EOF).
 
-**After `process_input()`** (when it was called): **`repl_after_read`** sets **`syntax_err`** if **`!shell->cmds && shell->last_exit == XSYN`** (`EXIT_SYNTAX_ERROR`, e.g. unclosed quote). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
+**After `process_input()`** (when it was called): **`repl_after_read`** sets **`syntax_err`** if **`!shell->cmds && shell->last_exit == XSYN`** (e.g. unclosed quote). **`reset_shell()`** still runs. If **stdin is not a TTY** and **`syntax_err`**, the loop **`break`**s (tester-style input stops on syntax error).
 
 > **Implementation detail (non-TTY):** **`reset_shell()`** does **not** reset **`last_exit`**. After **`reset_shell`**, **`commands`** is always **NULL**, so **`!shell->cmds && shell->last_exit == XSYN`** stays true on the **next** line even if **`process_input`** is skipped (e.g. empty line). The loop then **`break`**s—useful for scripted input after a syntax error; interactive TTY users are unaffected.
 
-**`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->cmds`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = EXIT_SIGINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
+**`process_input()`** (`init.c`): **`tokenize_input`** → **`parse_input`** → if **`!shell->cmds`** return; else **`process_heredocs`** — on failure, if **`g_signum == SIGINT`** then **`last_exit = XSINT`**, else **`last_exit = FAILURE`**, and return **without** **`run_commands`**; else **`last_exit = run_commands(shell)`**.
 
 **Program exit:** **`main()`** returns **`shell.last_exit`** after **`rl_clear_history()`**, **`free_all()`**, and closing std fds.
 
@@ -314,9 +314,9 @@ flowchart TD
     RVAL -->|RL_SIG| START
     RVAL -->|OOM| OOMH["FAILURE + reset_shell + break"]
     OOMH --> EXIT
-    RVAL -->|RL_LN| INEMPTY{shell->input[0] != 0?}
+    RVAL -->|RL_LN| INEMPTY{"input[0] non-zero?"}
     INEMPTY -->|no| RESET["reset_shell — empty line"]
-    INEMPTY -->|yes| PROC["process_input — tokenize → parse → heredocs → execute"]
+    INEMPTY -->|yes| PROC["process_input — tokenize, parse, heredocs, execute"]
     PROC --> RESET
     RESET --> SYNTAX{"!isatty(stdin) && syntax_err<br/>(no commands && last_exit==XSYN)"}
     SYNTAX -->|yes| EXIT
@@ -325,7 +325,7 @@ flowchart TD
 
 | Step | Code / behavior |
 |------|------------------|
-| 1 | Top of loop: **`check_signal_received(shell)`** — if **`g_signum == SIGINT`**, set **`last_exit = EXIT_SIGINT`**, clear **`g_signum`** (§1). |
+| 1 | Top of loop: **`check_signal_received(shell)`** — if **`g_signum == SIGINT`**, set **`last_exit = XSINT`**, clear **`g_signum`** (§1). |
 | 2 | **`read_input()`**: TTY → **`build_prompt`**, **`readline`**; non-TTY → **`read_line_stdin()`** → **`ft_read_stdin_line`**. |
 | 3 | **`read_input`:** **`!shell->input`** → **`RL_EOF`** (see table above). |
 | 3b | **`read_input`:** **`OOM`** → **`last_exit = FAILURE`**, **`reset_shell`**, **break** (same exit path as EOF toward **`main`**). |
@@ -413,7 +413,7 @@ $ echo "hello        # bash: unexpected EOF while looking for matching `"'
 $ echo 'hello        # bash: unexpected EOF while looking for matching `''
 ```
 
-**Our behavior:** Print error, set `last_exit = EXIT_SYNTAX_ERROR`, do NOT execute.
+**Our behavior:** Print error, set `last_exit = XSYN`, do NOT execute.
 
 **Error: Invalid Pipe Usage**
 
@@ -424,7 +424,7 @@ $ ls || cat         # We don't handle || (logical OR) - treat as syntax error
 $ ls | | cat        # bash: syntax error near unexpected token `|'
 ```
 
-**Our behavior:** Print `minishell: syntax error near unexpected token`, set `last_exit = EXIT_SYNTAX_ERROR`.
+**Our behavior:** Print `minishell: syntax error near unexpected token`, set `last_exit = XSYN`.
 
 **Error: Invalid Redirection**
 
@@ -644,7 +644,7 @@ flowchart TD
     PI[parse_input] --> T0{tokens?}
     T0 -->|no| NULL[commands = NULL, return]
     T0 -->|yes| SY[syntax_check]
-    SY -->|FAILURE| E2[last_exit = EXIT_SYNTAX_ERROR, free tokens, return]
+    SY -->|FAILURE| E2[last_exit = XSYN, free tokens, return]
     SY -->|SUCCESS| PT[build_command_list → t_command list]
     PT -->|NULL| E1[last_exit = FAILURE]
     PT -->|ok| FIN[finalize_cmds]
@@ -740,7 +740,7 @@ Command: cat << EOF << END
 flowchart LR
     PH[process_heredocs] --> E[each << : pipe in parent]
     E --> L[read_heredoc_line loop]
-    L -->|delimiter| F[cmd->hd_fd]
+    L -->|delimiter| F["hd_fd on command"]
     L -->|SIGINT| X[FAILURE → last_exit 130 in init.c]
     L -->|EOF| W[print_heredoc_eof_warning → continue]
     F --> EX[execute: dup2 hd_fd → stdin]
@@ -748,7 +748,7 @@ flowchart LR
 
 ### 6.3 Heredoc + Signals
 
-**Implementation:** `parser/heredoc.c` — loop calls **`heredoc_read_line()`** in **`heredoc_input.c`**: TTY → **`readline("> ")`**, else **`ft_read_stdin_line(..., 1)`** (OOM may set **`shell->oom`**). After each line, **`g_signum == SIGINT`** → close pipe ends, return **`FAILURE`** (`process_input` sets **`last_exit = EXIT_SIGINT`**). EOF without delimiter → **`print_heredoc_eof_warning()`** (same file); body lines go through **`write_heredoc_line()`** when expanding.
+**Implementation:** `parser/heredoc.c` — loop calls **`heredoc_read_line()`** in **`heredoc_input.c`**: TTY → **`readline("> ")`**, else **`ft_read_stdin_line(..., 1)`** (OOM may set **`shell->oom`**). After each line, **`g_signum == SIGINT`** → close pipe ends, return **`FAILURE`** (`process_input` sets **`last_exit = XSINT`**). EOF without delimiter → **`print_heredoc_eof_warning()`** (same file); body lines go through **`write_heredoc_line()`** when expanding.
 
 ### 6.4 Heredoc Expansion Rules
 
@@ -788,12 +788,12 @@ EOF
 ```mermaid
 flowchart TD
     EC[run_commands]
-    EC --> NO_CMD{shell->cmds?}
+    EC --> NO_CMD{"cmds list set?"}
     NO_CMD -->|NULL| R0[return SUCCESS]
-    NO_CMD -->|non-NULL| ONE{commands->next?}
-    ONE -->|NULL| EMP{argv missing or argv0 empty?}
+    NO_CMD -->|non-NULL| ONE{"next pipeline segment?"}
+    ONE -->|NULL| EMP{"argv missing or argv0 empty?"}
     EMP -->|yes| EMPTY[run_empty_command redir only]
-    EMP -->|no| BUILTIN{cmd->is_builtin?}
+    EMP -->|no| BUILTIN{"is_builtin?"}
     BUILTIN -->|yes| RB[run_single_builtin]
     BUILTIN -->|no| EXT[run_external]
     RB --> RBX{redirs and not parent-only builtin?}
@@ -802,7 +802,7 @@ flowchart TD
     RBP --> RUNB[run_builtin]
     ONE -->|non-NULL| PIPE[run_pip]
     PIPE --> NF{all stages not-found?}
-    NF -->|yes| R127[return EXIT_CMD_NOT_FOUND]
+    NF -->|yes| R127[return XNF]
     NF -->|no| FORK[pipe_step loop + wait_pipes]
 ```
 
@@ -898,7 +898,7 @@ Command: ls -la | grep ".c" | wc -l
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
-**Verified by tests (executor / pipelines):** Single commands: Phase 1 + Hardening (builtins in parent, externals forked). Pipeline stdout: Hardening simple/two/five pipes, pipe with grep/wc -l, pipe builtin echo, pipe with spaces. Pipeline exit: `true | false` → 1, `false | true` → 0. Pipeline + redir and stress (long pipeline, many pipelines, pipe redir combo, export then pipe): no crash. Path: absolute path, command not found (`EXIT_CMD_NOT_FOUND`), directory as cmd (`EXIT_CMD_CANNOT_EXECUTE`). See [BEHAVIOR.md](BEHAVIOR.md) §3, §7.
+**Verified by tests (executor / pipelines):** Single commands: Phase 1 + Hardening (builtins in parent, externals forked). Pipeline stdout: Hardening simple/two/five pipes, pipe with grep/wc -l, pipe builtin echo, pipe with spaces. Pipeline exit: `true | false` → 1, `false | true` → 0. Pipeline + redir and stress (long pipeline, many pipelines, pipe redir combo, export then pipe): no crash. Path: absolute path, command not found (`XNF`), directory as cmd (`XNX`). See [BEHAVIOR.md](BEHAVIOR.md) §6, §10.
 
 ### 7.5 Pipeline (actual: `msh_executor_pipeline.c` + `msh_executor_pipeline_segment.c`)
 
@@ -936,20 +936,20 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 	if (cmd->is_builtin)
 		run_builtin_in_child(cmd, shell);
 	if (!cmd->argv || !cmd->argv[0])
-		clean_exit(shell, SUCCESS);
+		exit_norl(shell, SUCCESS);
 	path = resolve_cmd_path(cmd->argv[0], shell);
 	if (!path)
-		child_exit_not_found(shell, cmd->argv[0]); /* EXIT_CMD_NOT_FOUND */
-	/* stat: is directory → EXIT_CMD_CANNOT_EXECUTE */
+		child_exit_not_found(shell, cmd->argv[0]); /* XNF */
+	/* stat: is directory → XNX */
 	execve(path, cmd->argv, shell->envp);
-	/* ENOENT → EXIT_CMD_NOT_FOUND; else → EXIT_CMD_CANNOT_EXECUTE */
+	/* ENOENT / permission → XNF or XNX via child_abort_msg */
 }
 ```
 
 **Supporting files:**
 - **`msh_executor_not_found_stderr.c`**: **`put_cmd_not_found`** — not-found line to stderr
   (`$'…'` when name has control bytes).
-- **`msh_executor_pipeline_all_not_found.c`**: **`pip_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent; **`run_pip`** returns **`EXIT_CMD_NOT_FOUND`** without forking that pipeline.
+- **`msh_executor_pipeline_all_not_found.c`**: **`pip_all_nf`** — if every stage is a simple missing-PATH external with no redirs/heredoc, print all errors in parent; **`run_pip`** returns **`XNF`** without forking that pipeline.
 
 ### 7.7 Path Resolution (actual: `msh_executor_external_run.c`)
 
@@ -959,11 +959,11 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 
 ## 8. Exit Status Reference (Bash-Aligned)
 
-All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and common shell conventions so that `$?` and scripted behavior match bash. **Verified by:** Phase 1 (exit 0/42/255, exit no args); Hardening §10, §11, §14, §17 (exit 256/257, -1, non-numeric, too many args; 127/126; pipeline last command). See [BEHAVIOR.md](BEHAVIOR.md) §6.
+All exit codes follow the [Bash Reference Manual](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html) and common shell conventions so that `$?` and scripted behavior match bash. **Verified by:** Phase 1 (exit 0/42/255, exit no args); Hardening §10, §11, §14, §17 (exit 256/257, -1, non-numeric, too many args; 127/126; pipeline last command). See [BEHAVIOR.md](BEHAVIOR.md) §11.
 
 ### 8.0 Named constants (`includes/defines.h`)
 
-Use these in C instead of bare numbers: **`SUCCESS`** / **`FAILURE`** (0/1 for general outcomes), **`TOK_N`** / **`TOK_Y`** (tokenizer step: character not handled vs handled — check **`OOM`** before treating as boolean), **`EXIT_SYNTAX_ERROR`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`** (= 128 + signal number; pass **`WTERMSIG(status)`** from **`waitpid`**), **`EXIT_SIGINT`** (= **`EXIT_STATUS_FROM_SIGNAL(SIGINT)`**, usually 130). **`EXIT_SIGINT`** requires **`<signal.h>`** before **`defines.h`** — **`minishell.h`** includes **`includes.h`** first.
+Use these in C instead of bare numbers: **`SUCCESS`** / **`FAILURE`** (0/1 for general outcomes), **`TOK_N`** / **`TOK_Y`** (tokenizer step: character not handled vs handled — check **`OOM`** before treating as boolean), **`XSYN`** (2), **`XNX`** (126), **`XNF`** (127), **`XSB`** (128, signal base), **`XSINT`** (130 = **`XSB + SIGINT`**). For a terminated child, use **`XSB + WTERMSIG(status)`** when **`WIFSIGNALED`**. Bash documentation often names the same numbers with longer **`EXIT_*`** spellings; this repo’s header uses the short forms above.
 
 ### 8.1 Summary Table
 
@@ -971,14 +971,14 @@ Use these in C instead of bare numbers: **`SUCCESS`** / **`FAILURE`** (0/1 for g
 | ---------------------------- | -------------- | ---------------------------------------- | ----------------------------------------------- |
 | Command success              | `0`            | `SUCCESS`                                | Normal success                                  |
 | Command general error        | `1`            | `FAILURE`                                | General failure; builtin "too many args" return |
-| Syntax error (shell misuse)  | `2`            | `EXIT_SYNTAX_ERROR`                      | Misuse of shell builtin / syntax error           |
-| Permission denied (exec)     | `126`          | `EXIT_CMD_CANNOT_EXECUTE`                | File found but not executable                    |
-| Command not found            | `127`          | `EXIT_CMD_NOT_FOUND`                     | Command not in PATH                             |
-| Fatal signal N              | `128 + N`      | `EXIT_STATUS_FROM_SIGNAL(N)`           | Child killed by signal N (e.g. 130 = SIGINT)     |
-| Ctrl+C (SIGINT)              | `130`          | `EXIT_SIGINT`                            | `EXIT_STATUS_FROM_SIGNAL(SIGINT)`               |
-| Ctrl+\ (SIGQUIT)             | `131`          | `EXIT_STATUS_FROM_SIGNAL(SIGQUIT)`       | `128 + 3`                                       |
+| Syntax error (shell misuse)  | `2`            | `XSYN`                                   | Misuse of shell builtin / syntax error           |
+| Permission denied (exec)     | `126`          | `XNX`                                    | File found but not executable                    |
+| Command not found            | `127`          | `XNF`                                    | Command not in PATH                             |
+| Fatal signal N              | `128 + N`      | `XSB + N`                                | Child killed by signal N (e.g. 130 = SIGINT)     |
+| Ctrl+C (SIGINT)              | `130`          | `XSINT`                                  | Same as **`XSB + SIGINT`**                      |
+| Ctrl+\ (SIGQUIT)             | `131`          | `XSB + SIGQUIT`                          | `128 + 3`                                       |
 | `exit` with valid arg        | `arg % 256`    | —                                        | 0–255; out-of-range wraps (e.g. 256 → 0)        |
-| `exit` with non-numeric      | `255` (bash) / **`2` (this shell)** | `EXIT_SYNTAX_ERROR` (us) | Bash: stderr + exit 255. **We:** same message, **`EXIT_SYNTAX_ERROR`** (known difference). |
+| `exit` with non-numeric      | `255` (bash) / **`2` (this shell)** | `XSYN` (us) | Bash: stderr + exit 255. **We:** same message, **`XSYN`** (known difference). |
 | `exit` with too many args    | (no exit)      | returns `FAILURE`                        | Print error to stderr, shell continues |
 
 ### 8.2 Where We Use Each Code
@@ -992,7 +992,7 @@ flowchart LR
         CS[check_signal_received SIGINT]
         XT[builtin_exit / clean_exit]
     end
-    EX --> LE[(shell->last_exit)]
+    EX --> LE([shell last_exit])
     SY --> LE
     HD --> LE
     CS --> LE
@@ -1002,20 +1002,19 @@ flowchart LR
 
 - **`SUCCESS` (0)** – Successful builtin or external command.
 - **`FAILURE` (1)** – Builtin failure (e.g. `exit` too many args **returns** `FAILURE`), redirection failure, or generic error.
-- **`EXIT_SYNTAX_ERROR` (2)** – Syntax error (`syntax_check`, tokenizer unclosed quote); also **`exit` with non-numeric arg** (bash uses **255**).
-- **`EXIT_CMD_CANNOT_EXECUTE` (126)** – Path is directory or permission denied
+- **`XSYN` (2)** – Syntax error (`syntax_check`, tokenizer unclosed quote); also **`exit` with non-numeric arg** (bash uses **255**).
+- **`XNX` (126)** – Path is directory or permission denied
   around `execve` (`msh_executor_child_run.c` **`child_abort_msg`**).
-- **`EXIT_CMD_NOT_FOUND` (127)** – Command not found
+- **`XNF` (127)** – Command not found
   (**`child_exit_not_found`**; pipeline fast path **`pip_all_nf`** in
   parent).
-- **`EXIT_STATUS_FROM_SIGNAL(sig)`** – Child terminated by signal; e.g.
-  **`EXIT_SIGINT`** (`msh_executor_external_run.c` **`child_wait_st`**, pipeline
-  **`wait_pipes`**).
+- **`XSB + signal`** – Child terminated by signal; e.g. **`XSINT`** for SIGINT (`msh_executor_external_run.c` **`child_wait_st`**, pipeline **`wait_pipes`**). **`SIGQUIT`** during a single external wait also prints **`Quit (core dumped)\n`** from **`child_wait_st`**; pipelines use the numeric status only (see [SIGNAL.md](SIGNAL.md)).
 
 ### 8.3 exit Builtin (Bash Reference)
 
-- **Interactive only:** In an interactive shell, bash prints `"exit\n"` (or `"logout\n"` for login shells) to **stderr** before exiting (see `builtins/exit.def`). We do the same: `ft_putendl_fd("exit", STDERR_FILENO)` when `isatty(STDIN_FILENO)`.
-- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. **We exit `EXIT_SYNTAX_ERROR`** (same message; exit code differs — see `exit.c`).
+- **Builtin `exit` (interactive):** Bash prints `"exit\n"` to **stderr** before exiting. We match with **`ft_dprintf(STDERR_FILENO, "exit\n")`** in **`builtin_exit`** when **`isatty(STDIN_FILENO)`** (`exit.c`).
+- **Readline EOF (Ctrl+D):** When **`readline`** returns **`NULL`**, **`read_input`** prints **`exit\n`** via **`ft_printf`** (stdout) then leaves the REPL (`shell_repl.c`) — differs from bash’s stream choice but matches current code.
+- **Non-numeric argument:** Bash exits with **255** after printing "numeric argument required" to stderr. **We exit `XSYN` (2)** (same message; exit code differs — see `exit.c`).
 - **Too many arguments:** Bash does not exit; it prints an error and returns 1. We match this (**`FAILURE`**).
 
 ---
@@ -1097,13 +1096,13 @@ env                     # Print all environment variables
 Bash reference: message `"exit"` is printed to **stderr** in interactive mode only.
 
 ```bash
-# Behavior (mostly bash; non-numeric uses EXIT_SYNTAX_ERROR / 2 here, bash uses 255):
+# Behavior (mostly bash; non-numeric uses XSYN / 2 here, bash uses 255):
 exit                    # Exit with last command's status
 exit 0                  # Exit with 0
 exit 42                 # Exit with 42
 exit 256                # Exit with 0 (256 % 256)
 exit -1                 # Exit with 255 (two's complement)
-exit abc                # Error to stderr: "numeric argument required", then EXIT_SYNTAX_ERROR (bash: 255)
+exit abc                # Error to stderr: "numeric argument required", then XSYN (bash: 255)
 exit 1 2 3              # Error to stderr: "too many arguments", return FAILURE / 1, do NOT exit
 ```
 
@@ -1261,9 +1260,7 @@ Covered by **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell
 
 ---
 
-## 13. Implementation Order (Current Status)
-
-Reflects the **built** codebase; phase1 + hardening tests pass.
+## 13. Implementation Order
 
 ```
 Phase 1: Foundation
@@ -1294,7 +1291,7 @@ Phase 5: Pipes & Heredoc
 ├── [x] Pipeline execution (executor/msh_executor_pipeline.c)
 ├── [x] Heredoc implementation (parser/heredoc.c, parser/heredoc_utils.c)
 ├── [x] Multiple redirections (cmd->redirs list, left-to-right)
-└── [x] Signal handling in children (wait_pipes, XSIG)
+└── [x] Signal handling in children (wait_pipes, `XSB` + signal)
 
 Phase 6: Polish & Refactor
 ├── [x] Error messages (minishell: cmd: msg style)
@@ -1314,5 +1311,6 @@ Phase 6: Polish & Refactor
 |----------|---------|
 | **[BEHAVIOR.md](BEHAVIOR.md)** | Test-backed behavior: redirections, pipes, expansion, builtins, exit codes, path resolution, input resilience. Use for evaluation and debugging. |
 | **[DATA_MODEL_AND_FUNCTIONS.md](DATA_MODEL_AND_FUNCTIONS.md)** | **Data model:** why we chose each struct/enum. **Function reference:** every function by file with one-line description; Mermaid call flow. |
-| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`SUCCESS`/`FAILURE`**, **`TOK_N`/`TOK_Y`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, **`PR_ERR`**, other parser sentinels. Long names (**`EXIT_SYNTAX_ERROR`**, **`TOK_NO`/`TOK_YES`**, **`LEX_NO`/`LEX_YES`**, etc.) remain as aliases where defined. |
+| **[`includes/defines.h`](../includes/defines.h)** | Shared macros: **`SUCCESS`/`FAILURE`**, **`TOK_N`/`TOK_Y`**, **`RL_LN`/`RL_EOF`/`RL_SIG`**, **`XSYN`**, **`XNF`/`XNX`**, **`XSB`**, **`XSINT`**, **`OOM`**, **`PR_ERR`**, **`STDIN_LAST_*`**, **`HD_*`**, **`S_EMPTY`/`S_AMBIG`**, prompt pieces (**`PM_*`**). |
+| **[SIGNAL.md](SIGNAL.md)** | Signal dispositions, **`g_signum`**, heredoc/pipeline/repl cases. |
 | **README.md** | Project overview, build, usage, how to run tests. |

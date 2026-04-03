@@ -12,49 +12,49 @@
 
 #include "ft_printf.h"
 
-static void	ft_print_adr_fd(int fd, unsigned long long n)
+static int	ft_print_adr_fd(int fd, unsigned long long n)
 {
+	int	count;
+	int	ret;
+
+	count = 0;
 	if (n >= 16)
 	{
-		ft_print_adr_fd(fd, n / 16);
-		ft_print_adr_fd(fd, n % 16);
+		ret = ft_print_adr_fd(fd, n / 16);
+		if (ret < 0)
+			return (-1);
+		count += ret;
+		ret = ft_print_adr_fd(fd, n % 16);
+		if (ret < 0)
+			return (-1);
+		count += ret;
 	}
 	else
 	{
 		if (n < 10)
-			print_chr_fd(fd, n + '0');
-		else if (n >= 10)
-			print_chr_fd(fd, (n - 10) + 'a');
+			count = print_chr_fd(fd, n + '0');
+		else
+			count = print_chr_fd(fd, (n - 10) + 'a');
+		if (count < 0)
+			return (-1);
 	}
-}
-
-static int	ft_numlen(unsigned long long n, int base)
-{
-	int	len;
-
-	len = 0;
-	if (n == 0)
-		return (1);
-	while (n > 0)
-	{
-		n /= base;
-		len++;
-	}
-	return (len);
+	return (count);
 }
 
 int	print_pointer_fd(int fd, unsigned long long n)
 {
 	int	count;
+	int	ret;
 
 	count = 0;
 	if (n == 0)
-	{
-		count += print_str_fd(fd, "(nil)");
-		return (count);
-	}
-	count += print_str_fd(fd, "0x");
-	ft_print_adr_fd(fd, n);
-	count += ft_numlen(n, 16);
-	return (count);
+		return (print_str_fd(fd, "(nil)"));
+	ret = print_str_fd(fd, "0x");
+	if (ret < 0)
+		return (-1);
+	count += ret;
+	ret = ft_print_adr_fd(fd, n);
+	if (ret < 0)
+		return (-1);
+	return (count + ret);
 }

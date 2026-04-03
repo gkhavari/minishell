@@ -15,15 +15,20 @@
 int	print_nbr_fd(int fd, int n)
 {
 	int	count;
+	int	ret;
 
 	count = 0;
 	if (n == -2147483648)
 		return (print_str_fd(fd, "-2147483648"));
 	if (n < 0)
 	{
-		count += print_chr_fd(fd, '-');
+		if (print_chr_fd(fd, '-') < 0)
+			return (-1);
+		count++;
 		n = -n;
 	}
-	count += print_unsigned_fd(fd, (unsigned int)n);
-	return (count);
+	ret = print_unsigned_fd(fd, (unsigned int)n);
+	if (ret < 0)
+		return (-1);
+	return (count + ret);
 }

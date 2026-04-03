@@ -39,21 +39,21 @@ static int	try_nums(int fd, char f, va_list ap)
 
 int	dispatch_printf_conv(int fd, char format, va_list ap)
 {
-	int	a;
-	int	b;
-	int	r;
+	int	wr1;
+	int	wr2;
+	int	res;
 
-	r = try_basic(fd, format, ap);
-	if (r != PF_CONV_UNHANDLED)
-		return (r);
-	r = try_nums(fd, format, ap);
-	if (r != PF_CONV_UNHANDLED)
-		return (r);
-	a = print_chr_fd(fd, '%');
-	if (a < 0)
+	res = try_basic(fd, format, ap);
+	if (res != PF_CONV_UNHANDLED)
+		return (res);
+	res = try_nums(fd, format, ap);
+	if (res != PF_CONV_UNHANDLED)
+		return (res);
+	wr1 = print_chr_fd(fd, '%');
+	if (wr1 < 0)
 		return (-1);
-	b = print_chr_fd(fd, format);
-	if (b < 0)
+	wr2 = print_chr_fd(fd, format);
+	if (wr2 < 0)
 		return (-1);
-	return (a + b);
+	return (wr1 + wr2);
 }

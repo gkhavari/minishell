@@ -52,7 +52,7 @@ Stores **one argument** (e.g. one element of `argv`). **`t_command.args`** is a 
 ```c
 typedef struct s_redir {
     char         *file;   // filename (heredoc delimiter lives on t_command)
-    int           fd;     // dup2 target: STDIN_FILENO, STDOUT_FILENO, …
+    int           fd;     // dup2 target: STDIN_FILENO or STDOUT_FILENO (mandatory scope)
     int           append; // 1 for >>; 0 for <, >
 } t_redir;
 ```
@@ -67,7 +67,7 @@ typedef struct s_redir {
 
 **Why a list:** Same as before—order matters; last wins per stream when chained.
 
-**Why `fd` instead of `is_input`:** Supports **stderr** redirection (`2>`) as well as stdin/stdout without extra flags.
+**Why `fd` instead of `is_input`:** Holds the **`dup2`** target (**`STDIN_FILENO`** or **`STDOUT_FILENO`** in mandatory scope). **`2>`** stderr redirection is **not** produced by the tokenizer/parser; see [BEHAVIOR.md](BEHAVIOR.md) §6.
 
 ---
 
@@ -188,19 +188,20 @@ Used by `get_builtin_type()` / `run_builtin()`. `B_COUNT` is the exclusive end (
 
 ```mermaid
 erDiagram
-    t_shell ||--o| t_list : "tokens"
-    t_shell ||--o| t_list : "cmds"
+    t_shell ||--o| t_list_tok : "tokens list"
+    t_shell ||--o| t_list_cmd : "cmds list"
     t_shell ||--o| envp : "envp"
-    t_list ||--o| t_token : "content"
-    t_list ||--o| t_command : "content"
-    t_command ||--o| t_list : "args"
-    t_command ||--o| t_list : "redirs"
-    t_list ||--o| t_arg : "args.content"
-    t_list ||--o| t_redir : "redirs.content"
-    t_command --> argv : "argv (from args)"
-    t_heredoc_ctx --> t_command : "cmd"
-    t_heredoc_ctx --> t_shell : "shell"
+    t_list_tok ||--o| t_token : "content"
+    t_list_cmd ||--o| t_command : "content"
+    t_command ||--o| t_list_args : "args"
+    t_command ||--o| t_list_redir : "redirs"
+    t_list_args ||--o| t_arg : "content"
+    t_list_redir ||--o| t_redir : "content"
+    t_heredoc_ctx }o--|| t_command : "cmd"
+    t_heredoc_ctx }o--|| t_shell : "shell"
 ```
+
+**`t_list_tok`**, **`t_list_cmd`**, **`t_list_args`**, and **`t_list_redir`** are all **`t_list`** in code; **`argv`** is a derived `char **` field on **`t_command`** (not a separate ER entity).
 
 ---
 
@@ -219,7 +220,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **core/shell_repl.c** | *(static)* `read_line_stdin(shell, out)` | Wrapper: `ft_read_stdin_line(shell, out, 0)`. |
 | **core/shell_repl.c** | *(static)* `repl_after_read(shell)` | If `input[0]` → `process_input`; syntax_err when `!shell->cmds && last_exit == XSYN`; `reset_shell`; returns 1 to break on non-TTY + syntax_err. |
 | **utils/msh_stdin_read_line.c** | `ft_read_stdin_line(shell, line, set_shell_oom_on_fail)` | Non-TTY: byte-read until `\n` or EOF; **`RL_LN`** / **`RL_EOF`** / **`OOM`**; optional `shell->oom` on append failure. |
-| **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `EXIT_SIGINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
+| **core/init.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `XSINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
 | **core/init.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
 | **core/init_utils.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc path `ft_dprintf` + `exit_norl(shell, FAILURE)`. |
 | **core/init_utils.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=SUCCESS`, `barrier_write_fd=-1`, null `tokens`/`cmds`/`input`, `word_quoted`/`hd_mod` 0, **`had_path`** from **`PATH`**. |
@@ -275,9 +276,9 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | File | Function | Description |
 |------|----------|-------------|
 | **parser/parser.c** | `parse_input(shell)` | `syntax_check`; `build_command_list` + `finalize_cmds`; frees token list; **`OOM`** from finalize sets **`shell->oom`**, frees cmds. |
-| **parser/parser_build.c** | `build_command_list(shell, tokens)` | Walks tokens into `t_list` of `t_command *`; **`PARSE_ERR`** → drop partial pipeline; **`OOM`** → **`shell->oom`**, drop pipeline. |
-| **parser/parser_redir.c** | `parse_redir_token_pair(cmd, tok_node)` | Redir + WORD → `cmd->redirs`; **`PARSE_ERR`** if missing word; **`OOM`** if malloc fails. |
-| **parser/add_token_to_cmd.c** | `add_token_to_command(...)` | WORD/HEREDOC/redir dispatch; **`PARSE_ERR`** structural; **`OOM`** on allocation failure. |
+| **parser/parser_build.c** | `build_command_list(shell, tokens)` | Walks tokens into `t_list` of `t_command *`; **`PR_ERR`** → drop partial pipeline; **`OOM`** → **`shell->oom`**, drop pipeline. |
+| **parser/parser_redir.c** | `parse_redir_token_pair(cmd, tok_node)` | Redir + WORD → `cmd->redirs`; **`PR_ERR`** if missing word; **`OOM`** if malloc fails. |
+| **parser/add_token_to_cmd.c** | `add_token_to_command(...)` | WORD/HEREDOC/redir dispatch; **`PR_ERR`** structural; **`OOM`** on allocation failure. |
 | **parser/argv_build.c** | `finalize_cmds(shell, cmd_list)` | Per command: `finalize_argv`; returns **`OOM`** on allocation failure (else **0**). |
 | **parser/argv_build.c** | `finalize_argv(shell, cmd)` | Builds cmd->argv from cmd->args (NULL-terminated array). |
 | **parser/parser_syntax_check.c** | `syntax_check(lst)` | Walks token `t_list`; validates pipes and redir+WORD. |
@@ -309,18 +310,18 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/msh_executor_run_commands.c** | *(static)* `backup_stdio_fds` / `restore_stdio_fds` | Dup stdin/stdout for builtin redir in parent. |
 | **executor/msh_executor_apply_redirects.c** | `apply_redirs(cmd)` | Walk `redirs` left-to-right (`apply_one_redir`); then if `hd_fd` ≥ 0, dup to stdin only when **`stdin_last == STDIN_LAST_HD`**, and always close the heredoc read fd. |
 | **executor/msh_executor_external_run.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `child_wait_st`. |
-| **executor/msh_executor_external_run.c** | *(static)* `child_wait_st` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `EXIT_STATUS_FROM_SIGNAL(WTERMSIG)`; SIGQUIT prints “Quit (core dumped)”. |
+| **executor/msh_executor_external_run.c** | *(static)* `child_wait_st` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `XSB + WTERMSIG`; SIGQUIT prints “Quit (core dumped)”. |
 | **executor/msh_executor_external_run.c** | *(static)* `scan_path` / `path_cand` | Colon-scan PATH with `stat` (regular file). |
 | **executor/msh_executor_external_run.c** | `resolve_cmd_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
 | **executor/msh_executor_child_run.c** | *(static)* `run_builtin_in_child` | SIGPIPE ignore, `exit_norl(shell, run_builtin(...))`. |
-| **executor/msh_executor_child_run.c** | *(static)* `child_exit_not_found` / `child_abort_msg` | Error messages + `clean_exit` with `EXIT_CMD_NOT_FOUND` / `EXIT_CMD_CANNOT_EXECUTE`. |
+| **executor/msh_executor_child_run.c** | *(static)* `child_exit_not_found` / `child_abort_msg` | Error messages + `exit_norl` with `XNF` / `XNX`. |
 | **executor/msh_executor_child_run.c** | `run_in_child(cmd, shell)` | Builtin branch, empty argv, `resolve_cmd_path`, `execve` or errors. |
 | **executor/msh_executor_pipeline_all_not_found.c** | *(static)* `is_simple_not_found_command` | Predicate: simple missing-PATH external, no redir/heredoc, no `/` in argv0. |
-| **executor/msh_executor_pipeline_all_not_found.c** | `pip_all_nf(cmds, shell)` | If every stage matches **`is_simple_not_found_command`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pip`** returns **`EXIT_CMD_NOT_FOUND`**. |
+| **executor/msh_executor_pipeline_all_not_found.c** | `pip_all_nf(cmds, shell)` | If every stage matches **`is_simple_not_found_command`**, print all “not found” via **`put_cmd_not_found`** in parent; returns **TRUE** so **`run_pip`** returns **`XNF`**. |
 | **executor/msh_executor_not_found_stderr.c** | `put_cmd_not_found` (+ static `format_not_found_name`, `needs_dollar_quotes`, `append_escaped_char`, `fill_dollar_quoted_name`) | One stderr line for not-found (`$'…'` when name has control bytes). |
 | **executor/msh_executor_pipeline.c** | *(static)* `wait_pipes` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`upd_wait_st`). |
 | **executor/msh_executor_pipeline.c** | *(static)* `spawn_pipes` | Chains `pipe_step`, closes trailing `prev_fd`. |
-| **executor/msh_executor_pipeline.c** | `run_pip(cmds, shell)` | `sync_fd` inactive (-1); `pip_all_nf` → **`EXIT_CMD_NOT_FOUND`**; ignore signals, loop, wait, restore interactive. |
+| **executor/msh_executor_pipeline.c** | `run_pip(cmds, shell)` | `sync_fd` inactive (-1); `pip_all_nf` → **`XNF`**; ignore signals, loop, wait, restore interactive. |
 | **executor/msh_executor_pipeline_segment.c** | *(static)* `setup_pip_child_fds` / `fork_pip_child` / `advance_prev_pipe_fd` | Pipe wiring between stages. |
 | **executor/msh_executor_pipeline_segment.c** | `pipe_step(cmd, shell, prev_fd, sync_fd)` | One pipeline segment; used by `msh_executor_pipeline.c`. |
 
@@ -343,7 +344,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **builtins/export_utils.c** | `append_export_env(shell, entry)` | Appends one "KEY=value" to shell->envp. |
 | **builtins/export_print.c** | `print_sorted_env(shell)` | Prints env in declare -x format (sorted). |
 | **builtins/unset.c** | `builtin_unset(args, shell)` | Removes listed vars from envp. Returns 0/1. |
-| **builtins/exit.c** | `builtin_exit(args, shell)` | Exits shell: optional numeric status; too many args → **`FAILURE`**; non-numeric → **`EXIT_SYNTAX_ERROR`** (bash: 255). Calls `clean_exit` / free_all. |
+| **builtins/exit.c** | `builtin_exit(args, shell)` | Exits shell: optional numeric status; too many args → **`FAILURE`**; non-numeric → **`XSYN`** (bash: 255). Calls `clean_exit` / `free_all`. |
 | **builtins/exit_utils.c** | `parse_exit_value(str, result)` | Parses a `long long` exit value with overflow checks; skips leading/trailing bytes where `ft_isspace` is true. Returns 1 on success, 0 on error. |
 
 ---
@@ -356,7 +357,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **signals/signal_handler.c** | `set_signals_ignore()` | SIGINT/SIGQUIT → **SIG_IGN** (parent while waiting on child/pipeline). |
 | **signals/signal_handler.c** | `set_signals_interactive()` | SIGQUIT/SIGTERM/SIGPIPE ignored; SIGINT → **`interactive_sigint_handler`** with **SA_RESTART** and mask **SIGQUIT**; clears **`g_signum`**. |
 | **signals/signal_utils.c** | `readline_event_hook()` | If **`g_signum == SIGINT`**: clear readline line, **`rl_done = 1`**. |
-| **signals/signal_utils.c** | `check_signal_received(shell)` | If **`g_signum == SIGINT`**: **`last_exit = EXIT_SIGINT`** (`EXIT_STATUS_FROM_SIGNAL(SIGINT)`, usually 130), clear flag, return 1. |
+| **signals/signal_utils.c** | `check_signal_received(shell)` | If **`g_signum == SIGINT`**: **`last_exit = XSINT`**, clear flag, return 1. |
 | **free/free_utils.c** | `free_tokens(&lst)` | `ft_lstclear` on token list; each `content` is `t_token *`. |
 | **free/free_utils.c** | `free_args(&lst)` | `ft_lstclear` on arg list; each `content` is `t_arg *`. |
 | **free/free_runtime.c** | `free_cmds(&lst)` | `ft_lstclear` on command list; each payload is one `t_command` (args/redirs as lists). |
@@ -375,7 +376,7 @@ flowchart TB
     main[main → init_shell] --> loop[shell_loop]
     loop --> chk[check_signal_received]
     chk --> ri[read_input]
-    ri --> gate{input[0]?}
+    ri --> gate{"input[0] non-zero?"}
     gate -->|yes| proc[process_input]
     gate -->|no| rs[reset_shell]
     proc --> tok[tokenize_input]
@@ -385,7 +386,7 @@ flowchart TB
     ex --> br{single vs pipeline}
     br --> emp[run_empty_command / run_single_builtin / run_external]
     br --> pl[run_pip → pipe_step]
-    emp --> ich[run_in_child / clean_exit in child]
+    emp --> ich[run_in_child / exit_norl in child]
     pl --> ich
     proc --> rs
     rs --> loop
@@ -415,4 +416,5 @@ flowchart TB
 |----------|---------|
 | [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) | Pipeline stages, signals, source layout, testing. |
 | [BEHAVIOR.md](BEHAVIOR.md) | Input/output semantics, exit codes, builtin behavior. |
-| [`includes/defines.h`](../includes/defines.h) | **`SUCCESS` / `FAILURE`** (0/1), **`TOK_N` / `TOK_Y`** (tokenizer handler: not handled / handled; **`TOK_NO` / `TOK_YES`**, **`LEX_NO` / `LEX_YES`** aliases), **`RL_LN` / `RL_EOF` / `RL_SIG`**, **`XSYN`**, **`XNF` / `XNX`**, **`EXIT_CMD_*`**, **`EXIT_STATUS_FROM_SIGNAL`**, **`EXIT_SIGINT`**, **`OOM`**, **`PR_ERR`**, other parser sentinels; long names kept as aliases where defined. |
+| [`includes/defines.h`](../includes/defines.h) | **`SUCCESS` / `FAILURE`**, **`TOK_N` / `TOK_Y`**, **`RL_LN` / `RL_EOF` / `RL_SIG`**, **`XSYN`**, **`XNF` / `XNX`**, **`XSB`**, **`XSINT`**, **`OOM`**, **`PR_ERR`**, **`STDIN_LAST_*`**, **`HD_*`**, **`S_EMPTY` / `S_AMBIG`**, **`PM_*`**, etc. |
+| [SIGNAL.md](SIGNAL.md) | Interactive vs wait vs child signal handling; **`g_signum`**. |

@@ -2,27 +2,11 @@
 
 This document defines **expected behavior** for minishell: what output and exit code the shell must produce for given inputs. It serves as (1) a **behavior specification** for the program and (2) a **guide for designing tests** for those cases.
 
-**Primary harness:** **[LeaYeh/42_minishell_tester](https://github.com/LeaYeh/42_minishell_tester)** — same input as **bash**, compare stdout (`diff -q`), normalized stderr (`diff -q` after tester filters), and exit code. Mandatory mode: `tester.sh m` (see `scripts/run_minishell_tester.sh`).
-
-**Run tests (Docker dev container, from host):**
-
-```bash
-./scripts/run_minishell_tester.sh m       # mandatory (default)
-./scripts/run_minishell_tester.sh vm      # mandatory + valgrind
-./scripts/run_minishell_tester.sh b       # bonus
-./scripts/run_minishell_tester.sh ne      # empty env
-./scripts/run_minishell_tester.sh a       # all
-```
-
-Build runs inside the container (`make re` / `make debug`). CI uses the same upstream tester (see `.github/workflows/test.yaml`, `regression_test.yaml`).
-
-**CI / baseline:** Use GitHub Actions workflow logs and local **`mstest_output_*`** directories after **`./scripts/run_minishell_tester.sh`**.
 
 **Subject vs bash:** Where the PDF says you **must not** interpret **`;`** as a separator or treat **`\`** as a *required* metacharacter, behavior may differ from bash; the tables below still describe **bash** for test design, with **explicit deltas** for this repo. The tokenizer still applies **`\`** in **`ST_NORMAL`** (e.g. before **`$`**)—see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §3.
 
-**Exit-status macros (code):** **`includes/defines.h`** — bash/POSIX-style exits: **`SUCCESS`** / **`FAILURE`** (0/1 for general function outcomes), **`EXIT_SYNTAX_ERROR`** / **`XSYN`** (2), **`EXIT_CMD_CANNOT_EXECUTE`** (126), **`EXIT_CMD_NOT_FOUND`** (127), **`EXIT_STATUS_SIGNAL_BASE`** (128), **`EXIT_STATUS_FROM_SIGNAL(sig)`**, **`EXIT_SIGINT`** (usually 130). **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or tokenizer/parser allocations), not a shell exit code.
+**Exit-status macros (code):** **`includes/defines.h`** uses short names: **`SUCCESS`** / **`FAILURE`** (0/1 for general function outcomes), **`XSYN`** (2), **`XNX`** (126), **`XNF`** (127), **`XSB`** (128, signal base), **`XSINT`** (130 = SIGINT). Signal exits use **`XSB + WTERMSIG(status)`** when **`WIFSIGNALED`**. **Readline path:** **`RL_LN`**, **`RL_EOF`**, **`RL_SIG`**. **`OOM`** is an internal sentinel (e.g. **`build_prompt`** or tokenizer/parser allocations), not a shell exit code. Bash docs often use longer **`EXIT_*`** names for the same numbers; see [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §8.
 
----
 
 ## 0. Map to [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md)
 
@@ -30,11 +14,11 @@ Build runs inside the container (`make re` / `make debug`). CI uses the same ups
 |---------------|-------------------------------|
 | Tester layout, script map (`cmds/mand/`) | §0.1, §0.2 |
 | **readline** vs **`ft_read_stdin_line`**, empty-line gate (**`input[0]`**), non-TTY syntax **break**, **`main` return `last_exit`** | §2 |
-| **`g_signum`**, **`check_signal_received`**, **`rl_event_hook`**, SIGPIPE install | §1 |
+| **`g_signum`**, **`check_signal_received`**, **`rl_event_hook`**, SIGPIPE install | §1, [SIGNAL.md](SIGNAL.md) |
 | Tokenizer loop, operators, heredoc delimiter mode | §3 (e.g. §3.2.1) |
 | Expansion vs heredoc body, **`~`** | §4 |
 | **`parse_input`**: **`syntax_check`** then **`build_command_list`** → **`finalize_cmds`** | §5 |
-| Heredoc pipes, SIGINT during heredoc → **`last_exit = EXIT_SIGINT`** (130), no **`run_commands`** | §6 |
+| Heredoc pipes, SIGINT during heredoc → **`last_exit = XSINT`** (130), no **`run_commands`** | §6 |
 | **`run_commands`**, single vs pipeline, parent-only builtins (cd/export/unset/exit), not-found fast path | §7 |
 | Exit codes, who sets **`last_exit`**, **`reset_shell` does not clear `last_exit`** | §8, §11 |
 
@@ -58,7 +42,7 @@ Subject **v10.0** requires these builtins only (no `export`/`unset` flags like *
 
 ---
 
-### 0.1 Design rationale (defense quick view)
+### 0.1 Design rationale
 
 Why behavior matches this shape:
 
@@ -77,19 +61,6 @@ Why behavior matches this shape:
   advanced FD operators) is intentionally excluded to keep mandatory behavior
   stable and testable.
 
-### How the 42_minishell_tester works
-
-- Reads test **blocks** from scripts under `cmds/mand/` (LeaYeh splits builtins into `1_builtins_echo.sh`, `1_builtins_cd.sh`, …; plus `8_syntax_errors.sh`, `1_redirs.sh`, etc.). Each block is one or more lines of input; empty lines and `#` comments separate blocks.
-- For each block: sends the same input to **minishell** and to **bash** (with `enable -n .` prepended so bash runs the test as the last command).
-- **Pass** requires: stdout identical (`diff -q`), normalized stderr identical (`diff -q`), and exit code identical.
-- **Non-interactive input:** the tester feeds lines on stdin; this shell uses **`ft_read_stdin_line()`** via **`shell_repl.c`** (static **`read_line_stdin`** wrapper; byte **`read`**, not readline) for non-TTY stdin — one logical line per block (no trailing newline in the buffer; EOF after text returns a final partial line).
-- **Per-line gate:** an **empty** line (**`input[0] == '\0'`**) runs **`reset_shell`** only—no tokenize/parse/execute for that iteration (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §2**).
-- After a **syntax error** (**`last_exit == EXIT_SYNTAX_ERROR`**), **non-TTY** mode may **exit the shell** on the **next** line even if that line is empty (**`reset_shell`** does not clear **`last_exit`**—same §2).
-- The tester runs minishell first, then bash, in the same temporary test directory for each block. Blocks with filesystem side effects can expose order-sensitive differences.
-
-So “expected behavior” here is **bash-like** unless the **subject** or **documented deltas** say otherwise. The tables summarize bash-oriented expectations and point to the 42 script(s) that cover them.
-
----
 
 ## 1. Echo (`1_builtins_echo.sh`)
 
@@ -149,7 +120,6 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. Subject: builtin **`env`** is **no options or arguments** — any `env` with args is executed as **external** `env` (this repo: `argv_build` / dispatch). See the three `1_builtins_*` scripts above.
 
-**Tester note:** Any block with **`unset TES;T`** (semicolon) depends on **`;`** separator behavior (out of mandatory scope). To test `unset` itself, use **`unset TES`** without semicolon.
 
 ---
 
@@ -169,7 +139,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 | `exit 42 world` (too many args) | — | "too many arguments" or similar | **1** (shell does **not** exit) |
 | `exit 1 2`, `exit 1 2 3` | — | "too many arguments" | **1** (shell does not exit) |
 
-**Implementation note (this repo):** For non-numeric `exit`, **`exit.c` exits with `EXIT_SYNTAX_ERROR` (2)**, not bash’s **255**. Mandatory tester will disagree with bash on **EXIT_CODE** for those blocks until the code matches bash.
+**Implementation note (this repo):** For non-numeric `exit`, **`exit.c` exits with `XSYN` (2)**, not bash’s **255**. Mandatory tester will disagree with bash on **EXIT_CODE** for those blocks until the code matches bash.
 
 **Test-design note:** Numeric: exit with `n % 256`. Non-numeric (bash): stderr + exit **255**. Too many args: stderr + **`FAILURE` (1)**, **no exit**. See `1_builtins_exit.sh`.
 
@@ -220,7 +190,7 @@ So “expected behavior” here is **bash-like** unless the **subject** or **doc
 
 **Test-design note:** Quoted delimiter → no expansion in body. Unquoted → expand variables. See `1_redirs.sh`, `10_parsing_hell.sh`.
 
-**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = EXIT_SIGINT`**, and **does not** run **`run_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
+**SIGINT during heredoc:** Parent reads the heredoc body; if **`g_signum == SIGINT`** after a line, **`process_heredocs`** fails, **`process_input`** sets **`last_exit = XSINT`**, and **does not** run **`run_commands`** (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §6**). Matches bash-style interrupt handling for the “open heredoc” case in tests.
 
 ---
 
@@ -288,17 +258,17 @@ See `1_pipelines.sh`.
 
 ## 11. Exit Code Summary (Bash-Aligned)
 
-**Process exit:** **`main()`** returns **`shell.last_exit`** (bash-like “last foreground status”). **Ctrl+C** at the interactive prompt sets **`EXIT_SIGINT`** (typically **130**) via **`check_signal_received`** before the next prompt (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §1–§2, §8.2**).
+**Process exit:** **`main()`** returns **`shell.last_exit`** (bash-like “last foreground status”). **Ctrl+C** at the interactive prompt sets **`XSINT`** (**130**) via **`check_signal_received`** before the next prompt (**[MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md) §1–§2, §8.2**, [SIGNAL.md](SIGNAL.md)).
 
 | Code | Macro(s) in `defines.h` | Meaning | Example |
 |------|-------------------------|--------|--------|
 | 0 | `SUCCESS` | Success | Successful command, `exit 0`, `exit 256` |
 | 1 | `FAILURE` | General / builtin error | `cd` to bad dir, `export` invalid name, `exit 1 2` (too many args), pipeline last command failed |
-| 2 | `EXIT_SYNTAX_ERROR` | Syntax error | Lone pipe, pipe at end, redirect with no file |
-| 126 | `EXIT_CMD_CANNOT_EXECUTE` | Not executable | Running a directory as command |
-| 127 | `EXIT_CMD_NOT_FOUND` | Command not found | Unknown command name |
-| 128+N | `EXIT_STATUS_FROM_SIGNAL(n)` | Killed by signal N | e.g. **130** = `EXIT_SIGINT` / SIGINT, **131** = SIGQUIT |
-| 255 | — (bash only) | Bash: non-numeric `exit` | Bash exits 255 after "numeric argument required" (**this minishell: `EXIT_SYNTAX_ERROR`** — see §4) |
+| 2 | `XSYN` | Syntax error | Lone pipe, pipe at end, redirect with no file |
+| 126 | `XNX` | Not executable | Running a directory as command |
+| 127 | `XNF` | Command not found | Unknown command name |
+| 128+N | `XSB + N` | Killed by signal N | e.g. **130** = `XSINT` / SIGINT, **131** = SIGQUIT |
+| 255 | — (bash only) | Bash: non-numeric `exit` | Bash exits 255 after "numeric argument required" (**this minishell: `XSYN`** — see §4) |
 
 ---
 
@@ -313,28 +283,3 @@ See `1_pipelines.sh`.
 Use multiple input lines to chain commands. The 42 subject does not require `;` or logical **`&&`/`||`** for the **mandatory** part.
 
 ---
-
-## 13. 42_minishell_tester Script Reference (LeaYeh `cmds/mand/`)
-
-| Script | Content |
-|--------|---------|
-| `0_compare_parsing.sh` | Echo, quotes, expansion (compare to bash parsing) |
-| `1_builtins_echo.sh` | `echo`, `-n`, quotes, `$?`, backslash |
-| `1_builtins_pwd.sh` | `pwd` |
-| `1_builtins_cd.sh` | `cd` |
-| `1_builtins_env.sh` | `env` |
-| `1_builtins_export.sh` | `export` |
-| `1_builtins_unset.sh` | `unset` |
-| `1_builtins_exit.sh` | `exit` |
-| `1_pipelines.sh` | Pipes, heredocs in pipes |
-| `1_redirs.sh` | Redirections, heredocs, combined |
-| `1_scmds.sh` | Simple commands, path |
-| `1_variables.sh` | Variable expansion cases |
-| `11_expansion.sh` | Additional expansion cases |
-| `2_correction.sh` | Correction / edge cases |
-| `2_path_check.sh` | PATH, env -i |
-| `8_syntax_errors.sh` | Syntax error cases (pipe, redirect, etc.) |
-| `9_go_wild.sh` | Wild / env -i, PATH |
-| `10_parsing_hell.sh` | Parsing edge cases, heredoc, expansion |
-
-Use these scripts as the **source of truth** for designing new tests: add blocks in the same format (one or more lines, blank line or `#` to separate). Expected behavior is **match bash** on stdout, stderr presence, and exit code; **except** where this doc and [minishellv10.md](minishellv10.md) define **subject-only** behavior.
