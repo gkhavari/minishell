@@ -25,7 +25,7 @@
 int	ft_printf(const char *format, ...);
 int	ft_dprintf(int fd, const char *format, ...);
 
-int	dispatch_printf_conv(int fd, char spec, va_list *ap);
+int	dispatch_printf_conv(int fd, char spec, va_list ap);
 
 int	ft_write_all(int fd, const void *buf, size_t n);
 

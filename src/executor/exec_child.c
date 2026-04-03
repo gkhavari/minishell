@@ -56,7 +56,8 @@ static void	child_exec(t_shell *shell, t_command *cmd, char *path)
 	msg = ": No such file or directory\n";
 	if (sv_err != ENOENT)
 		msg = ": Permission denied\n";
-	ft_dprintf(STDERR_FILENO, "%s%s", argv[0], msg);
+	write(STDERR_FILENO, argv[0], ft_strlen(argv[0]));
+	write(STDERR_FILENO, msg, ft_strlen(msg));
 	free_argv(argv);
 	free_argv(envp);
 	if (sv_err == ENOENT)
