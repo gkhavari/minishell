@@ -58,7 +58,7 @@ sequenceDiagram
   Ch->>Ch: execve
   Par->>Par: waitpid (EINTR retried)
   Par->>Sig: set_signals_interactive
-  Note over Par: child_wait_st → last_exit
+  Note over Par: child_exit_status → last_exit
 ```
 
 ---
@@ -83,9 +83,9 @@ flowchart TD
 
 1. **Ctrl-C at the prompt** — Handler sets `g_signum`, hook ends readline’s current read; **`check_signal_received`** sets **`last_exit = 130`**; loop continues with a fresh prompt.
 
-2. **Ctrl-C during a single external command** — Parent has **`SIGINT` ignored**; the child gets default **`SIGINT`** and dies by signal. **`child_wait_st`** maps the status to **`XSB + WTERMSIG`** (for **`SIGINT`**, **130**). Parent restores interactive masks after **`waitpid`**.
+2. **Ctrl-C during a single external command** — Parent has **`SIGINT` ignored**; the child gets default **`SIGINT`** and dies by signal. **`child_exit_status`** maps the status to **`XSB + WTERMSIG`** (for **`SIGINT`**, **130**). Parent restores interactive masks after **`waitpid`**.
 
-3. **Ctrl-\\ (`SIGQUIT`) during a child** — Child gets default (core dump if configured). **`run_external`** uses **`child_wait_st`**, which prints **`Quit (core dumped)\n`** to stderr when the terminating signal is **`SIGQUIT`**, and returns **131** (`XSB + SIGQUIT`). **Pipelines** use **`wait_pipes`**, which records the same numeric status for the **last segment** but **does not** print that message.
+3. **Ctrl-\\ (`SIGQUIT`) during a child** — Child gets default (core dump if configured). **`run_external`** uses **`child_exit_status`**, which prints **`Quit (core dumped)\n`** to stderr when the terminating signal is **`SIGQUIT`**, and returns **131** (`XSB + SIGQUIT`). **Pipelines** use **`wait_pipes`**, which records the same numeric status for the **last segment** but **does not** print that message.
 
 4. **Ctrl-C during heredoc** — Same interactive **`SIGINT`** handler as the prompt. **`heredoc_read_one`** sees **`g_signum == SIGINT`**, calls **`heredoc_interrupted`** (closes pipe fds), and **`process_input`** sets **`last_exit = XSINT`**. The next loop iteration clears the flag via **`check_signal_received`**.
 
@@ -116,7 +116,7 @@ flowchart TD
 | Readline hook and `check_signal_received` | `src/signals/signal_utils.c` |
 | REPL loop | `src/init/repl_loop.c` |
 | Heredoc interrupt | `src/parser/heredoc_collect.c`, `process_input` in `src/init/repl_process.c` |
-| External wait + `child_wait_st` | `src/executor/exec_external.c` |
+| External wait + `child_exit_status` | `src/executor/exec_external.c` |
 | Pipeline wait | `src/executor/exec_pipeline.c` |
 
 For exit-code naming and aliases, see **`includes/defines.h`** and **`docs/BEHAVIOR.md`**.

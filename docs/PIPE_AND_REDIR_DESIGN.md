@@ -230,8 +230,8 @@ Behavior is unchanged.
 - `rs_fd` -> `restore_stdio_fds` (`src/executor/exec_dispatch.c`)
 - `run_empty` -> `run_empty_command` (`src/executor/exec_dispatch.c`)
 - `run_bi` -> `run_single_builtin` (`src/executor/exec_dispatch.c`)
-- `ch_fds` -> `setup_pip_child_fds` (`src/executor/exec_pipe_step.c`)
-- `fork_pl` -> `fork_pip_child` (`src/executor/exec_pipe_step.c`)
+- `ch_fds` -> `setup_pipe_child_fds` (`src/executor/exec_pipe_step.c`)
+- `fork_pl` -> `fork_pipe_child` (`src/executor/exec_pipe_step.c`)
 - `adv_prev` -> `advance_prev_pipe_fd` (`src/executor/exec_pipe_step.c`)
 - `wait_one` -> `upd_wait_st`
   (`src/executor/exec_pipeline.c`)
@@ -250,7 +250,7 @@ Behavior is unchanged.
 - `bi_child` -> `run_builtin_in_child` (`src/executor/exec_child.c`)
 - `ch_abort` -> `child_abort_msg` (`src/executor/exec_child.c`)
 - `ch_nf` -> `child_exit_not_found` (`src/executor/exec_child.c`)
-- `ch_stat` -> `child_wait_st` (`src/executor/exec_external.c`)
-- `mk_path` -> `path_cand` (`src/executor/exec_external.c`)
+- `ch_stat` -> `child_exit_status` (`src/executor/exec_external.c`)
+- `mk_path` -> `path_candidate` (`src/executor/exec_external.c`)
 - `path_scan` -> `scan_path` (`src/executor/exec_external.c`)
 

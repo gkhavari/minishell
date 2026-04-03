@@ -16,7 +16,7 @@
  * Child: optional sync-fd barrier read, then wire prev_fd to stdin
  * and the new pipe write-end to stdout when there is a next segment.
  */
-static void	setup_pip_child_fds(int prev_fd, int pipe_fd[3], int has_next)
+static void	setup_pipe_child_fds(int prev_fd, int pipe_fd[3], int has_next)
 {
 	char	sync;
 
@@ -41,7 +41,7 @@ static void	setup_pip_child_fds(int prev_fd, int pipe_fd[3], int has_next)
 /**
  * `fork`: child wires fds, `apply_redirs`, `run_in_child`; parent returns pid.
  */
-static pid_t	fork_pip_child(t_list *cmd_node, t_shell *shell,
+static pid_t	fork_pipe_child(t_list *cmd_node, t_shell *shell,
 		int prev_fd, int pipe_fd[3])
 {
 	t_command	*cmd;
@@ -56,7 +56,7 @@ static pid_t	fork_pip_child(t_list *cmd_node, t_shell *shell,
 	if (pid == 0)
 	{
 		set_signals_default();
-		setup_pip_child_fds(prev_fd, pipe_fd, has_next);
+		setup_pipe_child_fds(prev_fd, pipe_fd, has_next);
 		if (apply_redirs(cmd) != SUCCESS)
 			exit_norl(shell, FAILURE);
 		run_in_child(cmd, shell);
@@ -95,7 +95,7 @@ pid_t	pipe_step(t_list *cmd_node, t_shell *shell,
 	pipe_fd[2] = sync_fd[0];
 	if (has_next && pipe(pipe_fd) == -1)
 		return (-1);
-	pid = fork_pip_child(cmd_node, shell, *prev_fd, pipe_fd);
+	pid = fork_pipe_child(cmd_node, shell, *prev_fd, pipe_fd);
 	if (pid < 0)
 	{
 		if (has_next)

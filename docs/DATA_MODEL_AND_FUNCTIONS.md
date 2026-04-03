@@ -313,9 +313,9 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/exec_dispatch.c** | *(static)* `run_single_builtin` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
 | **executor/exec_dispatch.c** | *(static)* `backup_stdio_fds` / `restore_stdio_fds` | Dup stdin/stdout for builtin redir in parent. |
 | **executor/exec_redir.c** | `apply_redirs(cmd)` | Walk `redirs` left-to-right (`apply_one_redir`); then if `hd_fd` ≥ 0, dup to stdin only when **`stdin_last == STDIN_LAST_HD`**, and always close the heredoc read fd. |
-| **executor/exec_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `child_wait_st`. |
-| **executor/exec_external.c** | *(static)* `child_wait_st` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `XSB + WTERMSIG`; SIGQUIT prints “Quit (core dumped)”. |
-| **executor/exec_external.c** | *(static)* `scan_path` / `path_cand` | Colon-scan PATH with `stat` (regular file). |
+| **executor/exec_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `child_exit_status`. |
+| **executor/exec_external.c** | *(static)* `child_exit_status` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `XSB + WTERMSIG`; SIGQUIT prints “Quit (core dumped)”. |
+| **executor/exec_external.c** | *(static)* `scan_path` / `path_candidate` | Colon-scan PATH with `stat` (regular file). |
 | **executor/exec_external.c** | `resolve_cmd_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
 | **executor/exec_child.c** | *(static)* `run_builtin_in_child` | SIGPIPE ignore, `exit_norl(shell, run_builtin(...))`. |
 | **executor/exec_child.c** | *(static)* `child_exit_not_found` / `child_abort_msg` | Error messages + `exit_norl` with `XNF` / `XNX`. |
@@ -326,7 +326,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/exec_pipeline.c** | *(static)* `wait_pipes` | `waitpid(-1,…)` until **n** children; status of **last_pid** wins (`upd_wait_st`). |
 | **executor/exec_pipeline.c** | *(static)* `spawn_pipes` | Chains `pipe_step`, closes trailing `prev_fd`. |
 | **executor/exec_pipeline.c** | `run_pip(cmds, shell)` | `sync_fd` inactive (-1); `pip_all_nf` → **`XNF`**; ignore signals, loop, wait, restore interactive. |
-| **executor/exec_pipe_step.c** | *(static)* `setup_pip_child_fds` / `fork_pip_child` / `advance_prev_pipe_fd` | Pipe wiring between stages. |
+| **executor/exec_pipe_step.c** | *(static)* `setup_pipe_child_fds` / `fork_pipe_child` / `advance_prev_pipe_fd` | Pipe wiring between stages. |
 | **executor/exec_pipe_step.c** | `pipe_step(cmd, shell, prev_fd, sync_fd)` | One pipeline segment; used by `exec_pipeline.c`. |
 
 ---
