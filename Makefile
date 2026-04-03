@@ -62,25 +62,25 @@ SRCS		+=	$(SRC_DIR)/tokenizer/tokenizer.c \
 				$(SRC_DIR)/tokenizer/tokenizer_quotes.c
 
 # parser
-SRCS		+=	$(SRC_DIR)/parser/parser.c \
-				$(SRC_DIR)/parser/parser_build.c \
-				$(SRC_DIR)/parser/parser_redir.c \
-				$(SRC_DIR)/parser/parser_syntax_check.c \
-				$(SRC_DIR)/parser/add_token_to_cmd.c \
-				$(SRC_DIR)/parser/argv_build.c \
-				$(SRC_DIR)/parser/heredoc.c \
-				$(SRC_DIR)/parser/heredoc_input.c \
-				$(SRC_DIR)/parser/heredoc_utils.c
+SRCS		+=	$(SRC_DIR)/parser/parse_input.c \
+				$(SRC_DIR)/parser/parse_syntax.c \
+				$(SRC_DIR)/parser/parse_pipeline.c \
+				$(SRC_DIR)/parser/parse_attach_token.c \
+				$(SRC_DIR)/parser/parse_redir.c \
+				$(SRC_DIR)/parser/parse_finalize.c \
+				$(SRC_DIR)/parser/heredoc_collect.c \
+				$(SRC_DIR)/parser/heredoc_io.c \
+				$(SRC_DIR)/parser/heredoc_expand.c
 
-# executor (verbose msh_executor_* names; public API unchanged)
-SRCS        += $(SRC_DIR)/executor/msh_executor_run_commands.c \
-			   $(SRC_DIR)/executor/msh_executor_apply_redirects.c \
-			   $(SRC_DIR)/executor/msh_executor_external_run.c \
-			   $(SRC_DIR)/executor/msh_executor_not_found_stderr.c \
-			   $(SRC_DIR)/executor/msh_executor_child_run.c \
-			   $(SRC_DIR)/executor/msh_executor_pipeline_all_not_found.c \
-			   $(SRC_DIR)/executor/msh_executor_pipeline.c \
-			   $(SRC_DIR)/executor/msh_executor_pipeline_segment.c \
+# executor (exec_* files; public API: run_commands, apply_redirs, …)
+SRCS        += $(SRC_DIR)/executor/exec_redir.c \
+			   $(SRC_DIR)/executor/exec_notfound.c \
+			   $(SRC_DIR)/executor/exec_external.c \
+			   $(SRC_DIR)/executor/exec_child.c \
+			   $(SRC_DIR)/executor/exec_pipeline_nf.c \
+			   $(SRC_DIR)/executor/exec_pipe_step.c \
+			   $(SRC_DIR)/executor/exec_pipeline.c \
+			   $(SRC_DIR)/executor/exec_dispatch.c \
 
 # builtins
 SRCS        += $(SRC_DIR)/builtins/cd.c \

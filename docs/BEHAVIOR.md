@@ -35,7 +35,7 @@ Subject **v10.0** requires these builtins only (no `export`/`unset` flags like *
 | **`pwd`** with no options | `builtins/pwd.c` | Extra words are ignored (bash-like for this tester); prints **`shell->cwd`**. |
 | **`export`** with no options | `builtins/export.c`, `export_utils.c`, `export_print.c` | No **`export -x`**; bare **`export`**, **`KEY=value`**, **`KEY+=value`**; invalid id → stderr + exit **1**. **`1_builtins_export.sh`**. |
 | **`unset`** with no options | `builtins/unset.c` | Leading **`-`** on a name → invalid option / syntax-style error; **`1_builtins_unset.sh`**. |
-| **`env`** with no args | `builtins/env.c` + **`argv_build.c`** | **`env` alone** → builtin lists env. **Any extra token** → **`is_builtin = 0`** → run **external** **`env`** from **`PATH`** (subject: not the zero-arg builtin case). **`1_builtins_env.sh`**. |
+| **`env`** with no args | `builtins/env.c` + **`parse_finalize.c`** | **`env` alone** → builtin lists env. **Any extra token** → **`is_builtin = 0`** → run **external** **`env`** from **`PATH`** (subject: not the zero-arg builtin case). **`1_builtins_env.sh`**. |
 | **`exit`** with no options | `builtins/exit.c`, `exit_utils.c` | Numeric arg, too many args, non-numeric; **delta:** non-numeric exits with **`XSYN` (2)**, not bash **255** — see §4. **`1_builtins_exit.sh`**. |
 
 **Dispatcher:** `builtins/builtin_dispatcher.c` (**`run_builtin`**, **`get_builtin_type`**).
@@ -118,7 +118,7 @@ Why behavior matches this shape:
 | `unset VAR` then `env` | `VAR` no longer in env | none | 0 |
 | `unset`, `unset ""` | — | error or no-op per bash | 0 or 1 |
 
-**Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. Subject: builtin **`env`** is **no options or arguments** — any `env` with args is executed as **external** `env` (this repo: `argv_build` / dispatch). See the three `1_builtins_*` scripts above.
+**Test-design note:** Valid names (letters, digits, underscore); invalid (leading digit, `-`, `=`) must produce stderr and exit 1. Subject: builtin **`env`** is **no options or arguments** — any `env` with args is executed as **external** `env` (this repo: `parse_finalize` / dispatch). See the three `1_builtins_*` scripts above.
 
 
 ---
@@ -215,7 +215,7 @@ Why behavior matches this shape:
 **Scheduling hardening note (2026-03-28 → superseded 2026-03-30):** A launch
 barrier (`sync_fd` pipe) was explored but is currently **inactive** (`sync_fd[0] = -1`,
 `sync_fd[1] = -1` in `run_pip`). The all-not-found fast path
-(`pip_all_nf` in `msh_executor_pipeline_all_not_found.c`) handles the ordering problem for that case
+(`pip_all_nf` in `exec_pipeline_nf.c`) handles the ordering problem for that case
 by printing errors in the parent before forking — no barrier needed.
 Children still read from `pipe_fd[2]` only if `sync_fd[0] != -1`.
 

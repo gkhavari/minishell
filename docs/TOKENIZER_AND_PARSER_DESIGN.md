@@ -15,9 +15,9 @@ Goal: help teammates understand behavior, error handling, and constraints.
 For non-empty input lines, the core path is:
 
 - `tokenize_input(shell)` in `src/tokenizer/tokenizer.c`
-- `parse_input(shell)` in `src/parser/parser.c`
-- `process_heredocs(shell)` in `src/parser/parser.c`
-- `run_commands(shell)` in `src/executor/msh_executor_run_commands.c`
+- `parse_input(shell)` in `src/parser/parse_input.c`
+- `process_heredocs(shell)` in `src/parser/heredoc_collect.c`
+- `run_commands(shell)` in `src/executor/exec_dispatch.c`
 
 Tokenizer and parser are intentionally separated:
 
@@ -118,17 +118,17 @@ On syntax error:
 - sets `last_exit = XSYN`
 - frees token list and returns
 
-Implementation: `src/parser/parser_syntax_check.c`.
+Implementation: `src/parser/parse_syntax.c`.
 
 ### 3.2 Build command pipeline structure
 
-`build_command_list(...)` in `src/parser/parser_build.c` walks tokens and
+`build_command_list(...)` in `src/parser/parse_pipeline.c` walks tokens and
 constructs a `t_list` of `t_command`.
 
 - `PIPE` token => append a new empty `t_command`
 - non-pipe token => `add_token_to_command(...)`
 
-`add_token_to_command(...)` in `src/parser/add_token_to_cmd.c` maps tokens:
+`add_token_to_command(...)` in `src/parser/parse_attach_token.c` maps tokens:
 
 - `WORD` -> append to `cmd->args`
 - `HEREDOC` -> store delimiter metadata in command
@@ -136,7 +136,7 @@ constructs a `t_list` of `t_command`.
 
 ### 3.3 Redirection parse contract
 
-`parse_redir_token_pair(...)` in `src/parser/parser_redir.c` requires:
+`parse_redir_token_pair(...)` in `src/parser/parse_redir.c` requires:
 
 - current token is redirection
 - next token exists and is `WORD`
@@ -154,7 +154,7 @@ the token cursor correctly and can unwind robustly.
 
 After command list build, parser finalizes each command:
 
-- `finalize_cmds(...)` in `src/parser/argv_build.c`
+- `finalize_cmds(...)` in `src/parser/parse_finalize.c`
 - allocates `cmd->argv` and duplicates all `cmd->args` values
 - sets `cmd->is_builtin` via `get_builtin_type(...)`
 - special case: `env` with arguments is not treated as shell builtin here

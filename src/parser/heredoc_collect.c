@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   heredoc.c                                          :+:      :+:    :+:   */
+/*   heredoc_collect.c                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:56:43 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/04/02 00:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/03 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,5 +88,27 @@ int	read_heredoc(t_command *cmd, t_shell *shell, int *line_no)
 	}
 	close(ctx.pipe_fd[1]);
 	cmd->hd_fd = ctx.pipe_fd[0];
+	return (SUCCESS);
+}
+
+/**
+ * Read each heredoc body; store read end in `cmd->hd_fd`. *line_no tracks EOF
+ * warnings. FAILURE on `read_heredoc` error (SIGINT, OOM, write, etc.).
+ */
+int	process_heredocs(t_shell *shell)
+{
+	t_list		*node;
+	t_command	*cmd;
+	int			line_no;
+
+	node = shell->cmds;
+	line_no = 1;
+	while (node)
+	{
+		cmd = node->content;
+		if (cmd->hd_delim && read_heredoc(cmd, shell, &line_no))
+			return (FAILURE);
+		node = node->next;
+	}
 	return (SUCCESS);
 }

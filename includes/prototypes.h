@@ -131,40 +131,40 @@ int			exp_unq(t_shell *shell, char **word, const char *exp,
 int			exp_empty(t_shell *shell, size_t start, size_t end,
 				char **word);
 
-/* --- parser.c --- */
+/* --- parse_input.c --- */
 /** Syntax-check tokens, parse to cmds, finalize; frees tokens. */
 void		parse_input(t_shell *shell);
-/** Read heredoc bodies for all commands; updates last_exit on error. */
-int			process_heredocs(t_shell *shell);
 
-/* --- parser_build.c --- */
-/** Build pipeline (`t_list` of `t_command`) from token list. */
-t_list		*build_command_list(t_shell *shell, t_list *tokens);
-
-/* --- add_token_to_cmd.c --- */
-/** Attach next tokens to cmd: args, redirs, heredoc delimiter. */
-int			add_token_to_command(t_shell *shell, t_command *cmd,
-				t_list *tok_node);
-
-/* --- parser_redir.c --- */
-/** Parse redirection token plus following WORD. */
-int			parse_redir_token_pair(t_command *cmd, t_list *tok_node);
-
-/* --- argv_build.c --- */
-/** For each command: build argv, set is_builtin; OOM on failure. */
-int			finalize_cmds(t_shell *shell, t_list *cmd_list);
-
-/* --- parser_syntax_check.c --- */
+/* --- parse_syntax.c --- */
 /** Validate pipe and redirection syntax on token list. */
 int			syntax_check(t_list *lst);
 /** Print unexpected-token message; return FAILURE. */
 int			syntax_error(const char *msg);
 
-/* --- heredoc.c --- */
+/* --- parse_pipeline.c --- */
+/** Build pipeline (`t_list` of `t_command`) from token list. */
+t_list		*build_command_list(t_shell *shell, t_list *tokens);
+
+/* --- parse_attach_token.c --- */
+/** Attach next tokens to cmd: args, redirs, heredoc delimiter. */
+int			add_token_to_command(t_shell *shell, t_command *cmd,
+				t_list *tok_node);
+
+/* --- parse_redir.c --- */
+/** Parse redirection token plus following WORD. */
+int			parse_redir_token_pair(t_command *cmd, t_list *tok_node);
+
+/* --- parse_finalize.c --- */
+/** For each command: build argv, set is_builtin; OOM on failure. */
+int			finalize_cmds(t_shell *shell, t_list *cmd_list);
+
+/* --- heredoc_collect.c --- */
 /** Read lines until delimiter; sets cmd->hd_fd read end. */
 int			read_heredoc(t_command *cmd, t_shell *shell, int *line_no);
+/** Read heredoc bodies for all commands; updates last_exit on error. */
+int			process_heredocs(t_shell *shell);
 
-/* --- heredoc_input.c --- */
+/* --- heredoc_io.c --- */
 /** Read one heredoc line (readline or stdin). */
 char		*heredoc_read_line(t_shell *shell);
 /** Warn when heredoc ends at EOF before delimiter. */
@@ -172,7 +172,7 @@ void		print_heredoc_eof_warning(int line_no, char *delim);
 /** Write line to heredoc pipe; optional expansion. */
 void		write_heredoc_line(char *line, int fd, int expand, t_shell *shell);
 
-/* --- heredoc_utils.c --- */
+/* --- heredoc_expand.c --- */
 /** True if delimiter token had quotes (suppress expansion). */
 int			is_quoted_delimiter(char *delim);
 /** Parameter-expand one heredoc line when allowed. */
@@ -198,40 +198,40 @@ void		reset_shell(t_shell *shell);
 /** At exit: free env, user, cwd, tokens, cmds, input. */
 void		free_all(t_shell *shell);
 
-/* --- msh_executor_run_commands.c --- */
-/** Run parsed commands (single command or pipeline). */
-int			run_commands(t_shell *shell);
-
-/* --- msh_executor_apply_redirects.c --- */
+/* --- exec_redir.c --- */
 /** Apply redirects and heredoc stdin wiring for one command. */
 int			apply_redirs(t_command *cmd);
 
-/* --- msh_executor_external_run.c --- */
+/* --- exec_notfound.c --- */
+/** Print the command-not-found line to stderr. */
+void		put_cmd_not_found(char *cmd_name);
+
+/* --- exec_external.c --- */
 /** Fork and wait for one external command. */
 int			run_external(t_command *cmd, t_shell *shell);
 /** Resolve argv[0] via PATH or literal path; static buffer. */
 char		*resolve_cmd_path(char *cmd, t_shell *shell);
 
-/* --- msh_executor_not_found_stderr.c --- */
-/** Print the command-not-found line to stderr. */
-void		put_cmd_not_found(char *cmd_name);
-
-/* --- msh_executor_child_run.c --- */
+/* --- exec_child.c --- */
 /** Child process: builtin, execve, or error exit. */
 void		run_in_child(t_command *cmd, t_shell *shell);
 
-/* --- msh_executor_pipeline_all_not_found.c --- */
+/* --- exec_pipeline_nf.c --- */
 /** Pipeline fast path when every stage is not found. */
 int			pip_all_nf(t_list *cmds, t_shell *shell);
 
-/* --- msh_executor_pipeline.c --- */
-/** Run a command list as a pipeline. */
-int			run_pip(t_list *cmds, t_shell *shell);
-
-/* --- msh_executor_pipeline_segment.c --- */
+/* --- exec_pipe_step.c --- */
 /** Fork one pipeline stage: wire prev_fd/stdout, optional sync-fd read. */
 pid_t		pipe_step(t_list *cmd_node, t_shell *shell,
 				int *prev_fd, int sync_fd[2]);
+
+/* --- exec_pipeline.c --- */
+/** Run a command list as a pipeline. */
+int			run_pip(t_list *cmds, t_shell *shell);
+
+/* --- exec_dispatch.c --- */
+/** Run parsed commands (single command or pipeline). */
+int			run_commands(t_shell *shell);
 
 /* --- builtins --- */
 /** Builtin cd: HOME, OLDPWD (-), or path. */

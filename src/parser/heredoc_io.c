@@ -1,18 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   heredoc_input.c                                    :+:      :+:    :+:   */
+/*   heredoc_io.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/29 17:38:09 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/03/29 18:45:07 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/03 00:00:00 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-
-char	*exp_hd_line(char *line, t_shell *shell);
 
 /** Warn on stderr when heredoc hits EOF before the closing delimiter. */
 void	print_heredoc_eof_warning(int line_no, char *delim)

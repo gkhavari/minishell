@@ -115,8 +115,8 @@ flowchart TD
 | Handlers and `sigaction` | `src/signals/signal_handler.c` |
 | Readline hook and `check_signal_received` | `src/signals/signal_utils.c` |
 | REPL loop | `src/core/shell_repl.c` |
-| Heredoc interrupt | `src/parser/heredoc.c`, `process_input` in `src/core/init.c` |
-| External wait + `child_wait_st` | `src/executor/msh_executor_external_run.c` |
-| Pipeline wait | `src/executor/msh_executor_pipeline.c` |
+| Heredoc interrupt | `src/parser/heredoc_collect.c`, `process_input` in `src/core/init.c` |
+| External wait + `child_wait_st` | `src/executor/exec_external.c` |
+| Pipeline wait | `src/executor/exec_pipeline.c` |
 
 For exit-code naming and aliases, see **`includes/defines.h`** and **`docs/BEHAVIOR.md`**.
