@@ -364,6 +364,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **signals/signal_utils.c** | `check_signal_received(shell)` | If **`g_signum == SIGINT`**: **`last_exit = XSINT`**, clear flag, return 1. |
 | **free/free_utils.c** | `free_tokens(&lst)` | `ft_lstclear` on token list; each `content` is `t_token *`. |
 | **free/free_utils.c** | `free_args(&lst)` | `ft_lstclear` on arg list; each `content` is `t_arg *`. |
+| **free/free_runtime.c** | `free_argv(argv)` | Free a NULL-terminated `char**` array and each element (argv, envp). Public — declared in `prototypes.h`; used by `exec_child.c` after `execve` failure and by `del_command_content`. |
 | **free/free_runtime.c** | `free_cmds(&lst)` | `ft_lstclear` on command list; each payload is one `t_command` (args/redirs as lists). |
 | **free/free_shell.c** | `free_tokenize(shell, word)` | On tokenizer OOM: frees **`word`**, partial tokens, current **`input`**; sets **`last_exit`**. Caller returns **`OOM`**; does not set **`shell->oom`**. |
 | **free/free_shell.c** | `reset_shell(shell)` | Frees tokens, commands, input; **does not** clear **`last_exit`**, env, cwd. |
