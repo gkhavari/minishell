@@ -1,17 +1,27 @@
-# Readline/history library symbols
-readline
-add_history
-rl_clear_history
-rl_on_new_line
-rl_replace_line
-rl_redisplay
-rl_done
-rl_event_hook
+# Readline/history library symbols ignored by funcheck (-i <symbol>).
+# Each entry is a malloc-site function name: funcheck skips NULL-check and
+# leak warnings for allocations made inside these functions.
+# Justification: all are readline/history internal allocators that keep
+# memory "reachable" for the lifetime of the process (same reason they are
+# suppressed in readline.supp for valgrind).
+readline        # main readline() entry — allocates line buffer and state
+add_history     # history library keeps entries until rl_clear_history
+rl_clear_history # clears history but triggers internal realloc during teardown
+rl_on_new_line  # updates internal display state, may allocate
+rl_replace_line # replaces current line buffer — reallocates internally
+rl_redisplay    # refreshes display, may allocate prompt/line copies
+rl_event_hook   # readline event hook — may allocate callback state
+# NOTE: rl_done is intentionally absent — it is an int variable, not a
+# function, and can never appear as a malloc site in funcheck output.
 
-# Project functions that directly call readline/history APIs
-read_input
-read_heredoc_line
-handle_end_of_string
-readline_event_hook
-clean_exit
-main
+# Project wrapper functions whose allocations originate from readline/history.
+# Kept because funcheck may resolve the malloc site to the wrapper instead of
+# the underlying library function depending on inlining.
+read_input        # calls readline(); wraps result into shell->input
+read_heredoc_line # calls readline() for heredoc delimiter input
+readline_event_hook # our readline event callback, invoked from within readline
+clean_exit        # exit path: calls rl_clear_history + free_all before exit
+# NOTE: main and handle_end_of_string are intentionally absent.
+# main is too broad (hides all allocations across the entire repl loop).
+# handle_end_of_string only calls add_history (already ignored above) and
+# ft_strdup("") which is our own code and should be visible to funcheck.

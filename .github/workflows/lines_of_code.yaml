@@ -1,6 +1,11 @@
 # .github/workflows/lines_of_code.yaml
 name: Lines of Code
 
+# Only the latest push needs a fresh badge — cancel stale runs.
+concurrency:
+  group: loc-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on :
   push:
 env:
