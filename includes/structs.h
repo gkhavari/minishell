@@ -140,7 +140,7 @@ typedef struct s_shell
 	char				*cwd;
 	int					last_exit;
 	int					had_path;
-	int				path_unset;
+	int					path_unset;
 	t_list				*tokens;
 	t_list				*cmds;
 	char				*input;

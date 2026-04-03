@@ -130,8 +130,8 @@ This ensures the parent doesn’t accidentally keep pipe ends open (classic bug 
 
 We **reap** children via `waitpid`:
 
-- **Single external**: `src/executor/exec_external.c` (`run_external`) forks once and `waitpid(pid, ...)` for that pid.
-  - We also handle `EINTR` by retrying `waitpid` (theoretical correctness).
+- **Single external**: `src/executor/exec_external.c` (`run_external`) forks once and uses `wait_one_child` (`src/executor/exec_wait.c`).
+  - `wait_one_child` does `waitpid(pid, ...)`, retries on `EINTR`, and falls back to `wait(...)` if `waitpid` fails.
 - **Pipeline**: `src/executor/exec_pipeline.c`
   (`wait_pipes`) loops until it has reaped **N** children.
   - It calls `waitpid(-1, ...)` and on `EINTR` it retries without counting progress.

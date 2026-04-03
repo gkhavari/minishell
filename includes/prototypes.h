@@ -233,6 +233,10 @@ pid_t		pipe_step(t_list *cmd_node, t_shell *shell,
 /** Run a command list as a pipeline. */
 int			run_pip(t_list *cmds, t_shell *shell);
 
+/* --- exec_wait.c --- */
+/** Wait one child robustly (waitpid + EINTR + wait fallback). */
+pid_t		wait_one_child(pid_t pid, int *status);
+
 /* --- exec_dispatch.c --- */
 /** Run parsed commands (single command or pipeline). */
 int			run_commands(t_shell *shell);

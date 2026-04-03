@@ -116,7 +116,7 @@ typedef struct s_shell {
     char      *cwd;             // for prompt (from getcwd)
     int        last_exit;       // exit status of last command ($?)
     int        had_path;        // true if PATH existed at shell startup
-    int        barrier_write_fd;// pipeline launch barrier FD (-1 if inactive)
+  int        path_unset;      // true once `unset PATH` is executed
     t_list    *tokens;          // tokenize_input(): content = t_token *
     t_list    *cmds;        // parse_input(): content = t_command *
     char      *input;           // current line (owned; freed after tokenize or on reset)
@@ -131,8 +131,8 @@ typedef struct s_shell {
 | **envp** | We own it so `export`/`unset`/`cd` can change it; passed to `execve`. |
 | **user, cwd** | Prompt construction; updated by `cd`. |
 | **last_exit** | Exit status of last command; used for `$?` and by `exit` with no args. |
-| **had_path** | Set in **`init_runtime_fields()`**: whether **`PATH`** was present in the environment **after** dup (used by **`resolve_cmd_path()`** and edge cases when **`PATH`** is unset later). |
-| **barrier_write_fd** | Reserved for a pipeline launch barrier; **`run_pip()`** sets **`shell->barrier_write_fd = -1`** and uses **`sync_fd[0/1] = -1`** (inactive). The all-not-found fast path (**`pip_all_nf()`** in **`exec_pipeline_nf.c`**) addresses stderr ordering for the “every stage not found” case without an active barrier. |
+| **had_path** | Set in **`init_runtime_fields()`** before defaults are ensured: whether **`PATH`** existed in inherited env. Used by **`resolve_cmd_path()`** fallback behavior. |
+| **path_unset** | Set by **`builtin_unset`** when `PATH` is explicitly unset; used by **`resolve_cmd_path()`** with `had_path` to control default PATH fallback behavior. |
 | **tokens** | Output of tokenizer; input to parser; freed after parse or on syntax error. |
 | **cmds** | Output of parser; input to heredoc + executor; freed after execution or on error. |
 | **input** | Current line from `readline` (TTY) or `ft_read_stdin_line` via **`repl_loop.c`** (non-TTY); freed in tokenizer or in `reset_shell()`. |
@@ -225,7 +225,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **init/repl_process.c** | `process_input(shell)` | `tokenize_input` → `parse_input` → optional `process_heredocs` (on failure: SIGINT → `XSINT`, else `FAILURE`) → `run_commands` → assigns `last_exit`. |
 | **init/init_shell.c** | `init_shell(shell, envp)` | `init_shell_identity` → `init_runtime_fields`; interactive TTY → `update_shlvl`. |
 | **init/init_env.c** | `init_shell_identity(shell, envp)` | `ft_arrdup` envp, `USER`, `getcwd` (fallback `/`); on fatal alloc path `ft_dprintf` + `exit_norl(shell, FAILURE)`. |
-| **init/init_env.c** | `init_runtime_fields(shell)` | `ensure_default_envs`, `last_exit=SUCCESS`, `barrier_write_fd=-1`, null `tokens`/`cmds`/`input`, `word_quoted`/`hd_mod` 0, **`had_path`** from **`PATH`**. |
+| **init/init_env.c** | `init_runtime_fields(shell)` | capture **`had_path`** from inherited env, `ensure_default_envs`, `last_exit=SUCCESS`, null `tokens`/`cmds`/`input`, `word_quoted`/`hd_mod` 0, `oom=0`, `path_unset=0`. |
 | **init/init_env.c** | `get_env_value(envp, key)` | Returns pointer into `envp[i]` at value after `=`, or NULL. |
 
 ---
@@ -304,7 +304,7 @@ Functions are grouped by **source file**. Each row: function name, return type /
 
 ### 2.6 Executor (src/executor/, `exec_*` files; public API unprefixed)
 
-**Read order:** start with **`exec_dispatch.c`** (`run_commands`), then **`exec_redir.c`** (`apply_redirs`). Single external: **`exec_external.c`** + **`exec_child.c`**. Pipeline: **`exec_pipeline.c`**, **`exec_pipe_step.c`**, **`exec_pipeline_nf.c`**. **`exec_notfound.c`** formats the command-not-found line.
+**Read order:** start with **`exec_dispatch.c`** (`run_commands`), then **`exec_redir.c`** (`apply_redirs`). Single external: **`exec_external.c`** + **`exec_wait.c`** + **`exec_child.c`**. Pipeline: **`exec_pipeline.c`**, **`exec_pipe_step.c`**, **`exec_pipeline_nf.c`**. **`exec_notfound.c`** formats the command-not-found line.
 
 | File | Function | Description |
 |------|----------|-------------|
@@ -313,10 +313,11 @@ Functions are grouped by **source file**. Each row: function name, return type /
 | **executor/exec_dispatch.c** | *(static)* `run_single_builtin` | Parent-only for **cd / export / unset / exit**; if another builtin has redirs/heredoc fd → `run_external`; else dup/apply/restore and `run_builtin`. |
 | **executor/exec_dispatch.c** | *(static)* `backup_stdio_fds` / `restore_stdio_fds` | Dup stdin/stdout for builtin redir in parent. |
 | **executor/exec_redir.c** | `apply_redirs(cmd)` | Walk `redirs` left-to-right (`apply_one_redir`); then if `hd_fd` ≥ 0, dup to stdin only when **`stdin_last == STDIN_LAST_HD`**, and always close the heredoc read fd. |
-| **executor/exec_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `waitpid`, `set_signals_interactive`, `child_exit_status`. |
+| **executor/exec_external.c** | `run_external(cmd, shell)` | Fork; child `set_signals_default`, `apply_redirs`, `run_in_child`; parent `set_signals_ignore`, `wait_one_child`, `set_signals_interactive`, `child_exit_status`. |
 | **executor/exec_external.c** | *(static)* `child_exit_status` | `WIFEXITED` → `WEXITSTATUS`; `WIFSIGNALED` → `XSB + WTERMSIG`; SIGQUIT prints “Quit (core dumped)”. |
 | **executor/exec_external.c** | *(static)* `scan_path` / `path_candidate` | Colon-scan PATH with `stat` (regular file). |
-| **executor/exec_external.c** | `resolve_cmd_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list if `had_path` and PATH unset. |
+| **executor/exec_external.c** | `resolve_cmd_path(cmd, shell)` | **`PATH_MAX`** static buffer; absolute or PATH search; default list when `PATH` is missing and (`had_path` was true or `path_unset` is still false). |
+| **executor/exec_wait.c** | `wait_one_child(pid, status)` | `waitpid(pid)` + EINTR retry; on non-EINTR failure falls back to `wait()` with EINTR retry. |
 | **executor/exec_child.c** | *(static)* `run_builtin_in_child` | SIGPIPE ignore, `exit_norl(shell, run_builtin(...))`. |
 | **executor/exec_child.c** | *(static)* `child_exit_not_found` / `child_abort_msg` | Error messages + `exit_norl` with `XNF` / `XNX`. |
 | **executor/exec_child.c** | `run_in_child(cmd, shell)` | Builtin branch, empty argv, `resolve_cmd_path`, `execve` or errors. |

@@ -77,6 +77,7 @@ SRCS		+=	$(SRC_DIR)/parser/parse_input.c \
 SRCS        += $(SRC_DIR)/executor/exec_redir.c \
 			   $(SRC_DIR)/executor/exec_notfound.c \
 			   $(SRC_DIR)/executor/exec_external.c \
+			   $(SRC_DIR)/executor/exec_wait.c \
 			   $(SRC_DIR)/executor/exec_child.c \
 			   $(SRC_DIR)/executor/exec_pipeline_nf.c \
 			   $(SRC_DIR)/executor/exec_pipe_step.c \

@@ -68,7 +68,7 @@ Script names below match **[LeaYeh/42_minishell_tester](https://github.com/LeaYe
 | `src/signals/` | Signal handlers and readline hook |
 | `src/tokenizer/` | Tokenizer: tokenizer.c, tokenizer_loop.c, expansion, quote/operator handlers, utils |
 | `src/parser/` | Parser: **`parse_input.c`**, **`parse_syntax.c`**, **`parse_pipeline.c`**, **`parse_attach_token.c`**, **`parse_redir.c`**, **`parse_finalize.c`**, **`heredoc_collect.c`**, **`heredoc_io.c`**, **`heredoc_expand.c`** |
-| `src/executor/` | **`exec_*`:** `exec_dispatch.c`, `exec_redir.c`, `exec_external.c`, `exec_notfound.c`, `exec_child.c`, **`exec_pipeline_nf.c`** (`pip_all_nf`), `exec_pipeline.c`, `exec_pipe_step.c` — public API unchanged (`run_commands`, `apply_redirs`, …). |
+| `src/executor/` | **`exec_*`:** `exec_dispatch.c`, `exec_redir.c`, `exec_external.c`, `exec_wait.c`, `exec_notfound.c`, `exec_child.c`, **`exec_pipeline_nf.c`** (`pip_all_nf`), `exec_pipeline.c`, `exec_pipe_step.c` — public API unchanged (`run_commands`, `apply_redirs`, …). |
 | `src/builtins/` | Builtin commands and dispatcher, export_print, exit_utils |
 
 ```mermaid
@@ -274,7 +274,7 @@ sequenceDiagram
 All other state is in **`t_shell`** (`includes/structs.h`). **Env, cwd, tokens, commands, input:** filled by init/parser/tokenizer. **Extra fields:**
 
 - **`had_path`:** PATH was present when the shell started (PATH resolution).
-- **`barrier_write_fd`:** optional pipeline sync write FD, or **`-1`**.
+- **`path_unset`:** set once `unset PATH` is executed; influences PATH fallback.
 - **`word_quoted` / `hd_mod`:** tokenizer flags (quoted WORD; no `$` in `<<` delimiter).
 
 Full **init** order: **§0.3** (`init_shell` / `init_runtime_fields`).
@@ -954,7 +954,7 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 
 ### 7.7 Path Resolution (actual: `exec_external.c`)
 
-`resolve_cmd_path` uses a **static** buffer (`PATH_MAX`): copy the return value before the next call if you need to keep it. If `cmd` contains `/`, the path is copied as-is (resolution happens at `execve`). Otherwise scan `PATH` colon-separated segments with `stat` (regular file), not `ft_split` + `access` as in older sketches. If `PATH` is missing but the shell **had** `PATH` at startup, a default list is used (`/usr/local/bin:/usr/bin:/bin:.`).
+`resolve_cmd_path` uses a **static** buffer (`PATH_MAX`): copy the return value before the next call if you need to keep it. If `cmd` contains `/`, the path is copied as-is (resolution happens at `execve`). Otherwise scan `PATH` colon-separated segments with `stat` (regular file), not `ft_split` + `access` as in older sketches. If `PATH` is missing and (`had_path == 1` or `path_unset == 0`), a default list is used (`/usr/local/bin:/usr/bin:/bin:.`).
 
 ---
 
@@ -1300,7 +1300,7 @@ Phase 6: Polish & Refactor
 ├── [x] Edge case handling (hardening tests pass)
 ├── [x] Executor split: `exec_child`, `exec_notfound`, `exec_pipe_step`, `exec_pipeline_nf` (`pip_all_nf`)
 ├── [x] Exit utils extracted: parse_exit_value in exit_utils.c
-├── [x] `barrier_write_fd` reserved on `t_shell`; pipeline **`sync_fd`** inactive; stderr ordering for all-not-found via **`pip_all_nf`**
+├── [x] Pipeline **`sync_fd`** currently inactive; stderr ordering for all-not-found via **`pip_all_nf`**
 └── [x] Norminette / 42 compliance (`norminette` on `includes`, `libft`, `src` in Linux)
 ```
 

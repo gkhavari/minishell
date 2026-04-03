@@ -249,10 +249,14 @@ See `1_pipelines.sh`.
 | `/bin/echo hello` | `hello` | none | 0 |
 | `nonexistent_cmd_xyz` | — | "command not found" or similar | **127** |
 | `/tmp` (directory as command) | — | "Is a directory" or similar | **126** |
-| Empty or minimal PATH (e.g. `env -i ./minishell` then `ls`) | — | "command not found" | **127** |
-| **`PATH` unset** but shell started with PATH present (`had_path`) | Match bash for default search list | Often includes **`.`**; non-executable file in cwd → **126** (not 127) when bash does | per bash |
+| Missing PATH at startup (e.g. `env -i ./minishell` then `ls`) | command output | none | command exit |
+| `export PATH=""` then `ls` | — | "command not found" | **127** |
+| `unset PATH` after startup with no PATH (`had_path=0`) | — | "command not found" | **127** |
+| `PATH` unset but shell started with PATH present (`had_path=1`) | command output (fallback list) | none | command exit |
 
-**Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. Resolution uses startup **`had_path`** and fallback paths — see **§7.7** in [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md). See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
+**Test-design note:** Absolute path: exec if executable. Name in PATH: search then exec; not found → 127. Directory as command → 126. Resolution uses startup **`had_path`** and runtime **`path_unset`** with fallback search paths — see **§7.7** in [MINISHELL_ARCHITECTURE.md](MINISHELL_ARCHITECTURE.md). See `1_scmds.sh`, `2_path_check.sh`, `9_go_wild.sh`.
+
+**No-env residual note (`10_no_env.sh`, cases 2 and 3):** bash/minishell can differ only in the ordering of environment lines (`LD_PRELOAD`, `PWD`, `SHLVL`, `_`) while values and command semantics match.
 
 ---
 

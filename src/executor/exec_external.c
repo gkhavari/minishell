@@ -49,9 +49,7 @@ int	run_external(t_command *cmd, t_shell *shell)
 		run_in_child(cmd, shell);
 	}
 	set_signals_ignore();
-	waited_pid = waitpid(pid, &status, 0);
-	while (waited_pid < 0 && errno == EINTR)
-		waited_pid = waitpid(pid, &status, 0);
+	waited_pid = wait_one_child(pid, &status);
 	set_signals_interactive();
 	if (waited_pid < 0)
 		return (perror("minishell: waitpid"), FAILURE);
