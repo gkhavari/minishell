@@ -26,6 +26,17 @@ static void	free_lst_man(t_list *lst)
 	}
 }
 
+static t_list	*map_fail(t_list *new_lst, void (*del)(void *), void *content)
+{
+	if (del != NULL)
+		del(content);
+	if (del != NULL)
+		ft_lstclear(&new_lst, del);
+	else
+		free_lst_man(new_lst);
+	return (NULL);
+}
+
 t_list	*ft_lstmap(t_list *lst, void *(*f)(void *), void (*del)(void *))
 {
 	t_list	*new_lst;
@@ -41,15 +52,7 @@ t_list	*ft_lstmap(t_list *lst, void *(*f)(void *), void (*del)(void *))
 		new_content = f(lst -> content);
 		new_element = (t_list *)ft_lstnew(new_content);
 		if (new_element == NULL)
-		{
-			if (del != NULL)
-				del(new_content);
-			if (del != NULL)
-				ft_lstclear(&new_lst, del);
-			else
-				free_lst_man(new_lst);
-			return (NULL);
-		}
+			return (map_fail(new_lst, del, new_content));
 		ft_lstadd_back(&new_lst, new_element);
 		lst = lst -> next;
 	}
