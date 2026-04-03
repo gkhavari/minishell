@@ -80,3 +80,13 @@ int	process_normal_char(t_shell *shell, char c, size_t *i, char **word)
 	(*i)++;
 	return (SUCCESS);
 }
+
+/**
+ * True if c starts an operator (| < >).
+ */
+ int	is_op_char(char c)
+ {
+	 if (c == '|' || c == '<' || c == '>')
+		 return (TRUE);
+	 return (FALSE);
+ }

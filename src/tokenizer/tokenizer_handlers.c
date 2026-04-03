@@ -20,8 +20,7 @@ void	handle_end_of_string(t_shell *shell, t_state *state, char **word)
 	if (*state == ST_SQUOTE || *state == ST_DQUOTE)
 	{
 		msh_strptr_free(word);
-		ft_dprintf(STDERR_FILENO,
-			"minishell: syntax error: unclosed quote\n");
+		ft_dprintf(STDERR_FILENO, "minishell: syntax error: unclosed quote\n");
 		shell->last_exit = XSYN;
 	}
 	else

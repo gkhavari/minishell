@@ -12,16 +12,6 @@
 
 #include "minishell.h"
 
-/**
- * True if c starts an operator (| < >).
- */
-int	is_op_char(char c)
-{
-	if (c == '|' || c == '<' || c == '>')
-		return (TRUE);
-	return (FALSE);
-}
-
 /** Parse operator at s: set *type, return byte length (0 if none). */
 static size_t	get_op_len_type(const char *s, t_tokentype *type)
 {
