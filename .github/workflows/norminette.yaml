@@ -1,6 +1,10 @@
 # .github/workflows/norminette.yaml
 name: Norminette
 
+concurrency:
+  group: norminette-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
