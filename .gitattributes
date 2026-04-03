@@ -1,2 +1,0 @@
-# Shell scripts must be LF for Linux/Docker (avoid "set: pipefail\r: invalid option")
-*.sh text eol=lf
