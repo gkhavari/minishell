@@ -82,10 +82,6 @@ void	run_in_child(t_command *cmd, t_shell *shell)
 	path = resolve_cmd_path(cmd->argv[0], shell);
 	if (!path)
 		child_exit_not_found(shell, cmd->argv[0]);
-	if (!shell->had_path && !get_env_value(shell->envp, "PATH")
-		&& !ft_strchr(cmd->argv[0], '/')
-		&& access(path, X_OK) != 0)
-		child_exit_not_found(shell, cmd->argv[0]);
 	if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode))
 		child_abort_msg(shell, cmd->argv[0], XNX, ": Is a directory\n");
 	child_exec(shell, cmd, path);
