@@ -39,6 +39,9 @@ jobs:
         with:
           tester_dir: ${{ env.TESTER_DIR }}
 
+      - name: Add funcheck to PATH
+        run: echo "$HOME/.local/funcheck/host" >> $GITHUB_PATH
+
       - name: Build with clang-12
         run: make re CC=clang-12
 
