@@ -6,7 +6,7 @@
 /*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/08 12:00:00 by thanh-ng          #+#    #+#             */
-/*   Updated: 2026/04/03 00:00:00 by thanh-ng         ###   ########.fr       */
+/*   Updated: 2026/04/03 12:20:03 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,7 @@ char	*resolve_cmd_path(char *cmd, t_shell *shell)
 	if (ft_strlen(cmd) >= PATH_MAX)
 		return (NULL);
 	path_env = get_env_value(shell->envp, "PATH");
-	if (!path_env && shell->had_path)
+	if (!path_env && (shell->had_path || !shell->path_unset))
 		path_env = "/usr/local/bin:/usr/bin:/bin:.";
 	if (ft_strchr(cmd, '/') || !path_env || *path_env == '\0')
 	{

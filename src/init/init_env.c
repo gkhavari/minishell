@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   init_env.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: minishell <minishell@student.42.fr>        +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/03/31 23:43:00 by minishell         #+#    #+#             */
-/*   Updated: 2026/04/03 00:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/04/03 12:18:46 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/04/03 12:18:49 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,6 +103,7 @@ static void	ensure_default_envs(t_shell *shell)
 /** Default env keys, per-run flags, NULL command/token pointers. */
 void	init_runtime_fields(t_shell *shell)
 {
+	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
 	ensure_default_envs(shell);
 	shell->last_exit = SUCCESS;
 	shell->tokens = NULL;
@@ -111,5 +112,5 @@ void	init_runtime_fields(t_shell *shell)
 	shell->word_quoted = 0;
 	shell->hd_mod = 0;
 	shell->oom = 0;
-	shell->had_path = (get_env_value(shell->envp, "PATH") != NULL);
+	shell->path_unset = 0;
 }

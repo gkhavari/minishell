@@ -125,6 +125,7 @@ typedef struct s_command
 ** user / cwd — $USER / $PWD at startup (used in prompt)
 ** last_exit  — $? : exit status of the last finished command
 ** had_path   — 1 if PATH existed in envp at startup
+** path_unset — 1 if user explicitly ran `unset PATH` in this session
 ** tokens     — tokenizer output; freed after parse
 ** cmds       — parser output; freed after execution
 ** input      — current line from readline / stdin
@@ -139,6 +140,7 @@ typedef struct s_shell
 	char				*cwd;
 	int					last_exit;
 	int					had_path;
+	int				path_unset;
 	t_list				*tokens;
 	t_list				*cmds;
 	char				*input;

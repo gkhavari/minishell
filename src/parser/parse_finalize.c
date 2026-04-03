@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parse_finalize.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gkhavari <gkhavari@student.42vienna.c      +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/08 21:01:23 by gkhavari          #+#    #+#             */
-/*   Updated: 2026/04/03 00:00:00 by thanh-ng         ###   ########.fr       */
+/*   Created: 2026/04/03 12:21:35 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/04/03 12:21:38 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 

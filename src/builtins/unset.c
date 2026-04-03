@@ -82,6 +82,8 @@ static int	unset_one_arg(char *arg, t_shell *shell)
 	}
 	if (!is_valid_unset_name(arg))
 		return (SUCCESS);
+	if (ft_strcmp(arg, "PATH") == 0)
+		shell->path_unset = 1;
 	idx = find_env_index(shell, arg);
 	if (idx >= 0)
 		remove_env_entry(shell, idx);

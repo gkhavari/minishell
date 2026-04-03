@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   msh_stdin_read_line.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: minishell <minishell@student.42.fr>        +#+  +:+       +#+        */
+/*   By: thanh-ng <thanh-ng@student.42vienna.com    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/04/02 00:00:00 by minishell         #+#    #+#             */
-/*   Updated: 2026/04/02 00:00:00 by minishell        ###   ########.fr       */
+/*   Created: 2026/04/03 12:22:58 by thanh-ng          #+#    #+#             */
+/*   Updated: 2026/04/03 12:23:01 by thanh-ng         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
