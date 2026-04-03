@@ -909,8 +909,8 @@ flowchart LR
     NF --> IGN[set_signals_ignore]
     IGN --> LOOP[spawn_pipes]
     LOOP --> RPS[pipe_step per cmd]
-    RPS --> FORK[fork_pip_child]
-    FORK --> CHILD[child: setup_pip_child_fds, apply_redirs, run_in_child]
+    RPS --> FORK[fork_pipe_child]
+    FORK --> CHILD[child: setup_pipe_child_fds, apply_redirs, run_in_child]
     LOOP --> WAIT[wait_pipes]
     WAIT --> INT[set_signals_interactive]
 ```
@@ -1009,7 +1009,7 @@ flowchart LR
 - **`XNF` (127)** – Command not found
   (**`child_exit_not_found`**; pipeline fast path **`pip_all_nf`** in
   parent).
-- **`XSB + signal`** – Child terminated by signal; e.g. **`XSINT`** for SIGINT (`exec_external.c` **`child_wait_st`**, pipeline **`wait_pipes`**). **`SIGQUIT`** during a single external wait also prints **`Quit (core dumped)\n`** from **`child_wait_st`**; pipelines use the numeric status only (see [SIGNAL.md](SIGNAL.md)).
+- **`XSB + signal`** – Child terminated by signal; e.g. **`XSINT`** for SIGINT (`exec_external.c` **`child_exit_status`**, pipeline **`wait_pipes`**). **`SIGQUIT`** during a single external wait also prints **`Quit (core dumped)\n`** from **`child_exit_status`**; pipelines use the numeric status only (see [SIGNAL.md](SIGNAL.md)).
 
 ### 8.3 exit Builtin (Bash Reference)
 

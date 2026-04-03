@@ -13,7 +13,7 @@
 #include "minishell.h"
 
 /** Map wait status to shell exit (signals, exit code, or FAILURE). */
-static int	child_wait_st(int status)
+static int	child_exit_status(int status)
 {
 	if (WIFSIGNALED(status))
 	{
@@ -55,11 +55,11 @@ int	run_external(t_command *cmd, t_shell *shell)
 	set_signals_interactive();
 	if (waited_pid < 0)
 		return (perror("minishell: waitpid"), FAILURE);
-	return (child_wait_st(status));
+	return (child_exit_status(status));
 }
 
 /** One PATH component + cmd into out; 0 if would overflow PATH_MAX. */
-static int	path_cand(char out[PATH_MAX], const char *dir, size_t dir_len,
+static int	path_candidate(char out[PATH_MAX], const char *dir, size_t dir_len,
 		char *cmd)
 {
 	size_t	cmd_len;
@@ -96,7 +96,7 @@ static char	*scan_path(const char *path_env, char *cmd, char resolved[PATH_MAX])
 		while (*end && *end != ':')
 			end++;
 		len = (size_t)(end - start);
-		if (path_cand(full_path, start, len, cmd)
+		if (path_candidate(full_path, start, len, cmd)
 			&& stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode))
 		{
 			ft_strlcpy(resolved, full_path, PATH_MAX);
